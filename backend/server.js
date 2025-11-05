@@ -140,3 +140,24 @@ app.listen(PORT, () => {
   console.log('Education API server running on port ' + PORT);
   console.log('Access the API at http://localhost:' + PORT + '/api');
 });
+// In your server.js, add these routes:
+
+// Save diagnostic job
+app.post('/api/jobs', (req, res) => {
+  const jobData = req.body;
+  // Save to database
+  res.json({ success: true, jobId: 'generated-id' });
+});
+
+// Upload images
+app.post('/api/images/upload', upload.single('image'), (req, res) => {
+  // Handle file upload
+  res.json({ success: true, imageUrl: 'url-to-uploaded-image' });
+});
+
+// Submit report to SA
+app.post('/api/submit-report', async (req, res) => {
+  const { email, reportData } = req.body;
+  // Generate PDF and send email
+  res.json({ success: true, message: 'Report sent' });
+});
