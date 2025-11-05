@@ -14,7 +14,18 @@ app.use('/uploads', express.static('uploads'));
 if (!fs.existsSync('./uploads')) {
   fs.mkdirSync('./uploads');
 }
-
+// Root route - for testing
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'DiagFlow API is running',
+    version: '1.0.0',
+    endpoints: [
+      'POST /api/jobs',
+      'POST /api/images/upload', 
+      'POST /api/submit-report'
+    ]
+  });
+});
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
