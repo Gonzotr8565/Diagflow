@@ -45,6 +45,12 @@ const upload = multer({
 });
 
 // Email configuration
+//const transporter = nodemailer.createTransport({
+  // Email configuration
+console.log('Checking email configuration...');
+console.log('EMAIL_USER:', process.env.EMAIL_USER ? 'SET' : 'NOT SET');
+console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'SET' : 'NOT SET');
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: process.env.SMTP_PORT || 587,
