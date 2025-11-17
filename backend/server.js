@@ -13,7 +13,8 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
+// Serve static files (images, etc.)
+app.use('/public', express.static('public'));
 // Configure multer for image uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
