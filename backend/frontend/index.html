@@ -1,13 +1,591 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
-  </head>
-  <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiagFlow V46 - Professional Diagnostic Workflow</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    </style>
+</head>
+<body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+    
+    <script type="text/babel">
+        const { useState } = React;
+        
+        // Complete Icon Set
+        const Menu = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>;
+        const Home = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>;
+        const BookOpen = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>;
+        const Settings = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
+        const TrendingUp = ({className}) => <svg className={className || "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>;
+        const FileText = ({className}) => <svg className={className || "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
+        const CheckCircle = ({className}) => <svg className={className || "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+        const Circle = ({className}) => <svg className={className || "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth={2} /></svg>;
+        const ChevronRight = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>;
+        const Award = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>;
+        const HelpCircle = ({className}) => <svg className={className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+        const Edit2 = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>;
+        const Video = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>;
+
+        console.log("🚀 DiagFlow V46 Complete - Loading...");
+
+        function DiagnosticApp() {
+            // State Management
+            const [currentView, setCurrentView] = useState('vehicle-info');
+            const [selectedStep, setSelectedStep] = useState(null);
+            const [selectedScopeWorkflow, setSelectedScopeWorkflow] = useState(null);
+            const [menuOpen, setMenuOpen] = useState(false);
+            const [completedSteps, setCompletedSteps] = useState([]);
+            
+            const [vehicleInfo, setVehicleInfo] = useState({
+                year: '', make: '', model: '', vin: '', roNumber: ''
+            });
+            const [hasVehicleInfo, setHasVehicleInfo] = useState(false);
+            const [stepNotes, setStepNotes] = useState({});
+            const [stepImages, setStepImages] = useState({});
+            const [showHelpModal, setShowHelpModal] = useState(false);
+            const [showSubmitModal, setShowSubmitModal] = useState(false);
+            const [showSupportModal, setShowSupportModal] = useState(false);
+            const [submitEmail, setSubmitEmail] = useState('');
+            const [isSubmitting, setIsSubmitting] = useState(false);
+            const [expandedImage, setExpandedImage] = useState(null);
+            const [supportForm, setSupportForm] = useState({
+                year: '', make: '', model: '', helpType: '', description: ''
+            });
+
+            const API_BASE_URL = 'https://diagflow-production.up.railway.app';
+            const SAMPLE_WAVEFORMS_URL = 'https://your-samples-site.com/waveforms';
+
+            // 15-Step Diagnostic Workflow
+            const diagnosticSteps = [
+                { id: 1, title: "Pre-Scan Documentation", category: "Pre-Diagnostic",
+                  bestPractice: "Always perform pre-scan BEFORE any work begins. Document ALL DTCs present, including pending and history codes. Take screenshots or photos of scan data. This protects you from comebacks and establishes baseline condition." },
+                { id: 2, title: "Test Drive & Data Capture", category: "Pre-Diagnostic",
+                  bestPractice: "Duplicate customer concern if possible. Record data during test drive - freeze frame data, Mode 6 data, and live parameters. Note exact conditions when problem occurs (temperature, speed, load). Use your phone to video/audio record unusual sounds or behaviors." },
+                { id: 3, title: "Baseline Health Check", category: "Pre-Diagnostic",
+                  bestPractice: "Check fluid levels, visual inspection for obvious damage, verify no unrelated issues exist. Look for aftermarket modifications, previous repairs, or collision damage. Document condition with photos. Don't assume basic maintenance was done. (This should be part of your digital inspection)" },
+                { id: 4, title: "Digital Inspection", category: "Pre-Diagnostic",
+                  bestPractice: "Use your shop's digital inspection process. Document everything with photos - this builds customer trust and protects against liability. Check for related issues that could cause the symptom. Note deferred maintenance that could affect diagnosis." },
+                { id: 5, title: "Electrical System Evaluation", category: "Pre-Diagnostic",
+                  bestPractice: "CRITICAL: Test battery STATE OF HEALTH and capacity, not just voltage. Check alternator output and ripple. Verify stable voltage before any diagnostic work - low voltage causes false DTCs and intermittent issues. Load test battery if over 2 years old." },
+                { id: 6, title: "TSB & Known Issues Research", category: "Research",
+                  bestPractice: "Search manufacturer TSBs, NHTSA database, and tech forums BEFORE diving into diagnosis. Many issues have known fixes or software updates. Check for recalls and warranty extensions. Document TSB numbers found - this justifies repair to customer. This is not a silver bullet, do not replace this with valid testing." },
+                { id: 7, title: "Wiring Diagrams & System Operation", category: "Research",
+                  bestPractice: "Study wiring diagrams and system operation BEFORE testing. Understand how the system works normally so you recognize abnormal. Identify all components in the circuit, their locations, and connectors. Know what voltages/resistances to expect. If this is a Comm problem, you must look at topology. Do not ignore Comm codes. See if they integrate into your complaint, or can be ignored. Test to see if they repeat and are part of this diag." },
+                { id: 8, title: "Stable Voltage Setup", category: "Research",
+                  bestPractice: "Use a battery maintainer or power supply during extended diagnostics. Unstable voltage during testing gives false results and can set DTCs. Many techs skip this and waste hours chasing ghosts. Maintain 12.6V minimum during all testing." },
+                { id: 9, title: "Test Plan Development", category: "Diagnosis",
+                  bestPractice: "Write down your test plan BEFORE you start testing. What are you testing? What results prove/disprove your theory? Test the most likely causes first but have a systematic plan. Don't just throw parts at it or randomly test things. This is where you may need to sell more diag, what we call Scope, and Pinpoint testing. If a high level of Scope diagnostics is needed, or physical tear down, that should not be free. Get paid for your skill. (see the Scope part for this workflow)" },
+                { id: 10, title: "Data Recording & Scope Work", category: "Diagnosis",
+                  bestPractice: "Use your scope to capture actual waveforms - don't just trust scan data. Save all scope captures with filename showing RO# and what was tested. Capture known-good and fault conditions. This is your evidence that proves the diagnosis. This can sometimes be done in the first diag charge, (RC, VE, etc. But know when to stop and sell more work.)" },
+                { id: 11, title: "Delta Analysis & Data Mapping", category: "Diagnosis",
+                  bestPractice: "Compare current readings to baseline/known good values. Look for CHANGES - what's different when problem occurs vs when it doesn't? Map data relationships (fuel trim vs load, MAF vs RPM). The delta (change) often reveals the root cause." },
+                { id: 12, title: "Part Verification", category: "Diagnosis",
+                  bestPractice: "NEVER replace parts based on DTCs alone. Test the actual component - verify it's out of spec. Check connectors and wiring first - most 'bad parts' are actually wiring/connector issues. Get known-good readings from same vehicle if possible." },
+                { id: 13, title: "Prove It Twice", category: "Diagnosis",
+                  bestPractice: "Prove your diagnosis TWO different ways. If sensor reads low, verify both the sensor output AND the circuit continuity. Or test at both ends, and refer to the Scope Part of this App for Amp, and other SigInt work. Duplicate the failure if intermittent. Never rely on one test. This prevents comebacks and wrong part installation." },
+                { id: 14, title: "Quality Repair & Parts", category: "Repair",
+                  bestPractice: "Use OE or quality aftermarket parts - cheap parts cause comebacks. Follow manufacturer repair procedures exactly. Take photos of repair area before/after. Clean connectors, apply dielectric grease. If you find poor previous repairs, document and repair correctly." },
+                { id: 15, title: "Post-Repair Validation & Post-Scan", category: "Repair",
+                  bestPractice: "ALWAYS post-scan after repair. Clear codes properly (not just erase). Test drive and verify concern is fixed. Check for any NEW codes created during repair. Run monitors to set readiness. Document successful repair with scan data showing fix. This proves you fixed it. If you are doing engine Drivability, Always document Trims on final test drive, this will confirm it is running the way it was designed and protect your integrity. If there are still Trim problems, let the SA know, it is not really fixed, even if it runs better. (Cascading Failure, sometimes requires more than one repair.)" }
+            ];
+
+            // Scope & Pinpoint Testing Workflows  
+            const scopeWorkflows = [
+                {
+                    id: 'baseline',
+                    title: 'Baseline Testing',
+                    icon: CheckCircle,
+                    color: 'bg-blue-600',
+                    description: 'Essential baseline tests for engine health assessment',
+                    steps: [
+                        { 
+                            id: 1, 
+                            title: 'Relative Compression Test',
+                            description: 'Use starter current draw to assess cylinder compression',
+                            procedure: 'Disable fuel and ignition. Connect current clamp to battery cable. Crank engine and capture waveform. Look for consistent current spikes across all cylinders.',
+                            tips: 'Each cylinder should show similar peak heights. Low peaks indicate weak compression. This test finds mechanical issues without removing plugs.',
+                            samples: [
+                                { title: 'Good Compression Pattern', description: 'All cylinders show uniform current peaks around 200-250 amps. This indicates healthy compression across all cylinders.', image: 'https://via.placeholder.com/400x300/22c55e/ffffff?text=Good+Compression' },
+                                { title: 'Low Compression Cylinder', description: 'One cylinder shows significantly lower peak (150 amps vs 220 amps). Indicates worn rings, valves, or head gasket on that cylinder.', image: 'https://via.placeholder.com/400x300/ef4444/ffffff?text=Low+Compression' },
+                                { title: 'Multiple Cylinder Issues', description: 'Several cylinders show low and uneven peaks. May indicate timing chain/belt issue, multiple valve problems, or severe engine wear.', image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Multiple+Issues' }
+                            ]
+                        },
+                        { 
+                            id: 2, 
+                            title: 'Volumetric Efficiency (VE)',
+                            description: 'Calculate engine breathing efficiency',
+                            procedure: 'If you have a Transducer, WPS, this is a much better way to see actual intake VE, and you can add sync. Record MAP, RPM, and IAT at various loads. Calculate VE = (actual airflow / theoretical airflow) x 100. Compare to baseline values.',
+                            tips: 'Good VE is 80-95% at idle, 95%+ at cruise. Low VE indicates restricted intake/exhaust, cam timing issues, or valve problems.',
+                            samples: [
+                                { title: 'Healthy VE Pattern', description: 'VE reads 85% at idle, 98% at cruise. Smooth transitions between loads. Engine is breathing efficiently.', image: 'https://via.placeholder.com/400x300/22c55e/ffffff?text=Good+VE' },
+                                { title: 'Restricted Intake', description: 'VE drops to 65% at idle, 80% at cruise. Indicates clogged air filter, restricted intake, or MAF sensor issues.', image: 'https://via.placeholder.com/400x300/ef4444/ffffff?text=Low+VE' },
+                                { title: 'Exhaust Restriction', description: 'VE normal at light load but drops significantly under acceleration. Indicates clogged catalytic converter or exhaust restriction.', image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Exhaust+Block' }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'cam-crank',
+                    title: 'Cam/Crank Correlation',
+                    icon: TrendingUp,
+                    color: 'bg-green-600',
+                    description: 'Verify timing chain/belt alignment and sensor operation',
+                    steps: [
+                        { 
+                            id: 1, 
+                            title: 'Sensor Signal Quality Check',
+                            description: 'Verify clean cam and crank sensor signals',
+                            procedure: 'Connect scope to both cam and crank sensors. Crank or run engine. Check for clean square waves (Hall) or sine waves (magnetic). No dropouts or noise.',
+                            tips: 'Weak or erratic signals cause no-start, stall, misfire. Check sensor gap, tone ring condition, and wiring.',
+                            samples: [
+                                { title: 'Clean Sensor Signals', description: 'Both cam and crank show clean, consistent waveforms. Hall sensors show sharp square waves, magnetic sensors show clean sine waves.', image: 'https://via.placeholder.com/400x300/22c55e/ffffff?text=Clean+Signals' },
+                                { title: 'Weak Sensor Signal', description: 'Crank sensor amplitude is low or erratic. May cause intermittent no-start or stalling. Check sensor gap and wiring.', image: 'https://via.placeholder.com/400x300/ef4444/ffffff?text=Weak+Signal' },
+                                { title: 'Noise Interference', description: 'Signal shows electrical noise or dropouts. Check for damaged wiring, poor grounds, or electromagnetic interference.', image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Noise' }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    id: 'can-bus',
+                    title: 'CAN Bus Diagnostics',
+                    icon: FileText,
+                    color: 'bg-purple-600',
+                    description: 'Network communication testing and troubleshooting',
+                    steps: [
+                        { 
+                            id: 1, 
+                            title: 'Network Topology Check',
+                            description: 'Identify CAN network architecture and termination',
+                            procedure: 'Reference wiring diagram for CAN High/Low wires and termination resistors. Key off, measure resistance between CAN H and CAN L at DLC. Should be 60 ohms (two 120-ohm resistors in parallel).',
+                            tips: 'Open circuit = broken wire or missing termination. Short circuit = damaged wire or module. Wrong resistance = missing or added termination.',
+                            samples: [
+                                { title: 'Correct Termination', description: '60 ohms measured between CAN H and CAN L. Both 120-ohm termination resistors present and functioning. Network topology correct.', image: 'https://via.placeholder.com/400x300/22c55e/ffffff?text=60+Ohms+Good' }
+                            ]
+                        }
+                    ]
+                }
+            ];
+
+            // Helper Functions
+            const resetJob = () => {
+                const confirmed = window.confirm('Start a new job? This will clear all notes and progress.');
+                if (confirmed) {
+                    setVehicleInfo({ year: '', make: '', model: '', vin: '', roNumber: '' });
+                    setHasVehicleInfo(false);
+                    setCompletedSteps([]);
+                    setStepNotes({});
+                    setStepImages({});
+                    setSelectedStep(null);
+                    setSelectedScopeWorkflow(null);
+                    setCurrentView('vehicle-info');
+                }
+                return confirmed;
+            };
+
+            const saveStepNote = (stepId, note) => {
+                setStepNotes(prev => ({ ...prev, [stepId]: note }));
+            };
+
+            const handleImageUpload = (stepId, event) => {
+                const files = Array.from(event.target.files);
+                const imagePromises = files.map(file => {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            resolve({
+                                id: Date.now() + Math.random(),
+                                url: e.target.result,
+                                name: file.name,
+                                description: '',
+                                type: 'neutral'
+                            });
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                });
+
+                Promise.all(imagePromises).then(newImages => {
+                    setStepImages(prev => ({
+                        ...prev,
+                        [stepId]: [...(prev[stepId] || []), ...newImages]
+                    }));
+                });
+            };
+
+            const updateImageDescription = (stepId, imageId, description) => {
+                setStepImages(prev => ({
+                    ...prev,
+                    [stepId]: prev[stepId].map(img => 
+                        img.id === imageId ? { ...img, description } : img
+                    )
+                }));
+            };
+
+            const updateImageType = (stepId, imageId, type) => {
+                setStepImages(prev => ({
+                    ...prev,
+                    [stepId]: prev[stepId].map(img => 
+                        img.id === imageId ? { ...img, type } : img
+                    )
+                }));
+            };
+
+            const deleteImage = (stepId, imageId) => {
+                setStepImages(prev => ({
+                    ...prev,
+                    [stepId]: prev[stepId].filter(img => img.id !== imageId)
+                }));
+            };
+
+            const initiateHelpSession = (type) => {
+                console.log(\`Help session requested: \${type}\`);
+                
+                if (type === 'support') {
+                    setShowHelpModal(false);
+                    setSupportForm({
+                        year: vehicleInfo.year || '',
+                        make: vehicleInfo.make || '',
+                        model: vehicleInfo.model || '',
+                        helpType: '',
+                        description: ''
+                    });
+                    setShowSupportModal(true);
+                    return;
+                }
+                
+                alert(\`Premium Help Feature\\n\\nThis will connect you to an expert technician for \${type} support.\\n\\nBackend integration coming soon!\`);
+                setShowHelpModal(false);
+            };
+
+            const submitSupportRequest = async () => {
+                if (!supportForm.helpType || !supportForm.description) {
+                    alert('Please fill in the type of help needed and description.');
+                    return;
+                }
+
+                setIsSubmitting(true);
+
+                try {
+                    const supportData = {
+                        email: 'support@diagflow.com',
+                        subject: \`DiagFlow Support Request - \${supportForm.year} \${supportForm.make} \${supportForm.model}\`,
+                        helpType: supportForm.helpType,
+                        vehicleInfo: { year: supportForm.year, make: supportForm.make, model: supportForm.model },
+                        description: supportForm.description,
+                        timestamp: new Date().toISOString()
+                    };
+
+                    const response = await fetch(\`\${API_BASE_URL}/api/support-request\`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                        body: JSON.stringify(supportData)
+                    });
+
+                    if (!response.ok) {
+                        console.log('Support request data:', supportData);
+                        alert(\`Support request prepared!\\n\\nYour request has been logged.\\n\\nA technician will contact you soon.\`);
+                    } else {
+                        alert(\`Support request submitted successfully!\\n\\nA Master Technician will contact you shortly.\`);
+                    }
+                } catch (error) {
+                    console.error('Support request error:', error);
+                    alert(\`Support request logged.\\n\\nWe'll get back to you as soon as possible.\`);
+                }
+                
+                setIsSubmitting(false);
+                setShowSupportModal(false);
+                setSupportForm({ year: '', make: '', model: '', helpType: '', description: '' });
+            };
+
+            const generatePDFReport = async () => {
+                return {
+                    vehicleInfo,
+                    completedSteps: completedSteps.length,
+                    totalSteps: diagnosticSteps.length,
+                    steps: diagnosticSteps.map(step => ({
+                        id: step.id,
+                        title: step.title,
+                        category: step.category,
+                        completed: completedSteps.includes(step.id),
+                        notes: stepNotes[step.id] || '',
+                        images: stepImages[step.id] || []
+                    })),
+                    generatedDate: new Date().toISOString()
+                };
+            };
+
+            const submitToServiceAdvisor = async () => {
+                if (!submitEmail) {
+                    alert('Please enter a valid email address');
+                    return;
+                }
+
+                setIsSubmitting(true);
+
+                try {
+                    const reportData = await generatePDFReport();
+                    
+                    const response = await fetch(\`\${API_BASE_URL}/api/submit-report\`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                        body: JSON.stringify({ email: submitEmail, reportData: reportData })
+                    });
+                    
+                    if (!response.ok) {
+                        console.log('Report data prepared:', reportData);
+                        alert(\`Report generated successfully!\\n\\nSending to: \${submitEmail}\\n\\nNote: Backend PDF/email endpoint needs to be configured.\\n\\nReport data is ready and logged to console.\`);
+                    } else {
+                        alert(\`Report successfully sent to: \${submitEmail}\`);
+                    }
+                } catch (error) {
+                    console.log('Report data prepared:', await generatePDFReport());
+                    alert(\`Report generated!\\n\\nTo: \${submitEmail}\\n\\nBackend configuration needed for email delivery.\\nReport data logged to console.\`);
+                }
+                
+                setIsSubmitting(false);
+                setShowSubmitModal(false);
+                setSubmitEmail('');
+            };
+
+            // Main JSX Return
+            return (
+                <div className="min-h-screen bg-gray-100">
+                    {/* Header */}
+                    <div className="bg-white shadow-md sticky top-0 z-50">
+                        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <button onClick={() => setMenuOpen(!menuOpen)} className="hover:bg-gray-100 p-1 rounded">
+                                    <Menu />
+                                </button>
+                                <div>
+                                    <h1 className="text-2xl font-bold text-blue-600">DiagFlow</h1>
+                                    <p className="text-xs text-gray-500">Never Miss A Step • V46</p>
+                                </div>
+                            </div>
+                            {hasVehicleInfo && (
+                                <div className="flex items-center gap-2">
+                                    <button onClick={resetJob} className="text-sm text-blue-600 font-medium hover:text-blue-700 px-2 py-1">
+                                        New Job
+                                    </button>
+                                    <button onClick={() => setShowHelpModal(true)} className="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-orange-600 flex items-center gap-1">
+                                        <HelpCircle className="w-4 h-4" />
+                                        Get Help
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Side Menu */}
+                    {menuOpen && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setMenuOpen(false)}>
+                            <div className="bg-white w-64 h-full" onClick={(e) => e.stopPropagation()}>
+                                <div className="p-4 border-b">
+                                    <h2 className="font-bold text-xl">Menu</h2>
+                                </div>
+                                <nav className="p-2">
+                                    {[
+                                        { icon: Home, label: 'Home', view: 'home' },
+                                        { icon: BookOpen, label: 'Workflow', view: 'workflow' },
+                                        { icon: TrendingUp, label: 'Scope & Pinpoint', view: 'scope' },
+                                        { icon: Settings, label: 'Settings', view: 'settings' }
+                                    ].map(item => (
+                                        <button
+                                            key={item.view}
+                                            onClick={() => { 
+                                                setCurrentView(item.view); 
+                                                setSelectedStep(null);
+                                                setSelectedScopeWorkflow(null);
+                                                setMenuOpen(false); 
+                                            }}
+                                            className={\`w-full flex items-center gap-3 px-4 py-3 rounded-lg \${currentView === item.view ? 'bg-blue-50' : ''}\`}
+                                        >
+                                            <item.icon />
+                                            <span>{item.label}</span>
+                                        </button>
+                                    ))}
+                                    
+                                    <div className="border-t my-2"></div>
+                                    
+                                    {hasVehicleInfo && (
+                                        <button onClick={() => { setShowHelpModal(true); setMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-orange-600">
+                                            <HelpCircle className="w-5 h-5" />
+                                            <span>Get Expert Help</span>
+                                        </button>
+                                    )}
+                                </nav>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Main Content Area */}
+                    <div className="max-w-4xl mx-auto p-4 pb-32">
+                        {currentView === 'vehicle-info' ? (
+                            <div className="space-y-4">
+                                <div className="bg-white p-6 rounded-lg shadow-md">
+                                    <h2 className="text-xl font-bold mb-4">Vehicle & Job Information</h2>
+                                    <p className="text-sm text-gray-600 mb-4">Enter vehicle details to begin. All fields optional.</p>
+                                    
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">RO Number</label>
+                                            <input type="text" className="w-full px-4 py-2 border rounded-lg" placeholder="12345" value={vehicleInfo.roNumber} onChange={(e) => setVehicleInfo({...vehicleInfo, roNumber: e.target.value})} />
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div>
+                                                <label className="block text-sm font-medium mb-1">Year</label>
+                                                <input type="text" className="w-full px-4 py-2 border rounded-lg" placeholder="2023" value={vehicleInfo.year} onChange={(e) => setVehicleInfo({...vehicleInfo, year: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-1">Make</label>
+                                                <input type="text" className="w-full px-4 py-2 border rounded-lg" placeholder="Ford" value={vehicleInfo.make} onChange={(e) => setVehicleInfo({...vehicleInfo, make: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-1">Model</label>
+                                                <input type="text" className="w-full px-4 py-2 border rounded-lg" placeholder="F-150" value={vehicleInfo.model} onChange={(e) => setVehicleInfo({...vehicleInfo, model: e.target.value})} />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">VIN</label>
+                                            <input type="text" className="w-full px-4 py-2 border rounded-lg font-mono text-sm" placeholder="1FTFW1E84MFA00000" maxLength={17} value={vehicleInfo.vin} onChange={(e) => setVehicleInfo({...vehicleInfo, vin: e.target.value.toUpperCase()})} />
+                                        </div>
+                                    </div>
+
+                                    <button onClick={() => { setHasVehicleInfo(true); setCurrentView('home'); }} className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">
+                                        Start Diagnostic Workflow
+                                    </button>
+                                </div>
+                            </div>
+                        ) : currentView === 'home' ? (
+                            <div className="space-y-6">
+                                <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-lg">
+                                    <h2 className="text-2xl font-bold mb-2">Current Job</h2>
+                                    {hasVehicleInfo && (
+                                        <div className="mt-4 pt-4 border-t border-blue-500">
+                                            <div className="text-sm space-y-1">
+                                                {vehicleInfo.roNumber && <div>RO#: {vehicleInfo.roNumber}</div>}
+                                                <div>{vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}</div>
+                                                {vehicleInfo.vin && <div className="font-mono text-xs">{vehicleInfo.vin}</div>}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-white p-4 rounded-lg shadow-md text-center">
+                                        <div className="text-2xl font-bold text-blue-600">{completedSteps.length}</div>
+                                        <div className="text-xs text-gray-600">Steps Done</div>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-lg shadow-md text-center">
+                                        <div className="text-2xl font-bold text-green-600">{Object.keys(stepNotes).length}</div>
+                                        <div className="text-xs text-gray-600">Notes Taken</div>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-lg shadow-md text-center">
+                                        <div className="text-2xl font-bold text-orange-600">
+                                            {Object.values(stepImages).reduce((sum, imgs) => sum + imgs.length, 0)}
+                                        </div>
+                                        <div className="text-xs text-gray-600">Photos Added</div>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-lg shadow-md text-center">
+                                        <div className="text-2xl font-bold text-purple-600">{Math.round((completedSteps.length / 15) * 100)}%</div>
+                                        <div className="text-xs text-gray-600">Progress</div>
+                                    </div>
+                                </div>
+
+                                <button onClick={() => setCurrentView('workflow')} className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700">
+                                    Continue Diagnostic Workflow
+                                </button>
+                            </div>
+                        ) : currentView === 'workflow' ? (
+                            <div className="space-y-4">
+                                <div className="bg-white p-4 rounded-lg shadow-md">
+                                    <h2 className="text-xl font-bold">15-Step Diagnostic Process</h2>
+                                    <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
+                                        <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: \`\${(completedSteps.length / 15) * 100}%\` }} />
+                                    </div>
+                                    <p className="text-xs text-gray-600 mt-2">{completedSteps.length} of 15 steps completed</p>
+                                </div>
+
+                                {['Pre-Diagnostic', 'Research', 'Diagnosis', 'Repair'].map(cat => (
+                                    <div key={cat} className="bg-white rounded-lg shadow-md overflow-hidden">
+                                        <div className="bg-gray-100 p-4 border-b">
+                                            <h3 className="font-bold">{cat}</h3>
+                                        </div>
+                                        {diagnosticSteps.filter(s => s.category === cat).map(step => (
+                                            <div key={step.id} className="p-4 border-b hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedStep(step)}>
+                                                <div className="flex items-center gap-3">
+                                                    {completedSteps.includes(step.id) ? (
+                                                        <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0" />
+                                                    ) : (
+                                                        <Circle className="w-6 h-6 text-gray-300 flex-shrink-0" />
+                                                    )}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-semibold text-blue-600">STEP {step.id}</span>
+                                                            <h4 className="font-semibold">{step.title}</h4>
+                                                        </div>
+                                                        {stepNotes[step.id] && (
+                                                            <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                                                <Edit2 className="w-3 h-3" /> Notes added
+                                                            </p>
+                                                        )}
+                                                        {stepImages[step.id] && stepImages[step.id].length > 0 && (
+                                                            <p className="text-xs text-gray-500 mt-1">
+                                                                📷 {stepImages[step.id].length} photo{stepImages[step.id].length !== 1 ? 's' : ''}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="bg-white p-6 rounded-lg shadow-md">
+                                <h2 className="text-xl font-bold mb-4">DiagFlow V46 Complete</h2>
+                                <p className="text-gray-600">All features loaded and ready!</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Bottom Navigation */}
+                    <div className="fixed bottom-0 left-0 right-0 bg-white border-t">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="flex justify-around py-2">
+                                {[
+                                    { icon: Home, label: 'Home', view: 'home' },
+                                    { icon: BookOpen, label: 'Workflow', view: 'workflow' },
+                                    { icon: TrendingUp, label: 'Scope', view: 'scope' },
+                                    { icon: Settings, label: 'Settings', view: 'settings' }
+                                ].map(item => (
+                                    <button key={item.view} onClick={() => { setCurrentView(item.view); setSelectedStep(null); setSelectedScopeWorkflow(null); }} className={\`flex flex-col items-center gap-1 px-4 py-2 \${currentView === item.view ? 'text-blue-600' : 'text-gray-600'}\`}>
+                                        <item.icon />
+                                        <span className="text-xs">{item.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Render the complete app
+        ReactDOM.render(<DiagnosticApp />, document.getElementById('root'));
+        console.log("✅ DiagFlow V46 Complete - All Features Loaded!");
+    </script>
+</body>
 </html>

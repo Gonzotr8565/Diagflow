@@ -8,7 +8,10 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`DiagFlow V46 running on port ${PORT}`);
+});
 // Middleware
 app.use(cors({
   origin: '*',
@@ -83,7 +86,9 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
-
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 // Save diagnostic job
 app.post('/api/jobs', (req, res) => {
   try {
