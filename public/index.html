@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DiagFlow V46 - Professional Diagnostic Workflow</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react.dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -19,20 +19,17 @@
     <script type="text/babel">
         const { useState } = React;
         
-        // Complete Icon Set
+        // SVG Icons
         const Menu = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>;
         const Home = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>;
         const BookOpen = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>;
         const Settings = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
-        const TrendingUp = ({className}) => <svg className={className || "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>;
-        const FileText = ({className}) => <svg className={className || "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
         const CheckCircle = ({className}) => <svg className={className || "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
         const Circle = ({className}) => <svg className={className || "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth={2} /></svg>;
         const ChevronRight = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>;
-        const HelpCircle = ({className}) => <svg className={className || "w-4 h-4"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+        const ChevronLeft = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>;
         const Edit2 = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>;
-
-        console.log("DiagFlow V46 - Loading Complete Application");
+        const Save = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>;
 
         function DiagnosticApp() {
             const [currentView, setCurrentView] = useState('vehicle-info');
@@ -45,61 +42,165 @@
             });
             const [hasVehicleInfo, setHasVehicleInfo] = useState(false);
             const [stepNotes, setStepNotes] = useState({});
-            const [stepImages, setStepImages] = useState({});
 
             const diagnosticSteps = [
-                { id: 1, title: "Pre-Scan Documentation", category: "Pre-Diagnostic" },
-                { id: 2, title: "Test Drive & Data Capture", category: "Pre-Diagnostic" },
-                { id: 3, title: "Baseline Health Check", category: "Pre-Diagnostic" },
-                { id: 4, title: "Digital Inspection", category: "Pre-Diagnostic" },
-                { id: 5, title: "Electrical System Evaluation", category: "Pre-Diagnostic" },
-                { id: 6, title: "TSB & Known Issues Research", category: "Research" },
-                { id: 7, title: "Wiring Diagrams & System Operation", category: "Research" },
-                { id: 8, title: "Stable Voltage Setup", category: "Research" },
-                { id: 9, title: "Test Plan Development", category: "Diagnosis" },
-                { id: 10, title: "Data Recording & Scope Work", category: "Diagnosis" },
-                { id: 11, title: "Delta Analysis & Data Mapping", category: "Diagnosis" },
-                { id: 12, title: "Part Verification", category: "Diagnosis" },
-                { id: 13, title: "Prove It Twice", category: "Diagnosis" },
-                { id: 14, title: "Quality Repair & Parts", category: "Repair" },
-                { id: 15, title: "Post-Repair Validation & Post-Scan", category: "Repair" }
+                { id: 1, title: "Pre-Scan Documentation", category: "Pre-Diagnostic", 
+                  description: "Perform pre-scan BEFORE any work begins. Document ALL DTCs." },
+                { id: 2, title: "Test Drive & Data Capture", category: "Pre-Diagnostic",
+                  description: "Duplicate customer concern. Record data during test drive." },
+                { id: 3, title: "Baseline Health Check", category: "Pre-Diagnostic",
+                  description: "Check fluid levels, visual inspection for damage." },
+                { id: 4, title: "Digital Inspection", category: "Pre-Diagnostic",
+                  description: "Use shop digital inspection. Document with photos." },
+                { id: 5, title: "Electrical System Evaluation", category: "Pre-Diagnostic",
+                  description: "Test battery health, alternator output and ripple." },
+                { id: 6, title: "TSB & Known Issues Research", category: "Research",
+                  description: "Search manufacturer TSBs, NHTSA, tech forums." },
+                { id: 7, title: "Wiring Diagrams & System Operation", category: "Research",
+                  description: "Study wiring diagrams BEFORE testing." },
+                { id: 8, title: "Stable Voltage Setup", category: "Research",
+                  description: "Use battery maintainer during diagnostics." },
+                { id: 9, title: "Test Plan Development", category: "Diagnosis",
+                  description: "Write test plan BEFORE starting. Get paid for skill." },
+                { id: 10, title: "Data Recording & Scope Work", category: "Diagnosis",
+                  description: "Use scope to capture waveforms. Save captures." },
+                { id: 11, title: "Delta Analysis & Data Mapping", category: "Diagnosis",
+                  description: "Compare to baseline. Look for CHANGES." },
+                { id: 12, title: "Part Verification", category: "Diagnosis",
+                  description: "NEVER replace parts on DTCs alone. Test component." },
+                { id: 13, title: "Prove It Twice", category: "Diagnosis",
+                  description: "Prove diagnosis TWO ways. Prevent comebacks." },
+                { id: 14, title: "Quality Repair & Parts", category: "Repair",
+                  description: "Use OE or quality parts. Follow procedures." },
+                { id: 15, title: "Post-Repair Validation & Post-Scan", category: "Repair",
+                  description: "ALWAYS post-scan. Test drive and verify fix." }
             ];
 
             const toggleStepComplete = (stepId) => {
-                if (completedSteps.includes(stepId)) {
-                    setCompletedSteps(completedSteps.filter(id => id !== stepId));
-                } else {
-                    setCompletedSteps([...completedSteps, stepId]);
-                }
+                setCompletedSteps(prev => 
+                    prev.includes(stepId) ? prev.filter(id => id !== stepId) : [...prev, stepId]
+                );
+            };
+
+            const saveNote = (stepId, note) => {
+                setStepNotes(prev => ({ ...prev, [stepId]: note }));
+            };
+
+            const StepDetailView = ({ step }) => {
+                const [noteText, setNoteText] = useState(stepNotes[step.id] || '');
+
+                return (
+                    <div className="space-y-4">
+                        <div className="bg-white p-4 rounded-lg shadow-md">
+                            <button 
+                                onClick={() => setSelectedStep(null)}
+                                className="flex items-center gap-2 text-blue-600 mb-4"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                                Back to Workflow
+                            </button>
+                            
+                            <div className="flex items-start gap-3 mb-4">
+                                <button onClick={() => toggleStepComplete(step.id)} className="mt-1">
+                                    {completedSteps.includes(step.id) ? (
+                                        <CheckCircle className="w-8 h-8 text-green-500" />
+                                    ) : (
+                                        <Circle className="w-8 h-8 text-gray-300" />
+                                    )}
+                                </button>
+                                <div className="flex-1">
+                                    <div className="text-xs font-bold text-blue-600 mb-1">STEP {step.id}</div>
+                                    <h2 className="text-xl font-bold mb-2">{step.title}</h2>
+                                    <p className="text-sm text-gray-600">{step.description}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-lg shadow-md">
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="font-bold flex items-center gap-2">
+                                    <Edit2 className="w-5 h-5 text-blue-600" />
+                                    Notes
+                                </h3>
+                                {stepNotes[step.id] && (
+                                    <span className="text-xs text-green-600 font-medium">✓ Saved</span>
+                                )}
+                            </div>
+                            
+                            <textarea
+                                value={noteText}
+                                onChange={(e) => setNoteText(e.target.value)}
+                                placeholder="Add your notes for this step..."
+                                className="w-full px-3 py-2 border rounded-lg resize-none"
+                                rows={6}
+                            />
+                            
+                            <div className="flex gap-2 mt-3">
+                                <button
+                                    onClick={() => saveNote(step.id, noteText)}
+                                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center gap-2"
+                                >
+                                    <Save className="w-5 h-5" />
+                                    Save Note
+                                </button>
+                                {stepNotes[step.id] && (
+                                    <button
+                                        onClick={() => {
+                                            setNoteText('');
+                                            saveNote(step.id, '');
+                                        }}
+                                        className="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg"
+                                    >
+                                        Clear
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => toggleStepComplete(step.id)}
+                            className={'w-full py-3 rounded-lg font-semibold ' + (
+                                completedSteps.includes(step.id)
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-blue-600 text-white'
+                            )}
+                        >
+                            {completedSteps.includes(step.id) ? 'Mark as Incomplete' : 'Mark as Complete'}
+                        </button>
+                    </div>
+                );
             };
 
             return (
                 <div className="min-h-screen bg-gray-100">
                     <div className="bg-white shadow-md sticky top-0 z-50">
-                        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <button onClick={() => setMenuOpen(!menuOpen)} className="hover:bg-gray-100 p-1 rounded">
-                                    <Menu />
-                                </button>
-                                <div>
-                                    <h1 className="text-2xl font-bold text-blue-600">DiagFlow</h1>
-                                    <p className="text-xs text-gray-500">Never Miss A Step • V46</p>
+                        <div className="max-w-4xl mx-auto px-4 py-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <button onClick={() => setMenuOpen(!menuOpen)} className="hover:bg-gray-100 p-2 rounded">
+                                        <Menu />
+                                    </button>
+                                    <div>
+                                        <h1 className="text-2xl font-bold text-blue-600">DiagFlow</h1>
+                                        <p className="text-lg font-extrabold text-orange-600 tracking-wide">NEVER MISS A STEP</p>
+                                        <p className="text-xs text-gray-500">V46 Enhanced</p>
+                                    </div>
                                 </div>
+                                {hasVehicleInfo && (
+                                    <button onClick={() => {
+                                        if (window.confirm('Start new job?')) {
+                                            setVehicleInfo({ year: '', make: '', model: '', vin: '', roNumber: '' });
+                                            setHasVehicleInfo(false);
+                                            setCurrentView('vehicle-info');
+                                            setCompletedSteps([]);
+                                            setStepNotes({});
+                                            setSelectedStep(null);
+                                        }
+                                    }} className="text-sm text-blue-600 font-medium hover:text-blue-700 px-3 py-2 border border-blue-600 rounded-lg">
+                                        New Job
+                                    </button>
+                                )}
                             </div>
-                            {hasVehicleInfo && (
-                                <button onClick={() => {
-                                    if (window.confirm('Start new job?')) {
-                                        setVehicleInfo({ year: '', make: '', model: '', vin: '', roNumber: '' });
-                                        setHasVehicleInfo(false);
-                                        setCurrentView('vehicle-info');
-                                        setCompletedSteps([]);
-                                        setStepNotes({});
-                                        setStepImages({});
-                                    }
-                                }} className="text-sm text-blue-600 font-medium hover:text-blue-700 px-2 py-1">
-                                    New Job
-                                </button>
-                            )}
                         </div>
                     </div>
 
@@ -117,7 +218,11 @@
                                     ].map(item => (
                                         <button
                                             key={item.view}
-                                            onClick={() => { setCurrentView(item.view); setMenuOpen(false); }}
+                                            onClick={() => { 
+                                                setCurrentView(item.view); 
+                                                setSelectedStep(null);
+                                                setMenuOpen(false); 
+                                            }}
                                             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100"
                                         >
                                             <item.icon />
@@ -129,33 +234,95 @@
                         </div>
                     )}
 
-                    <div className="max-w-4xl mx-auto p-4">
-                        {currentView === 'vehicle-info' ? (
+                    <div className="max-w-4xl mx-auto p-4 pb-24">
+                        {selectedStep ? (
+                            <StepDetailView step={selectedStep} />
+                        ) : currentView === 'vehicle-info' ? (
                             <div className="space-y-4">
                                 <div className="bg-white p-6 rounded-lg shadow-md">
-                                    <h2 className="text-xl font-bold mb-4">Vehicle & Job Information</h2>
+                                    <h2 className="text-xl font-bold mb-2">Vehicle & Job Information</h2>
+                                    <p className="text-sm text-gray-600 mb-6">Enter vehicle details to begin your diagnostic workflow.</p>
+                                    
                                     <div className="space-y-4">
-                                        <input type="text" className="w-full px-4 py-2 border rounded-lg" placeholder="RO Number" value={vehicleInfo.roNumber} onChange={(e) => setVehicleInfo({...vehicleInfo, roNumber: e.target.value})} />
-                                        <div className="grid grid-cols-3 gap-3">
-                                            <input type="text" className="w-full px-4 py-2 border rounded-lg" placeholder="Year" value={vehicleInfo.year} onChange={(e) => setVehicleInfo({...vehicleInfo, year: e.target.value})} />
-                                            <input type="text" className="w-full px-4 py-2 border rounded-lg" placeholder="Make" value={vehicleInfo.make} onChange={(e) => setVehicleInfo({...vehicleInfo, make: e.target.value})} />
-                                            <input type="text" className="w-full px-4 py-2 border rounded-lg" placeholder="Model" value={vehicleInfo.model} onChange={(e) => setVehicleInfo({...vehicleInfo, model: e.target.value})} />
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1 text-gray-700">RO Number</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full px-4 py-2 border rounded-lg" 
+                                                placeholder="12345" 
+                                                value={vehicleInfo.roNumber} 
+                                                onChange={(e) => setVehicleInfo({...vehicleInfo, roNumber: e.target.value})} 
+                                            />
                                         </div>
-                                        <button onClick={() => { setHasVehicleInfo(true); setCurrentView('home'); }} className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">
-                                            Start Diagnostic Workflow
-                                        </button>
+
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div>
+                                                <label className="block text-sm font-medium mb-1 text-gray-700">Year</label>
+                                                <input 
+                                                    type="text" 
+                                                    className="w-full px-4 py-2 border rounded-lg" 
+                                                    placeholder="2024" 
+                                                    value={vehicleInfo.year} 
+                                                    onChange={(e) => setVehicleInfo({...vehicleInfo, year: e.target.value})} 
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-1 text-gray-700">Make</label>
+                                                <input 
+                                                    type="text" 
+                                                    className="w-full px-4 py-2 border rounded-lg" 
+                                                    placeholder="Ford" 
+                                                    value={vehicleInfo.make} 
+                                                    onChange={(e) => setVehicleInfo({...vehicleInfo, make: e.target.value})} 
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-1 text-gray-700">Model</label>
+                                                <input 
+                                                    type="text" 
+                                                    className="w-full px-4 py-2 border rounded-lg" 
+                                                    placeholder="F-150" 
+                                                    value={vehicleInfo.model} 
+                                                    onChange={(e) => setVehicleInfo({...vehicleInfo, model: e.target.value})} 
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1 text-gray-700">VIN (Vehicle Identification Number)</label>
+                                            <input 
+                                                type="text" 
+                                                className="w-full px-4 py-2 border rounded-lg font-mono text-sm uppercase" 
+                                                placeholder="1FTFW1E84MFA00000" 
+                                                maxLength={17}
+                                                value={vehicleInfo.vin} 
+                                                onChange={(e) => setVehicleInfo({...vehicleInfo, vin: e.target.value.toUpperCase()})} 
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">17 characters</p>
+                                        </div>
                                     </div>
+
+                                    <button 
+                                        onClick={() => { 
+                                            setHasVehicleInfo(true); 
+                                            setCurrentView('home'); 
+                                        }} 
+                                        className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 text-lg"
+                                    >
+                                        Start Diagnostic Workflow →
+                                    </button>
                                 </div>
                             </div>
                         ) : currentView === 'home' ? (
                             <div className="space-y-6">
-                                <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-lg">
+                                <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-lg shadow-lg">
                                     <h2 className="text-2xl font-bold mb-2">Current Job</h2>
                                     {hasVehicleInfo && (
                                         <div className="mt-4 pt-4 border-t border-blue-500">
                                             <div className="text-sm space-y-1">
-                                                {vehicleInfo.roNumber && <div>RO#: {vehicleInfo.roNumber}</div>}
-                                                <div>{vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}</div>
+                                                {vehicleInfo.roNumber && <div className="font-semibold">RO#: {vehicleInfo.roNumber}</div>}
+                                                <div className="text-lg">{vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}</div>
+                                                {vehicleInfo.vin && <div className="font-mono text-xs opacity-90">{vehicleInfo.vin}</div>}
                                             </div>
                                         </div>
                                     )}
@@ -163,36 +330,52 @@
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="bg-white p-4 rounded-lg shadow-md text-center">
-                                        <div className="text-2xl font-bold text-blue-600">{completedSteps.length}</div>
-                                        <div className="text-xs text-gray-600">Steps Done</div>
+                                        <div className="text-3xl font-bold text-blue-600">{completedSteps.length}</div>
+                                        <div className="text-xs text-gray-600 mt-1">Steps Completed</div>
                                     </div>
                                     <div className="bg-white p-4 rounded-lg shadow-md text-center">
-                                        <div className="text-2xl font-bold text-purple-600">{Math.round((completedSteps.length / 15) * 100)}%</div>
-                                        <div className="text-xs text-gray-600">Progress</div>
+                                        <div className="text-3xl font-bold text-green-600">{Object.keys(stepNotes).filter(k => stepNotes[k]).length}</div>
+                                        <div className="text-xs text-gray-600 mt-1">Notes Added</div>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-lg shadow-md text-center col-span-2">
+                                        <div className="text-3xl font-bold text-purple-600">{Math.round((completedSteps.length / 15) * 100)}%</div>
+                                        <div className="text-xs text-gray-600 mt-1">Workflow Progress</div>
                                     </div>
                                 </div>
 
-                                <button onClick={() => setCurrentView('workflow')} className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700">
-                                    Continue Diagnostic Workflow
+                                <button 
+                                    onClick={() => setCurrentView('workflow')} 
+                                    className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 text-lg shadow-md"
+                                >
+                                    Continue Diagnostic Workflow →
                                 </button>
                             </div>
                         ) : currentView === 'workflow' ? (
                             <div className="space-y-4">
                                 <div className="bg-white p-4 rounded-lg shadow-md">
-                                    <h2 className="text-xl font-bold">15-Step Diagnostic Process</h2>
-                                    <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
-                                        <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${(completedSteps.length / 15) * 100}%` }} />
+                                    <h2 className="text-xl font-bold mb-3">15-Step Diagnostic Process</h2>
+                                    <div className="w-full bg-gray-200 rounded-full h-3">
+                                        <div 
+                                            className="bg-blue-600 h-3 rounded-full transition-all" 
+                                            style={{ width: (completedSteps.length / 15 * 100) + '%' }} 
+                                        />
                                     </div>
-                                    <p className="text-xs text-gray-600 mt-2">{completedSteps.length} of 15 steps completed</p>
+                                    <p className="text-sm text-gray-600 mt-2 font-medium">
+                                        {completedSteps.length} of 15 steps completed
+                                    </p>
                                 </div>
 
                                 {['Pre-Diagnostic', 'Research', 'Diagnosis', 'Repair'].map(cat => (
                                     <div key={cat} className="bg-white rounded-lg shadow-md overflow-hidden">
-                                        <div className="bg-gray-100 p-4 border-b">
-                                            <h3 className="font-bold">{cat}</h3>
+                                        <div className="bg-gradient-to-r from-gray-100 to-gray-200 p-4 border-b">
+                                            <h3 className="font-bold text-lg">{cat}</h3>
                                         </div>
                                         {diagnosticSteps.filter(s => s.category === cat).map(step => (
-                                            <div key={step.id} className="p-4 border-b hover:bg-gray-50 cursor-pointer" onClick={() => toggleStepComplete(step.id)}>
+                                            <div 
+                                                key={step.id} 
+                                                className="p-4 border-b hover:bg-blue-50 cursor-pointer" 
+                                                onClick={() => setSelectedStep(step)}
+                                            >
                                                 <div className="flex items-center gap-3">
                                                     {completedSteps.includes(step.id) ? (
                                                         <CheckCircle className="w-6 h-6 text-green-500" />
@@ -200,10 +383,19 @@
                                                         <Circle className="w-6 h-6 text-gray-300" />
                                                     )}
                                                     <div className="flex-1">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-xs font-semibold text-blue-600">STEP {step.id}</span>
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                                                STEP {step.id}
+                                                            </span>
                                                             <h4 className="font-semibold">{step.title}</h4>
                                                         </div>
+                                                        <p className="text-xs text-gray-600">{step.description}</p>
+                                                        {stepNotes[step.id] && (
+                                                            <div className="mt-2 flex items-center gap-2">
+                                                                <Edit2 className="w-4 h-4 text-green-600" />
+                                                                <span className="text-xs text-green-600 font-medium">Notes added</span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <ChevronRight className="w-5 h-5 text-gray-400" />
                                                 </div>
@@ -214,17 +406,43 @@
                             </div>
                         ) : (
                             <div className="bg-white p-6 rounded-lg shadow-md">
-                                <h2 className="text-xl font-bold mb-4">DiagFlow V46</h2>
-                                <p className="text-gray-600">All features loaded successfully!</p>
+                                <h2 className="text-xl font-bold mb-4">Settings</h2>
+                                <p className="text-gray-600">DiagFlow V46 Enhanced</p>
                             </div>
                         )}
+                    </div>
+
+                    <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="flex justify-around py-2">
+                                {[
+                                    { icon: Home, label: 'Home', view: 'home' },
+                                    { icon: BookOpen, label: 'Workflow', view: 'workflow' },
+                                    { icon: Settings, label: 'Settings', view: 'settings' }
+                                ].map(item => (
+                                    <button 
+                                        key={item.view} 
+                                        onClick={() => { 
+                                            setCurrentView(item.view); 
+                                            setSelectedStep(null); 
+                                        }} 
+                                        className={'flex flex-col items-center gap-1 px-6 py-2 rounded-lg ' + (
+                                            currentView === item.view ? 'text-blue-600 bg-blue-50' : 'text-gray-600'
+                                        )}
+                                    >
+                                        <item.icon />
+                                        <span className="text-xs font-medium">{item.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             );
         }
 
         ReactDOM.render(<DiagnosticApp />, document.getElementById('root'));
-        console.log("DiagFlow V46 Rendered Successfully");
+        console.log("✅ DiagFlow V46 Enhanced Loaded!");
     </script>
 </body>
 </html>
