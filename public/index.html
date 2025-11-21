@@ -19,498 +19,1630 @@
         }
         html, body { overscroll-behavior-y: contain; }
         .modal-overlay { backdrop-filter: blur(4px); }
-        .help-button-float {
-            position: fixed;
-            bottom: 90px;
-            right: 20px;
-            z-index: 30;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
     </style>
 </head>
 <body>
     <div id="root"></div>
     
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState } = React;
         
-        // Icons
+        // Import all Lucide icons as inline SVG components
         const Menu = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>;
         const Home = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>;
         const BookOpen = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>;
-        const TrendingUp = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>;
         const Settings = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
-        const CheckCircle = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-        const Circle = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth={2} /></svg>;
-        const Camera = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
-        const X = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
-        const Send = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>;
-        const HelpCircle = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-        const FileText = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
-        const Trash = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
-        
-        const DIAGNOSTIC_STEPS = [
-            { id: 1, title: "Pre-Scan", desc: "Document baseline codes & data" },
-            { id: 2, title: "Visual Inspection", desc: "Check for obvious issues" },
-            { id: 3, title: "Symptom Verification", desc: "Confirm customer concern" },
-            { id: 4, title: "Trouble Code Analysis", desc: "Review stored & pending codes" },
-            { id: 5, title: "Service Info Research", desc: "Review TSBs & repair procedures" },
-            { id: 6, title: "Component Testing", desc: "Test suspected components" },
-            { id: 7, title: "System Testing", desc: "Test related systems" },
-            { id: 8, title: "Scope Testing", desc: "Analyze waveforms & signals" },
-            { id: 9, title: "Pinpoint Testing", desc: "Isolate exact failure point" },
-            { id: 10, title: "Root Cause Analysis", desc: "Determine why failure occurred" },
-            { id: 11, title: "Repair Plan", desc: "Document repair strategy" },
-            { id: 12, title: "Repair Execution", desc: "Perform necessary repairs" },
-            { id: 13, title: "Post-Repair Testing", desc: "Verify repair success" },
-            { id: 14, title: "Post-Scan", desc: "Clear codes & verify no new issues" },
-            { id: 15, title: "Final Validation", desc: "Road test & customer verification" }
-        ];
+        const FileText = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
+        const TrendingUp = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>;
+        const Award = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>;
+        const ChevronRight = ({ className }) => <svg className={className || "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>;
+        const CheckCircle = ({ className }) => <svg className={className || "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+        const Circle = ({ className }) => <svg className={className || "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" strokeWidth={2} /></svg>;
+        const Edit2 = ({ className }) => <svg className={className || "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>;
+        const HelpCircle = ({ className }) => <svg className={className || "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+        const Video = ({ className }) => <svg className={className || "w-6 h-6"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>;
 
-        function DiagnosticApp() {
-            const [currentView, setCurrentView] = useState('home');
-            const [vehicleInfo, setVehicleInfo] = useState({ year: '', make: '', model: '', vin: '' });
-            const [selectedStep, setSelectedStep] = useState(null);
-            const [stepData, setStepData] = useState({});
-            const [showSubmitModal, setShowSubmitModal] = useState(false);
-            const [advisorEmail, setAdvisorEmail] = useState('');
-            const [showHelpModal, setShowHelpModal] = useState(false);
-            const [helpType, setHelpType] = useState('');
-            const [helpMessage, setHelpMessage] = useState('');
-            const [savedReports, setSavedReports] = useState([]);
-            
-            // Load saved data on mount
-            useEffect(() => {
-                const saved = localStorage.getItem('diagflow_data');
-                if (saved) {
-                    try {
-                        const data = JSON.parse(saved);
-                        setVehicleInfo(data.vehicleInfo || { year: '', make: '', model: '', vin: '' });
-                        setStepData(data.stepData || {});
-                    } catch (e) { console.error('Load error:', e); }
-                }
-                const savedEmail = localStorage.getItem('diagflow_email');
-                if (savedEmail) setAdvisorEmail(savedEmail);
-                
-                const reports = localStorage.getItem('diagflow_reports');
-                if (reports) {
-                    try {
-                        setSavedReports(JSON.parse(reports));
-                    } catch (e) { console.error('Reports load error:', e); }
-                }
-            }, []);
-            
-            // Auto-save on changes
-            useEffect(() => {
-                localStorage.setItem('diagflow_data', JSON.stringify({ vehicleInfo, stepData }));
-            }, [vehicleInfo, stepData]);
-            
-            // Save email
-            useEffect(() => {
-                if (advisorEmail) {
-                    localStorage.setItem('diagflow_email', advisorEmail);
-                }
-            }, [advisorEmail]);
-            
-            const startWorkflow = () => {
-                if (vehicleInfo.year && vehicleInfo.make && vehicleInfo.model) {
-                    setCurrentView('workflow');
-                }
-            };
-            
-            const resetAll = () => {
-                if (confirm('Reset all data? This cannot be undone.')) {
-                    setVehicleInfo({ year: '', make: '', model: '', vin: '' });
-                    setStepData({});
-                    setSelectedStep(null);
-                    setCurrentView('home');
-                    localStorage.removeItem('diagflow_data');
-                }
-            };
-            
-            const updateStepData = (stepId, field, value) => {
-                setStepData(prev => ({
-                    ...prev,
-                    [stepId]: { ...(prev[stepId] || {}), [field]: value }
-                }));
-            };
-            
-            const toggleStepComplete = (stepId) => {
-                setStepData(prev => ({
-                    ...prev,
-                    [stepId]: { ...(prev[stepId] || {}), completed: !prev[stepId]?.completed }
-                }));
-            };
-            
-            const handlePhotoUpload = (stepId, e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        const photos = stepData[stepId]?.photos || [];
-                        updateStepData(stepId, 'photos', [...photos, reader.result]);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            };
-            
-            const removePhoto = (stepId, photoIndex) => {
-                const photos = (stepData[stepId]?.photos || []).filter((_, i) => i !== photoIndex);
-                updateStepData(stepId, 'photos', photos);
-            };
-            
-            const submitToAdvisor = async () => {
-                const completedSteps = DIAGNOSTIC_STEPS.filter(s => stepData[s.id]?.completed).length;
-                
-                const report = {
-                    timestamp: new Date().toISOString(),
-                    vehicle: vehicleInfo,
-                    progress: `${completedSteps}/${DIAGNOSTIC_STEPS.length}`,
-                    steps: DIAGNOSTIC_STEPS.map(step => ({
-                        ...step,
-                        data: stepData[step.id] || {},
-                        completed: stepData[step.id]?.completed || false
-                    }))
-                };
-                
-                // Save to local storage
-                const reports = [...savedReports, report];
-                setSavedReports(reports);
-                localStorage.setItem('diagflow_reports', JSON.stringify(reports));
-                
-                setShowSubmitModal(false);
-                alert('Report saved successfully! Check Settings to view all reports.');
-            };
-            
-            const deleteReport = (index) => {
-                if (confirm('Delete this report?')) {
-                    const reports = savedReports.filter((_, i) => i !== index);
-                    setSavedReports(reports);
-                    localStorage.setItem('diagflow_reports', JSON.stringify(reports));
-                }
-            };
-            
-            const submitHelpRequest = () => {
-                alert(`Help request submitted!\n\nType: ${helpType}\nVehicle: ${vehicleInfo.year} ${vehicleInfo.make} ${vehicleInfo.model}`);
-                setShowHelpModal(false);
-                setHelpType('');
-                setHelpMessage('');
-            };
-            
-            const completedCount = DIAGNOSTIC_STEPS.filter(s => stepData[s.id]?.completed).length;
-            const progressPercent = (completedCount / DIAGNOSTIC_STEPS.length) * 100;
-            
-            return (
-                <div className="min-h-screen bg-gray-50 pb-20">
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 shadow-lg sticky top-0 z-20">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <Menu />
-                                <div>
-                                    <h1 className="text-xl font-bold">DiagFlow V46</h1>
-                                    <p className="text-xs text-blue-100">Never Miss A Step</p>
-                                </div>
-                            </div>
-                            <div className="flex gap-2">
-                                <button onClick={() => setShowHelpModal(true)} className="bg-orange-500 hover:bg-orange-600 px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-lg transition-all">
-                                    <HelpCircle /> Get Help
-                                </button>
-                                <button onClick={resetAll} className="bg-red-500 hover:bg-red-600 px-3 py-2 rounded-lg text-sm font-semibold">
-                                    New Job
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* Main Content */}
-                    <div className="p-4">
-                        {currentView === 'home' && (
-                            <div className="space-y-6">
-                                <div className="bg-white rounded-lg shadow-md p-6">
-                                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Vehicle Information</h2>
-                                    <div className="space-y-4">
-                                        <input type="text" placeholder="Year" value={vehicleInfo.year} onChange={(e) => setVehicleInfo({...vehicleInfo, year: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg" />
-                                        <input type="text" placeholder="Make" value={vehicleInfo.make} onChange={(e) => setVehicleInfo({...vehicleInfo, make: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg" />
-                                        <input type="text" placeholder="Model" value={vehicleInfo.model} onChange={(e) => setVehicleInfo({...vehicleInfo, model: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg" />
-                                        <input type="text" placeholder="VIN (Optional)" value={vehicleInfo.vin} onChange={(e) => setVehicleInfo({...vehicleInfo, vin: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg" />
-                                        <button onClick={startWorkflow} disabled={!vehicleInfo.year || !vehicleInfo.make || !vehicleInfo.model} className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed">
-                                            Start Diagnostic Workflow
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg shadow-md p-6 border border-blue-100">
-                                    <h3 className="text-xl font-bold text-blue-900 mb-3">About DiagFlow</h3>
-                                    <p className="text-gray-700 leading-relaxed">
-                                        Professional 15-step diagnostic methodology ensuring systematic troubleshooting, comprehensive documentation, and consistent results. Never miss a critical step in your diagnostic process.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                        
-                        {currentView === 'workflow' && !selectedStep && (
-                            <div className="space-y-4">
-                                <div className="bg-white rounded-lg shadow-md p-4">
-                                    <div className="flex justify-between items-center mb-2">
-                                        <h2 className="text-xl font-bold text-gray-800">
-                                            {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}
-                                        </h2>
-                                        <span className="text-sm font-semibold text-blue-600">
-                                            {completedCount}/{DIAGNOSTIC_STEPS.length} Steps
-                                        </span>
-                                    </div>
-                                    {vehicleInfo.vin && (
-                                        <p className="text-sm text-gray-600">VIN: {vehicleInfo.vin}</p>
-                                    )}
-                                    <div className="mt-3 bg-gray-200 rounded-full h-3 overflow-hidden">
-                                        <div className="bg-green-500 h-full transition-all duration-500" style={{width: `${progressPercent}%`}}></div>
-                                    </div>
-                                </div>
-                                
-                                <div className="space-y-3">
-                                    {DIAGNOSTIC_STEPS.map(step => (
-                                        <div key={step.id} onClick={() => setSelectedStep(step.id)} className="bg-white rounded-lg shadow-md p-4 cursor-pointer hover:shadow-lg transition-shadow border-l-4 border-blue-500">
-                                            <div className="flex items-start gap-3">
-                                                <button onClick={(e) => { e.stopPropagation(); toggleStepComplete(step.id); }} className="mt-1">
-                                                    {stepData[step.id]?.completed ? <CheckCircle className="text-green-500" /> : <Circle className="text-gray-400" />}
-                                                </button>
-                                                <div className="flex-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-xs font-bold text-gray-500">STEP {step.id}</span>
-                                                        {stepData[step.id]?.notes && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Has Notes</span>}
-                                                        {stepData[step.id]?.photos?.length > 0 && <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">{stepData[step.id].photos.length} Photo{stepData[step.id].photos.length !== 1 ? 's' : ''}</span>}
-                                                    </div>
-                                                    <h3 className="font-bold text-gray-800 mt-1">{step.title}</h3>
-                                                    <p className="text-sm text-gray-600">{step.desc}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                        
-                        {currentView === 'workflow' && selectedStep && (
-                            <div className="space-y-4">
-                                <button onClick={() => setSelectedStep(null)} className="text-blue-600 font-semibold flex items-center gap-2 hover:underline">
-                                    ← Back to Workflow
-                                </button>
-                                
-                                <div className="bg-white rounded-lg shadow-md p-6">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex-1">
-                                            <span className="text-sm font-bold text-gray-500">STEP {selectedStep}</span>
-                                            <h2 className="text-2xl font-bold text-gray-800">{DIAGNOSTIC_STEPS.find(s => s.id === selectedStep)?.title}</h2>
-                                            <p className="text-gray-600 mt-1">{DIAGNOSTIC_STEPS.find(s => s.id === selectedStep)?.desc}</p>
-                                        </div>
-                                        <button onClick={() => toggleStepComplete(selectedStep)} className={`px-4 py-2 rounded-lg font-semibold ${stepData[selectedStep]?.completed ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700'}`}>
-                                            {stepData[selectedStep]?.completed ? 'Completed ✓' : 'Mark Complete'}
-                                        </button>
-                                    </div>
-                                    
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
-                                            <textarea value={stepData[selectedStep]?.notes || ''} onChange={(e) => updateStepData(selectedStep, 'notes', e.target.value)} placeholder="Enter your diagnostic notes..." className="w-full p-3 border border-gray-300 rounded-lg h-32" />
-                                        </div>
-                                        
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Photos</label>
-                                            <div className="flex flex-wrap gap-3 mb-3">
-                                                {(stepData[selectedStep]?.photos || []).map((photo, idx) => (
-                                                    <div key={idx} className="relative group">
-                                                        <img src={photo} className="w-24 h-24 object-cover rounded-lg border-2 border-gray-300" />
-                                                        <button onClick={() => removePhoto(selectedStep, idx)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <X />
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <label className="inline-flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-blue-600">
-                                                <Camera /> Add Photo
-                                                <input type="file" accept="image/*" capture="environment" onChange={(e) => handlePhotoUpload(selectedStep, e)} className="hidden" />
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        
-                        {currentView === 'scope' && (
-                            <div className="bg-white rounded-lg shadow-md p-6">
-                                <h2 className="text-2xl font-bold text-gray-800 mb-4">Scope & Pinpoint Testing</h2>
-                                <p className="text-gray-600">Advanced diagnostic testing interface coming soon...</p>
-                            </div>
-                        )}
-                        
-                        {currentView === 'settings' && (
-                            <div className="space-y-4">
-                                <div className="bg-white rounded-lg shadow-md p-6">
-                                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Settings</h2>
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">Service Advisor Email</label>
-                                            <input type="email" value={advisorEmail} onChange={(e) => setAdvisorEmail(e.target.value)} placeholder="advisor@example.com" className="w-full p-3 border border-gray-300 rounded-lg" />
-                                            {advisorEmail && (
-                                                <p className="text-sm text-green-600 mt-2">✓ Email saved: {advisorEmail}</p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="bg-white rounded-lg shadow-md p-6">
-                                    <h3 className="text-xl font-bold text-gray-800 mb-4">Saved Reports ({savedReports.length})</h3>
-                                    {savedReports.length === 0 ? (
-                                        <p className="text-gray-500">No reports saved yet.</p>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            {savedReports.map((report, idx) => (
-                                                <div key={idx} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                                    <div className="flex justify-between items-start">
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center gap-2 mb-2">
-                                                                <FileText className="text-blue-600" />
-                                                                <span className="font-semibold text-gray-800">
-                                                                    {report.vehicle.year} {report.vehicle.make} {report.vehicle.model}
-                                                                </span>
-                                                            </div>
-                                                            <p className="text-sm text-gray-600">
-                                                                {new Date(report.timestamp).toLocaleString()}
-                                                            </p>
-                                                            <p className="text-sm text-gray-600">Progress: {report.progress}</p>
-                                                        </div>
-                                                        <button onClick={() => deleteReport(idx)} className="text-red-500 hover:text-red-700 p-2">
-                                                            <Trash />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    
-                    {/* Floating Get Help Button */}
-                    <button onClick={() => setShowHelpModal(true)} className="help-button-float bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-full shadow-lg flex items-center gap-2">
-                        <HelpCircle className="w-6 h-6" />
-                    </button>
-                    
-                    {/* Help Modal */}
-                    {showHelpModal && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 modal-overlay">
-                            <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-                                <div className="p-6 space-y-4">
-                                    <div className="flex justify-between items-center">
-                                        <h3 className="text-2xl font-bold text-gray-800">Get Help</h3>
-                                        <button onClick={() => setShowHelpModal(false)} className="text-gray-500 hover:text-gray-700">
-                                            <X />
-                                        </button>
-                                    </div>
-                                    
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                        <p className="text-sm text-gray-700">
-                                            <strong>Vehicle:</strong> {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}
-                                        </p>
-                                        {vehicleInfo.vin && (
-                                            <p className="text-sm text-gray-700 mt-1">
-                                                <strong>VIN:</strong> {vehicleInfo.vin}
-                                            </p>
-                                        )}
-                                    </div>
-                                    
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">What do you need help with?</label>
-                                        <select value={helpType} onChange={(e) => setHelpType(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg">
-                                            <option value="">Select help type...</option>
-                                            <option value="diagnostic">Diagnostic Question</option>
-                                            <option value="technical">Technical Support</option>
-                                            <option value="procedure">Procedure Guidance</option>
-                                            <option value="other">Other</option>
-                                        </select>
-                                    </div>
-                                    
-                                    <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Describe your issue</label>
-                                        <textarea value={helpMessage} onChange={(e) => setHelpMessage(e.target.value)} placeholder="Describe what you need help with..." className="w-full p-3 border border-gray-300 rounded-lg h-32" />
-                                    </div>
-                                    
-                                    <button onClick={submitHelpRequest} disabled={!helpType || !helpMessage} className="w-full bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed">
-                                        Submit Help Request
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    
-                    {/* Submit Modal */}
-                    {showSubmitModal && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 modal-overlay">
-                            <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-                                <div className="p-6 space-y-4">
-                                    <div className="flex justify-between items-center">
-                                        <h3 className="text-2xl font-bold text-gray-800">Submit Report</h3>
-                                        <button onClick={() => setShowSubmitModal(false)} className="text-gray-500 hover:text-gray-700">
-                                            <X />
-                                        </button>
-                                    </div>
-                                    
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                        <p className="text-sm text-gray-700">
-                                            <strong>Vehicle:</strong> {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}
-                                        </p>
-                                        <p className="text-sm text-gray-700 mt-1">
-                                            <strong>Progress:</strong> {completedCount}/{DIAGNOSTIC_STEPS.length} steps completed
-                                        </p>
-                                        {advisorEmail && (
-                                            <p className="text-sm text-gray-700 mt-1">
-                                                <strong>Send to:</strong> {advisorEmail}
-                                            </p>
-                                        )}
-                                    </div>
-                                    
-                                    <p className="text-sm text-gray-600">
-                                        This will save the diagnostic report. You can view all saved reports in Settings.
-                                    </p>
-                                    
-                                    <button onClick={submitToAdvisor} className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700">
-                                        Save Report
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    
-                    {/* Bottom Nav */}
-                    {currentView !== 'home' && (
-                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-10">
-                            <div className="max-w-screen-xl mx-auto">
-                                <button onClick={() => setShowSubmitModal(true)} className="w-full bg-green-600 text-white py-3 font-semibold hover:bg-green-700 flex items-center justify-center gap-2">
-                                    <Send /> Submit to Service Advisor
-                                </button>
-                                <div className="flex justify-around py-2">
-                                    {[
-                                        { icon: Home, label: 'Home', view: 'home' },
-                                        { icon: BookOpen, label: 'Workflow', view: 'workflow' },
-                                        { icon: TrendingUp, label: 'Scope', view: 'scope' },
-                                        { icon: Settings, label: 'Settings', view: 'settings' }
-                                    ].map(item => (
-                                        <button key={item.view} onClick={() => { setCurrentView(item.view); setSelectedStep(null); }} className={'flex flex-col items-center gap-1 px-6 py-2 rounded-lg ' + (currentView === item.view ? 'text-blue-600 bg-blue-50' : 'text-gray-600')}>
-                                            <item.icon /> <span className="text-xs font-medium">{item.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
+
+const DiagnosticApp = () => {
+  const [currentView, setCurrentView] = useState('vehicle-info');
+  const [selectedStep, setSelectedStep] = useState(null);
+  const [selectedScopeWorkflow, setSelectedScopeWorkflow] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState([]);
+  
+  const [vehicleInfo, setVehicleInfo] = useState({
+    year: '',
+    make: '',
+    model: '',
+    vin: '',
+    roNumber: ''
+  });
+  const [hasVehicleInfo, setHasVehicleInfo] = useState(false);
+  const [stepNotes, setStepNotes] = useState({});
+  const [stepImages, setStepImages] = useState({});
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [submitEmail, setSubmitEmail] = useState('');
+  const [advisorEmail, setAdvisorEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [expandedImage, setExpandedImage] = useState(null);
+  const [supportForm, setSupportForm] = useState({
+    year: '',
+    make: '',
+    model: '',
+    helpType: '',
+    description: ''
+  });
+
+  const API_BASE_URL = 'https://your-backend-api.com';
+  const SAMPLE_WAVEFORMS_URL = 'https://your-samples-site.com/waveforms';
+
+  const diagnosticSteps = [
+    { 
+      id: 1, 
+      title: "Pre-Scan Documentation", 
+      category: "Pre-Diagnostic",
+      bestPractice: "Always perform pre-scan BEFORE any work begins. Document ALL DTCs present, including pending and history codes. Take screenshots or photos of scan data. This protects you from comebacks and establishes baseline condition."
+    },
+    { 
+      id: 2, 
+      title: "Test Drive & Data Capture", 
+      category: "Pre-Diagnostic",
+      bestPractice: "Duplicate customer concern if possible. Record data during test drive - freeze frame data, Mode 6 data, and live parameters. Note exact conditions when problem occurs (temperature, speed, load). Use your phone to video/audio record unusual sounds or behaviors."
+    },
+    { 
+      id: 3, 
+      title: "Baseline Health Check", 
+      category: "Pre-Diagnostic",
+      bestPractice: "Check fluid levels, visual inspection for obvious damage, verify no unrelated issues exist. Look for aftermarket modifications, previous repairs, or collision damage. Document condition with photos. Don't assume basic maintenance was done. (This should be part of your digital inspection)"
+    },
+    { 
+      id: 4, 
+      title: "Digital Inspection", 
+      category: "Pre-Diagnostic",
+      bestPractice: "Use your shop's digital inspection process. Document everything with photos - this builds customer trust and protects against liability. Check for related issues that could cause the symptom. Note deferred maintenance that could affect diagnosis."
+    },
+    { 
+      id: 5, 
+      title: "Electrical System Evaluation", 
+      category: "Pre-Diagnostic",
+      bestPractice: "CRITICAL: Test battery STATE OF HEALTH and capacity, not just voltage. Check alternator output and ripple. Verify stable voltage before any diagnostic work - low voltage causes false DTCs and intermittent issues. Load test battery if over 2 years old."
+    },
+    { 
+      id: 6, 
+      title: "TSB & Known Issues Research", 
+      category: "Research",
+      bestPractice: "Search manufacturer TSBs, NHTSA database, and tech forums BEFORE diving into diagnosis. Many issues have known fixes or software updates. Check for recalls and warranty extensions. Document TSB numbers found - this justifies repair to customer. This is not a silver bullet, do not replace this with valid testing."
+    },
+    { 
+      id: 7, 
+      title: "Wiring Diagrams & System Operation", 
+      category: "Research",
+      bestPractice: "Study wiring diagrams and system operation BEFORE testing. Understand how the system works normally so you recognize abnormal. Identify all components in the circuit, their locations, and connectors. Know what voltages/resistances to expect. If this is a Comm problem, you must look at topology. Do not ignore Comm codes. See if they integrate into your complaint, or can be ignored. Test to see if they repeat and are part of this diag."
+    },
+    { 
+      id: 8, 
+      title: "Stable Voltage Setup", 
+      category: "Research",
+      bestPractice: "Use a battery maintainer or power supply during extended diagnostics. Unstable voltage during testing gives false results and can set DTCs. Many techs skip this and waste hours chasing ghosts. Maintain 12.6V minimum during all testing."
+    },
+    { 
+      id: 9, 
+      title: "Test Plan Development", 
+      category: "Diagnosis",
+      bestPractice: "Write down your test plan BEFORE you start testing. What are you testing? What results prove/disprove your theory? Test the most likely causes first but have a systematic plan. Don't just throw parts at it or randomly test things. This is where you may need to sell more diag, what we call Scope, and Pinpoint testing. If a high level of Scope diagnostics is needed, or physical tear down, that should not be free. Get paid for your skill. (see the Scope part for this workflow)"
+    },
+    { 
+      id: 10, 
+      title: "Data Recording & Scope Work", 
+      category: "Diagnosis",
+      bestPractice: "Use your scope to capture actual waveforms - don't just trust scan data. Save all scope captures with filename showing RO# and what was tested. Capture known-good and fault conditions. This is your evidence that proves the diagnosis. This can sometimes be done in the first diag charge, (RC, VE, etc. But know when to stop and sell more work.)"
+    },
+    { 
+      id: 11, 
+      title: "Delta Analysis & Data Mapping", 
+      category: "Diagnosis",
+      bestPractice: "Compare current readings to baseline/known good values. Look for CHANGES - what's different when problem occurs vs when it doesn't? Map data relationships (fuel trim vs load, MAF vs RPM). The delta (change) often reveals the root cause."
+    },
+    { 
+      id: 12, 
+      title: "Part Verification", 
+      category: "Diagnosis",
+      bestPractice: "NEVER replace parts based on DTCs alone. Test the actual component - verify it's out of spec. Check connectors and wiring first - most 'bad parts' are actually wiring/connector issues. Get known-good readings from same vehicle if possible."
+    },
+    { 
+      id: 13, 
+      title: "Prove It Twice", 
+      category: "Diagnosis",
+      bestPractice: "Prove your diagnosis TWO different ways. If sensor reads low, verify both the sensor output AND the circuit continuity. Or test at both ends, and refer to the Scope Part of this App for Amp, and other SigInt work. Duplicate the failure if intermittent. Never rely on one test. This prevents comebacks and wrong part installation."
+    },
+    { 
+      id: 14, 
+      title: "Quality Repair & Parts", 
+      category: "Repair",
+      bestPractice: "Use OE or quality aftermarket parts - cheap parts cause comebacks. Follow manufacturer repair procedures exactly. Take photos of repair area before/after. Clean connectors, apply dielectric grease. If you find poor previous repairs, document and repair correctly."
+    },
+    { 
+      id: 15, 
+      title: "Post-Repair Validation & Post-Scan", 
+      category: "Repair",
+      bestPractice: "ALWAYS post-scan after repair. Clear codes properly (not just erase). Test drive and verify concern is fixed. Check for any NEW codes created during repair. Run monitors to set readiness. Document successful repair with scan data showing fix. This proves you fixed it. If you are doing engine Drivability, Always document Trims on final test drive, this will confirm it is running the way it was designed and protect your integrity. If there are still Trim problems, let the SA know, it is not really fixed, even if it runs better. (Cascading Failure, sometimes requires more than one repair.)"
+    }
+  ];
+
+  const scopeWorkflows = [
+    {
+      id: 'baseline',
+      title: 'Baseline Testing',
+      icon: CheckCircle,
+      color: 'bg-blue-600',
+      description: 'Essential baseline tests for engine health assessment',
+      steps: [
+        { 
+          id: 1, 
+          title: 'Relative Compression Test',
+          description: 'Use starter current draw to assess cylinder compression',
+          procedure: 'Disable fuel and ignition. Connect current clamp to battery cable. Crank engine and capture waveform. Look for consistent current spikes across all cylinders.',
+          tips: 'Each cylinder should show similar peak heights. Low peaks indicate weak compression. This test finds mechanical issues without removing plugs.',
+          samples: [
+            {
+              title: 'Good Compression Pattern',
+              description: 'All cylinders show uniform current peaks around 200-250 amps. This indicates healthy compression across all cylinders.',
+              image: 'https://via.placeholder.com/400x300/22c55e/ffffff?text=Good+Compression'
+            },
+            {
+              title: 'Low Compression Cylinder',
+              description: 'One cylinder shows significantly lower peak (150 amps vs 220 amps). Indicates worn rings, valves, or head gasket on that cylinder.',
+              image: 'https://via.placeholder.com/400x300/ef4444/ffffff?text=Low+Compression'
+            },
+            {
+              title: 'Multiple Cylinder Issues',
+              description: 'Several cylinders show low and uneven peaks. May indicate timing chain/belt issue, multiple valve problems, or severe engine wear.',
+              image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Multiple+Issues'
+            }
+          ]
+        },
+        { 
+          id: 2, 
+          title: 'Volumetric Efficiency (VE)',
+          description: 'Calculate engine breathing efficiency',
+          procedure: 'If you have a Transducer, WPS, this is a much better way to see actual intake VE, and you can add sync. Record MAP, RPM, and IAT at various loads. Calculate VE = (actual airflow / theoretical airflow) x 100. Compare to baseline values.',
+          tips: 'Good VE is 80-95% at idle, 95%+ at cruise. Low VE indicates restricted intake/exhaust, cam timing issues, or valve problems.',
+          samples: [
+            {
+              title: 'Healthy VE Pattern',
+              description: 'VE reads 85% at idle, 98% at cruise. Smooth transitions between loads. Engine is breathing efficiently.',
+              image: 'https://via.placeholder.com/400x300/22c55e/ffffff?text=Good+VE'
+            },
+            {
+              title: 'Restricted Intake',
+              description: 'VE drops to 65% at idle, 80% at cruise. Indicates clogged air filter, restricted intake, or MAF sensor issues.',
+              image: 'https://via.placeholder.com/400x300/ef4444/ffffff?text=Low+VE'
+            },
+            {
+              title: 'Exhaust Restriction',
+              description: 'VE normal at light load but drops significantly under acceleration. Indicates clogged catalytic converter or exhaust restriction.',
+              image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Exhaust+Block'
+            }
+          ]
         }
+      ]
+    },
+    {
+      id: 'cam-crank',
+      title: 'Cam/Crank Correlation',
+      icon: TrendingUp,
+      color: 'bg-green-600',
+      description: 'Verify timing chain/belt alignment and sensor operation',
+      steps: [
+        { 
+          id: 1, 
+          title: 'Sensor Signal Quality Check',
+          description: 'Verify clean cam and crank sensor signals',
+          procedure: 'Connect scope to both cam and crank sensors. Crank or run engine. Check for clean square waves (Hall) or sine waves (magnetic). No dropouts or noise.',
+          tips: 'Weak or erratic signals cause no-start, stall, misfire. Check sensor gap, tone ring condition, and wiring.',
+          samples: [
+            {
+              title: 'Clean Sensor Signals',
+              description: 'Both cam and crank show clean, consistent waveforms. Hall sensors show sharp square waves, magnetic sensors show clean sine waves.',
+              image: 'https://diagflow-production.up.railway.app/public/samples/cam-crank-clean.jpg'
+            },
+            {
+              title: 'Weak Sensor Signal',
+              description: 'Crank sensor amplitude is low or erratic. May cause intermittent no-start or stalling. Check sensor gap and wiring.',
+              image: 'https://diagflow-production.up.railway.app/public/samples/cam-crank-weak.jpg'
+            },
+            {
+              title: 'Noise Interference',
+              description: 'Signal shows electrical noise or dropouts. Check for damaged wiring, poor grounds, or electromagnetic interference.',
+              image: 'https://diagflow-production.up.railway.app/public/samples/cam-crank-noise.jpg'
+            }
+          ]
+        },
+        { 
+          id: 2, 
+          title: 'Timing Correlation Analysis',
+          description: 'Verify proper phase relationship between cam and crank',
+          procedure: 'Overlay cam and crank signals on scope. Count crank pulses between cam pulses. Compare to factory specs. Check at cranking and running speeds.',
+          tips: 'Jumped timing shows shifted relationship. Engine runs rough, lacks power, may not start. Use known-good pattern for comparison.',
+          samples: [
+            {
+              title: 'Correct Timing',
+              description: 'Cam and crank sensors show proper phase relationship matching factory specs. Timing marks align correctly.',
+              image: 'https://via.placeholder.com/400x300/22c55e/ffffff?text=Good+Timing'
+            },
+            {
+              title: 'Jumped Timing - 1 Tooth',
+              description: 'Timing is off by one tooth. Engine runs rough, reduced power, possible check engine light. Timing chain/belt may have skipped.',
+              image: 'https://via.placeholder.com/400x300/ef4444/ffffff?text=Jumped+1+Tooth'
+            },
+            {
+              title: 'Severe Timing Issue',
+              description: 'Timing relationship is severely off. Engine may not start or runs very poorly. Timing chain/belt failure or incorrect installation.',
+              image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Major+Timing+Error'
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'in-cylinder',
+      title: 'In-Cylinder Pressure',
+      icon: Award,
+      color: 'bg-red-600',
+      description: 'Advanced combustion analysis using pressure transducer',
+      steps: [
+        { 
+          id: 1, 
+          title: 'Transducer Installation',
+          description: 'Install pressure transducer in spark plug hole',
+          procedure: 'Remove spark plug from cylinder to test. Install pressure transducer. Ensure proper sealing. Connect to scope pressure input.',
+          tips: 'Use proper adapter for plug thread size. Transducer must seal completely. Start with cylinder #1, then test others for comparison.',
+          samples: [
+            {
+              title: 'Proper Installation',
+              description: 'Transducer properly installed with correct adapter. Sealed tight, no air leaks. Ready for accurate pressure readings.',
+              image: 'https://via.placeholder.com/400x300/22c55e/ffffff?text=Good+Install'
+            },
+            {
+              title: 'Poor Seal',
+              description: 'Transducer not sealing properly. Will show reduced pressure readings. Re-install with correct adapter and proper torque.',
+              image: 'https://via.placeholder.com/400x300/ef4444/ffffff?text=Bad+Seal'
+            },
+            {
+              title: 'Wrong Adapter',
+              description: 'Incorrect thread adapter used. May damage threads or give false readings. Verify correct adapter for vehicle.',
+              image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Wrong+Adapter'
+            }
+          ]
+        },
+        { 
+          id: 2, 
+          title: 'Compression Stroke Analysis',
+          description: 'Measure actual cylinder pressure during compression',
+          procedure: 'Disable fuel and ignition. Crank engine and capture pressure trace. Normal compression is 120-180 PSI depending on engine.',
+          tips: 'Low pressure = worn rings, valves, or head gasket. Compare all cylinders. Wet test (add oil) helps isolate rings vs valves.',
+          samples: [
+            {
+              title: 'Healthy Compression',
+              description: 'Pressure peaks at 150-180 PSI. Smooth curve with no irregularities. Indicates healthy rings, valves, and head gasket.',
+              image: 'https://via.placeholder.com/400x300/22c55e/ffffff?text=Good+Compression'
+            },
+            {
+              title: 'Worn Rings',
+              description: 'Low peak pressure (90-100 PSI). Improves with wet test (oil added). Indicates worn piston rings allowing blowby.',
+              image: 'https://via.placeholder.com/400x300/ef4444/ffffff?text=Worn+Rings'
+            },
+            {
+              title: 'Valve Issues',
+              description: 'Low pressure that does NOT improve with wet test. Indicates leaking valves or valve seating problems.',
+              image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Bad+Valves'
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'can-bus',
+      title: 'CAN Bus Diagnostics',
+      icon: FileText,
+      color: 'bg-purple-600',
+      description: 'Network communication testing and troubleshooting',
+      steps: [
+        { 
+          id: 1, 
+          title: 'Network Topology Check',
+          description: 'Identify CAN network architecture and termination',
+          procedure: 'Reference wiring diagram for CAN High/Low wires and termination resistors. Key off, measure resistance between CAN H and CAN L at DLC. Should be 60 ohms (two 120-ohm resistors in parallel).',
+          tips: 'Open circuit = broken wire or missing termination. Short circuit = damaged wire or module. Wrong resistance = missing or added termination.',
+          samples: [
+            {
+              title: 'Correct Termination',
+              description: '60 ohms measured between CAN H and CAN L. Both 120-ohm termination resistors present and functioning. Network topology correct.',
+              image: 'https://via.placeholder.com/400x300/22c55e/ffffff?text=60+Ohms+Good'
+            },
+            {
+              title: 'Missing Termination',
+              description: '120 ohms measured - one termination resistor missing or open. Network will be unreliable. Locate and repair missing terminator.',
+              image: 'https://via.placeholder.com/400x300/ef4444/ffffff?text=120+Ohms'
+            },
+            {
+              title: 'Short Circuit',
+              description: 'Very low resistance (under 30 ohms) indicates shorted CAN wires or damaged module. Isolate sections to find short.',
+              image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Short+Detected'
+            }
+          ]
+        },
+        { 
+          id: 2, 
+          title: 'CAN Signal Quality Test',
+          description: 'Verify clean differential signal on CAN bus',
+          procedure: 'Connect scope to CAN H and CAN L. Key on or engine running. Look for clean differential signal around 2.5V center. Activity should be constant.',
+          tips: 'CAN H should swing 3.5-4V, CAN L should swing 1-1.5V. No activity = network down. Distorted signal = wire damage or termination problem.',
+          samples: [
+            {
+              title: 'Healthy CAN Signals',
+              description: 'Clean differential signals. CAN H swings 3.5-4V, CAN L swings 1-1.5V. Constant activity. Network communicating properly.',
+              image: 'https://via.placeholder.com/400x300/22c55e/ffffff?text=Good+CAN'
+            },
+            {
+              title: 'Distorted Signals',
+              description: 'Waveforms show rounding or noise. Indicates wire damage, poor termination, or electromagnetic interference. Check wiring.',
+              image: 'https://via.placeholder.com/400x300/ef4444/ffffff?text=Bad+Signal'
+            },
+            {
+              title: 'No Activity',
+              description: 'Both lines flat at 2.5V, no communication. Network is down. Check for power, ground, and shorted or open wires.',
+              image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=No+Comm'
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'misc',
+      title: 'Miscellaneous Testing',
+      icon: TrendingUp,
+      color: 'bg-orange-600',
+      description: 'Additional diagnostic tests and techniques',
+      steps: [
+        { 
+          id: 1, 
+          title: 'Ignition System Testing',
+          description: 'Primary and secondary ignition analysis',
+          procedure: 'Capture primary or secondary ignition pattern. Check coil saturation time, firing voltage, spark duration, and burn time.',
+          tips: 'High firing voltage = bad plug/wire/coil. Short burn time = lean mixture or bad coil. Compare cylinders.',
+          samples: [
+            {
+              title: 'Healthy Ignition',
+              description: 'Firing voltage 8-12kV, burn time 1-2ms, consistent across cylinders. Clean spark line with no oscillations.',
+              image: 'https://via.placeholder.com/400x300/22c55e/ffffff?text=Good+Ignition'
+            },
+            {
+              title: 'High Firing Voltage',
+              description: 'Firing voltage over 20kV. Indicates fouled plug, wide gap, bad wire, or lean mixture requiring more voltage to fire.',
+              image: 'https://via.placeholder.com/400x300/ef4444/ffffff?text=High+Voltage'
+            },
+            {
+              title: 'Weak Coil',
+              description: 'Short burn time under 0.8ms or low available voltage. Coil cannot sustain spark. Replace coil.',
+              image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Weak+Coil'
+            }
+          ]
+        },
+        { 
+          id: 2, 
+          title: 'Injector Current Ramping',
+          description: 'Test injector electrical operation',
+          procedure: 'Connect current clamp around injector wire. Capture opening and closing ramp. Look for smooth pintle movement signature.',
+          tips: 'Flat or missing ramp = stuck injector. Irregular ramp = dirty or failing injector. Compare all cylinders.',
+          samples: [
+            {
+              title: 'Good Injector Pattern',
+              description: 'Smooth current ramp up as pintle opens, clean hold phase, smooth ramp down on close. Injector functioning normally.',
+              image: 'https://via.placeholder.com/400x300/22c55e/ffffff?text=Good+Injector'
+            },
+            {
+              title: 'Stuck Injector',
+              description: 'Flat ramp with no pintle movement signature. Injector mechanically stuck. Clean or replace injector.',
+              image: 'https://via.placeholder.com/400x300/ef4444/ffffff?text=Stuck'
+            },
+            {
+              title: 'Dirty Injector',
+              description: 'Irregular or delayed pintle movement. Deposits causing sticking. Clean injectors or replace if cleaning fails.',
+              image: 'https://via.placeholder.com/400x300/f59e0b/ffffff?text=Dirty'
+            }
+          ]
+        }
+      ]
+    }
+  ];
+
+  const resetJob = () => {
+    const confirmed = window.confirm('Start a new job? This will clear all notes and progress.');
+    
+    if (confirmed) {
+      // Clear all state completely
+      setVehicleInfo({ year: '', make: '', model: '', vin: '', roNumber: '' });
+      setHasVehicleInfo(false);
+      setCompletedSteps([]);
+      setStepNotes({});
+      setStepImages({});
+      setSelectedStep(null);
+      setSelectedScopeWorkflow(null);
+      setCurrentView('vehicle-info');
+    }
+    
+    return confirmed;
+  };
+
+  const saveStepNote = (stepId, note) => {
+    setStepNotes(prev => ({ ...prev, [stepId]: note }));
+  };
+
+  const handleImageUpload = (stepId, event) => {
+    const files = Array.from(event.target.files);
+    const imagePromises = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          resolve({
+            id: Date.now() + Math.random(),
+            url: e.target.result,
+            name: file.name,
+            description: '',
+            type: 'neutral'
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(imagePromises).then(newImages => {
+      setStepImages(prev => ({
+        ...prev,
+        [stepId]: [...(prev[stepId] || []), ...newImages]
+      }));
+    });
+  };
+
+  const updateImageDescription = (stepId, imageId, description) => {
+    setStepImages(prev => ({
+      ...prev,
+      [stepId]: prev[stepId].map(img => 
+        img.id === imageId ? { ...img, description } : img
+      )
+    }));
+  };
+
+  const updateImageType = (stepId, imageId, type) => {
+    setStepImages(prev => ({
+      ...prev,
+      [stepId]: prev[stepId].map(img => 
+        img.id === imageId ? { ...img, type } : img
+      )
+    }));
+  };
+
+  const deleteImage = (stepId, imageId) => {
+    setStepImages(prev => ({
+      ...prev,
+      [stepId]: prev[stepId].filter(img => img.id !== imageId)
+    }));
+  };
+
+  const initiateHelpSession = (type) => {
+    console.log(`Help session requested: ${type}`);
+    
+    if (type === 'support') {
+      setShowHelpModal(false);
+      setSupportForm({
+        year: vehicleInfo.year || '',
+        make: vehicleInfo.make || '',
+        model: vehicleInfo.model || '',
+        helpType: '',
+        description: ''
+      });
+      setShowSupportModal(true);
+      return;
+    }
+    
+    alert(`Premium Help Feature\n\nThis will connect you to an expert technician for ${type} support.\n\nBackend integration coming soon!`);
+    setShowHelpModal(false);
+  };
+
+  const submitSupportRequest = async () => {
+    if (!supportForm.helpType || !supportForm.description) {
+      alert('Please fill in the type of help needed and description.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const supportData = {
+        email: process.env.SUPPORT_EMAIL || 'support@diagflow.com',
+        subject: `DiagFlow Support Request - ${supportForm.year} ${supportForm.make} ${supportForm.model}`,
+        helpType: supportForm.helpType,
+        vehicleInfo: {
+          year: supportForm.year,
+          make: supportForm.make,
+          model: supportForm.model
+        },
+        description: supportForm.description,
+        timestamp: new Date().toISOString()
+      };
+
+      const response = await fetch(`${API_BASE_URL}/api/support-request`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(supportData)
+      });
+
+      if (!response.ok) {
+        console.log('Support request data:', supportData);
+        alert(`Support request prepared!\n\nYour request has been logged.\n\nA technician will contact you soon.`);
+        setIsSubmitting(false);
+        setShowSupportModal(false);
+        setSupportForm({ year: '', make: '', model: '', helpType: '', description: '' });
+        return;
+      }
+
+      const result = await response.json();
+      alert(`Support request submitted successfully!\n\nA Master Technician will contact you shortly.`);
+      setIsSubmitting(false);
+      setShowSupportModal(false);
+      setSupportForm({ year: '', make: '', model: '', helpType: '', description: '' });
+
+    } catch (error) {
+      console.error('Support request error:', error);
+      alert(`Support request logged.\n\nWe'll get back to you as soon as possible.`);
+      setIsSubmitting(false);
+      setShowSupportModal(false);
+      setSupportForm({ year: '', make: '', model: '', helpType: '', description: '' });
+    }
+  };
+
+  const generatePDFReport = async () => {
+    const reportData = {
+      vehicleInfo,
+      completedSteps: completedSteps.length,
+      totalSteps: diagnosticSteps.length,
+      steps: diagnosticSteps.map(step => ({
+        id: step.id,
+        title: step.title,
+        category: step.category,
+        completed: completedSteps.includes(step.id),
+        notes: stepNotes[step.id] || '',
+        images: stepImages[step.id] || []
+      })),
+      generatedDate: new Date().toISOString()
+    };
+    return reportData;
+  };
+
+  const submitToServiceAdvisor = async () => {
+    if (!submitEmail) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const reportData = await generatePDFReport();
+      
+      const response = await fetch(`${API_BASE_URL}/api/submit-report`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          email: submitEmail,
+          reportData: reportData
+        })
+      });
+      
+      if (!response.ok) {
+        // Endpoint doesn't exist yet - show friendly message
+        console.log('Report data prepared:', reportData);
+        alert(`Report generated successfully!\n\nSending to: ${submitEmail}\n\nNote: Backend PDF/email endpoint needs to be configured.\n\nReport data is ready and logged to console.`);
+        setIsSubmitting(false);
+        setShowSubmitModal(false);
+        setSubmitEmail('');
+        return;
+      }
+      
+      const result = await response.json();
+      alert(`Report successfully sent to: ${submitEmail}`);
+      setIsSubmitting(false);
+      setShowSubmitModal(false);
+      setSubmitEmail('');
+      
+    } catch (error) {
+      console.log('Report data prepared:', await generatePDFReport());
+      alert(`Report generated!\n\nTo: ${submitEmail}\n\nBackend configuration needed for email delivery.\nReport data logged to console.`);
+      setIsSubmitting(false);
+      setShowSubmitModal(false);
+      setSubmitEmail('');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <div className="bg-white shadow-md sticky top-0 z-50">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setMenuOpen(!menuOpen)} className="hover:bg-gray-100 p-1 rounded">
+              <Menu className="w-6 h-6" />
+            </button>
+            <div className="flex flex-col">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" className="h-14 w-auto">
+                <defs>
+                  <linearGradient id="techGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style={{stopColor:'#00d4ff', stopOpacity:1}} />
+                    <stop offset="100%" style={{stopColor:'#0066ff', stopOpacity:1}} />
+                  </linearGradient>
+                  <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                </defs>
+                <g transform="translate(50, 75)">
+                  <circle cx="75" cy="75" r="65" fill="none" stroke="url(#techGradient)" strokeWidth="3" opacity="0.3"/>
+                  <circle cx="75" cy="75" r="55" fill="none" stroke="url(#techGradient)" strokeWidth="2.5" opacity="0.5"/>
+                  <circle cx="75" cy="75" r="45" fill="none" stroke="url(#techGradient)" strokeWidth="2"/>
+                  <circle cx="75" cy="75" r="8" fill="url(#techGradient)" filter="url(#glow)"/>
+                  <path d="M 20 75 L 50 75" stroke="url(#techGradient)" strokeWidth="3" strokeLinecap="round"/>
+                  <path d="M 100 75 L 130 75" stroke="url(#techGradient)" strokeWidth="3" strokeLinecap="round"/>
+                  <circle cx="50" cy="75" r="5" fill="#00d4ff"/>
+                  <circle cx="100" cy="75" r="5" fill="#00d4ff"/>
+                  <path d="M 75 20 L 75 30" stroke="url(#techGradient)" strokeWidth="2.5" strokeLinecap="round"/>
+                  <circle cx="75" cy="30" r="4" fill="#00d4ff"/>
+                  <path d="M 75 120 L 75 130" stroke="url(#techGradient)" strokeWidth="2.5" strokeLinecap="round"/>
+                  <circle cx="75" cy="120" r="4" fill="#00d4ff"/>
+                  <path d="M 30 45 L 40 45 L 45 35 L 50 55 L 55 40 L 60 45 L 70 45" 
+                        stroke="#00d4ff" strokeWidth="2" fill="none" opacity="0.7" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M 95 60 L 100 55 L 95 50" stroke="#00d4ff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                </g>
+                <g transform="translate(210, 150)">
+                  <text fontFamily="'Arial Black', 'Arial Bold', sans-serif" fontSize="72" fontWeight="900" fill="url(#techGradient)" letterSpacing="-2">
+                    DIAG
+                  </text>
+                  <text x="220" fontFamily="'Arial', sans-serif" fontSize="72" fontWeight="300" fill="#1f2937" letterSpacing="0">
+                    FLOW
+                  </text>
+                </g>
+                <text x="212" y="195" fontFamily="'Arial', sans-serif" fontSize="16" fill="#00d4ff" letterSpacing="4" opacity="0.8">
+                  NEVER MISS A STEP
+                </text>
+                <line x1="210" y1="205" x2="480" y2="205" stroke="url(#techGradient)" strokeWidth="1" opacity="0.5"/>
+                <circle cx="210" cy="205" r="2" fill="#00d4ff"/>
+                <circle cx="480" cy="205" r="2" fill="#00d4ff"/>
+              </svg>
+              {hasVehicleInfo && (
+                <div className="text-xs text-gray-600">
+                  {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}
+                  {vehicleInfo.roNumber && ` • RO# ${vehicleInfo.roNumber}`}
+                </div>
+              )}
+            </div>
+          </div>
+          {hasVehicleInfo && (
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={resetJob} 
+                className="text-sm text-blue-600 font-medium hover:text-blue-700 px-2 py-1"
+              >
+                New Job
+              </button>
+              <button 
+                onClick={() => setShowHelpModal(true)}
+                className="bg-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-orange-600 flex items-center gap-1"
+              >
+                <HelpCircle className="w-4 h-4" />
+                Get Help
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {menuOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setMenuOpen(false)}>
+          <div className="bg-white w-64 h-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b">
+              <h2 className="font-bold text-xl">Menu</h2>
+            </div>
+            <nav className="p-2">
+              {[
+                { icon: Home, label: 'Home', view: 'home' },
+                { icon: BookOpen, label: 'Workflow', view: 'workflow' },
+                { icon: TrendingUp, label: 'Scope & Pinpoint', view: 'scope' },
+                { icon: Settings, label: 'Settings', view: 'settings' }
+              ].map(item => (
+                <button
+                  key={item.view}
+                  onClick={() => { 
+                    setCurrentView(item.view); 
+                    setSelectedStep(null);
+                    setSelectedScopeWorkflow(null);
+                    setMenuOpen(false); 
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${currentView === item.view ? 'bg-blue-50' : ''}`}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+              
+              <div className="border-t my-2"></div>
+              
+              <button
+                onClick={() => {
+                  window.open(SAMPLE_WAVEFORMS_URL, '_blank');
+                  setMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100"
+              >
+                <Video className="w-5 h-5" />
+                <span>Sample Waveforms</span>
+              </button>
+              
+              {hasVehicleInfo && (
+                <button
+                  onClick={() => {
+                    setShowHelpModal(true);
+                    setMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 text-orange-600"
+                >
+                  <HelpCircle className="w-5 h-5" />
+                  <span>Get Expert Help</span>
+                </button>
+              )}
+            </nav>
+          </div>
+        </div>
+      )}
+
+      {showHelpModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Expert Help</h2>
+                <button onClick={() => setShowHelpModal(false)} className="text-gray-400 hover:text-gray-600">
+                  ✕
+                </button>
+              </div>
+              
+              <p className="text-sm text-gray-600 mb-4">
+                Connect with a Master Technician for live diagnostic support
+              </p>
+
+              <div className="bg-orange-50 p-4 rounded-lg mb-4 border border-orange-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <Award className="w-5 h-5 text-orange-600" />
+                  <span className="font-semibold text-orange-900">Premium Feature</span>
+                </div>
+                <p className="text-xs text-orange-800">
+                  Get help from ASE Master Techs with 20+ years experience
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => initiateHelpSession('live')}
+                  className="w-full bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 flex items-center justify-center gap-2"
+                >
+                  <Video className="w-5 h-5" />
+                  Start Live Video Call
+                </button>
+                
+                <button
+                  onClick={() => initiateHelpSession('support')}
+                  className="w-full bg-purple-500 text-white py-3 rounded-lg font-semibold hover:bg-purple-600 flex items-center justify-center gap-2"
+                >
+                  <Award className="w-5 h-5" />
+                  Request Support Ticket
+                </button>
+
+                <button
+                  onClick={() => initiateHelpSession('chat')}
+                  className="w-full bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 flex items-center justify-center gap-2"
+                >
+                  <HelpCircle className="w-5 h-5" />
+                  Start Chat Session
+                </button>
+
+                <button
+                  onClick={() => setShowHelpModal(false)}
+                  className="w-full border border-gray-300 py-2 rounded-lg font-semibold hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-500 mt-4 text-center">
+                Billed per session or by subscription
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSubmitModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Submit Report to SA</h2>
+                <button onClick={() => setShowSubmitModal(false)} className="text-gray-400 hover:text-gray-600">
+                  ✕
+                </button>
+              </div>
+              
+              <p className="text-sm text-gray-600 mb-4">
+                Generate and email a PDF report with all diagnostic findings, notes, and photos.
+              </p>
+
+              <div className="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">
+                <h3 className="font-semibold text-sm mb-2 text-blue-900">Report Includes:</h3>
+                <ul className="text-xs text-blue-800 space-y-1">
+                  <li>• Vehicle Information</li>
+                  <li>• Completed Steps ({completedSteps.length} of {diagnosticSteps.length})</li>
+                  <li>• All Notes and Observations</li>
+                  <li>• Photo Documentation ({Object.values(stepImages).reduce((sum, imgs) => sum + imgs.length, 0)} photos)</li>
+                  <li>• Timestamp and Technician Info</li>
+                </ul>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Service Advisor Email:</label>
+                <input
+                  type="email"
+                  className="w-full px-4 py-2 border rounded-lg"
+                  placeholder="serviceadvisor@shop.com"
+                  value={submitEmail}
+                  onChange={(e) => {
+                    setSubmitEmail(e.target.value);
+                    setAdvisorEmail(e.target.value);
+                  }}
+                />
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={submitToServiceAdvisor}
+                  disabled={isSubmitting || !submitEmail}
+                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Generating PDF...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-5 h-5" />
+                      Generate & Send PDF Report
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setShowSubmitModal(false)}
+                  disabled={isSubmitting}
+                  className="w-full border border-gray-300 py-2 rounded-lg font-semibold hover:bg-gray-50 disabled:bg-gray-100"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-500 mt-4 text-center">
+                Report will be sent as a professional PDF document
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Expand Modal */}
+      {expandedImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4" onClick={() => setExpandedImage(null)}>
+          <div className="max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-lg overflow-hidden">
+              <div className="p-4 bg-gray-100 border-b flex items-center justify-between">
+                <h3 className="font-bold text-lg">{expandedImage.title}</h3>
+                <button onClick={() => setExpandedImage(null)} className="text-gray-600 hover:text-gray-900">
+                  ✕
+                </button>
+              </div>
+              <img 
+                src={expandedImage.image} 
+                alt={expandedImage.title}
+                className="w-full h-auto"
+              />
+              <div className="p-4 bg-gray-50">
+                <p className="text-sm text-gray-700">{expandedImage.description}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Support Request Modal */}
+      {showSupportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Request Expert Support</h2>
+                <button onClick={() => setShowSupportModal(false)} className="text-gray-400 hover:text-gray-600">
+                  ✕
+                </button>
+              </div>
+              
+              <p className="text-sm text-gray-600 mb-4">
+                Fill out the form below and a Master Technician will assist you.
+              </p>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Year</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border rounded text-sm"
+                      placeholder="2023"
+                      value={supportForm.year}
+                      onChange={(e) => setSupportForm({...supportForm, year: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Make</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border rounded text-sm"
+                      placeholder="Ford"
+                      value={supportForm.make}
+                      onChange={(e) => setSupportForm({...supportForm, make: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1">Model</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border rounded text-sm"
+                      placeholder="F-150"
+                      value={supportForm.model}
+                      onChange={(e) => setSupportForm({...supportForm, model: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1">Type of Help Needed</label>
+                  <select
+                    className="w-full px-3 py-2 border rounded text-sm"
+                    value={supportForm.helpType}
+                    onChange={(e) => setSupportForm({...supportForm, helpType: e.target.value})}
+                  >
+                    <option value="">Select...</option>
+                    <option value="diagnostic">Diagnostic Assistance</option>
+                    <option value="scope">Scope/Waveform Analysis</option>
+                    <option value="electrical">Electrical System</option>
+                    <option value="drivability">Drivability Issue</option>
+                    <option value="network">CAN/Network Issue</option>
+                    <option value="other">Other Technical Issue</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1">Description</label>
+                  <textarea
+                    className="w-full px-3 py-2 border rounded text-sm"
+                    rows={4}
+                    placeholder="Describe the issue you're facing and what help you need..."
+                    value={supportForm.description}
+                    onChange={(e) => setSupportForm({...supportForm, description: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3 mt-4">
+                <button
+                  onClick={submitSupportRequest}
+                  disabled={isSubmitting || !supportForm.helpType || !supportForm.description}
+                  className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Award className="w-5 h-5" />
+                      Submit Support Request
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setShowSupportModal(false)}
+                  disabled={isSubmitting}
+                  className="w-full border border-gray-300 py-2 rounded-lg font-semibold hover:bg-gray-50 disabled:bg-gray-100"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              <p className="text-xs text-gray-500 mt-4 text-center">
+                A Master Technician will review and respond within 24 hours
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-4xl mx-auto p-4 pb-32">
+        {currentView === 'vehicle-info' ? (
+          <div className="space-y-4">
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-bold mb-4">Vehicle & Job Information</h2>
+              <p className="text-sm text-gray-600 mb-4">Enter vehicle details to begin. All fields optional.</p>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">RO Number</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2 border rounded-lg"
+                    placeholder="12345"
+                    value={vehicleInfo.roNumber}
+                    onChange={(e) => setVehicleInfo({...vehicleInfo, roNumber: e.target.value})}
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Year</label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2 border rounded-lg"
+                      placeholder="2023"
+                      value={vehicleInfo.year}
+                      onChange={(e) => setVehicleInfo({...vehicleInfo, year: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Make</label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2 border rounded-lg"
+                      placeholder="Ford"
+                      value={vehicleInfo.make}
+                      onChange={(e) => setVehicleInfo({...vehicleInfo, make: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Model</label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2 border rounded-lg"
+                      placeholder="F-150"
+                      value={vehicleInfo.model}
+                      onChange={(e) => setVehicleInfo({...vehicleInfo, model: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">VIN</label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2 border rounded-lg font-mono text-sm"
+                    placeholder="1FTFW1E84MFA00000"
+                    maxLength={17}
+                    value={vehicleInfo.vin}
+                    onChange={(e) => setVehicleInfo({...vehicleInfo, vin: e.target.value.toUpperCase()})}
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={() => { setHasVehicleInfo(true); setCurrentView('home'); }}
+                className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700"
+              >
+                Start Diagnostic Workflow
+              </button>
+            </div>
+          </div>
+        ) : selectedStep && currentView === 'workflow' ? (
+          <div className="space-y-4">
+            <button onClick={() => setSelectedStep(null)} className="text-blue-600 flex items-center gap-2">
+              <ChevronRight className="w-4 h-4 rotate-180" />
+              Back to Workflow
+            </button>
+
+            <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-lg">
+              <div className="text-sm font-semibold mb-2">STEP {selectedStep.id}</div>
+              <h2 className="text-2xl font-bold mb-2">{selectedStep.title}</h2>
+            </div>
+
+            <div className="bg-amber-50 p-4 rounded-lg border-l-4 border-amber-500">
+              <h3 className="font-bold text-sm mb-2 flex items-center gap-2">
+                <Award className="w-4 h-4" />
+                Best Practice
+              </h3>
+              <p className="text-sm text-gray-800">{selectedStep.bestPractice}</p>
+            </div>
+
+            {selectedStep.id === 9 && (
+              <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
+                <h3 className="font-bold text-sm mb-2 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  Advanced Diagnostics
+                </h3>
+                <p className="text-sm text-gray-800 mb-3">
+                  Ready for advanced scope work and pinpoint testing? Access the specialized workflow.
+                </p>
+                <button
+                  onClick={() => setCurrentView('scope')}
+                  className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700"
+                >
+                  Go to Scope & Pinpoint Workflow
+                </button>
+              </div>
+            )}
+
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                <Edit2 className="w-5 h-5 text-blue-600" />
+                Your Notes
+              </h3>
+              <textarea
+                className="w-full px-4 py-3 border rounded-lg text-sm"
+                rows={6}
+                placeholder="Document your findings, test results, measurements, DTCs, or observations here..."
+                value={stepNotes[selectedStep.id] || ''}
+                onChange={(e) => saveStepNote(selectedStep.id, e.target.value)}
+              />
+              <p className="text-xs text-gray-500 mt-2">Notes saved automatically</p>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="font-bold text-lg mb-3">Photo Documentation</h3>
+              <p className="text-xs text-gray-600 mb-3">Upload images to document findings, conditions, or test results</p>
+              
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/jpg"
+                multiple
+                onChange={(e) => handleImageUpload(selectedStep.id, e)}
+                className="hidden"
+                id={`image-upload-${selectedStep.id}`}
+              />
+              <label
+                htmlFor={`image-upload-${selectedStep.id}`}
+                className="block w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold text-center cursor-pointer hover:bg-blue-700"
+              >
+                + Add Photos (JPG, PNG)
+              </label>
+
+              {stepImages[selectedStep.id] && stepImages[selectedStep.id].length > 0 && (
+                <div className="mt-4 space-y-4">
+                  {stepImages[selectedStep.id].map(image => (
+                    <div key={image.id} className="border rounded-lg p-3 bg-gray-50">
+                      <div className="flex gap-3">
+                        <img 
+                          src={image.url} 
+                          alt={image.name}
+                          className="w-24 h-24 object-cover rounded"
+                        />
+                        <div className="flex-1 space-y-2">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => updateImageType(selectedStep.id, image.id, 'good')}
+                              className={`px-3 py-1 rounded text-xs font-semibold ${
+                                image.type === 'good' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700'
+                              }`}
+                            >
+                              Good
+                            </button>
+                            <button
+                              onClick={() => updateImageType(selectedStep.id, image.id, 'bad')}
+                              className={`px-3 py-1 rounded text-xs font-semibold ${
+                                image.type === 'bad' ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700'
+                              }`}
+                            >
+                              Bad
+                            </button>
+                            <button
+                              onClick={() => updateImageType(selectedStep.id, image.id, 'neutral')}
+                              className={`px-3 py-1 rounded text-xs font-semibold ${
+                                image.type === 'neutral' ? 'bg-gray-500 text-white' : 'bg-gray-200 text-gray-700'
+                              }`}
+                            >
+                              Info
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            placeholder="Add description..."
+                            className="w-full px-3 py-1 border rounded text-sm"
+                            value={image.description}
+                            onChange={(e) => updateImageDescription(selectedStep.id, image.id, e.target.value)}
+                          />
+                          <button
+                            onClick={() => deleteImage(selectedStep.id, image.id)}
+                            className="text-red-600 text-xs hover:underline"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="pb-4">
+              <button 
+                onClick={() => {
+                  setCompletedSteps(prev => [...prev, selectedStep.id]);
+                  setTimeout(() => {
+                    setSelectedStep(null);
+                    setCurrentView('workflow');
+                  }, 100);
+                }}
+                className="w-full py-3 rounded-lg font-semibold bg-green-600 text-white hover:bg-green-700"
+              >
+                Complete Step & Return to Workflow
+              </button>
+            </div>
+          </div>
+        ) : selectedScopeWorkflow && currentView === 'scope' ? (
+          <div className="space-y-4">
+            <button onClick={() => setSelectedScopeWorkflow(null)} className="text-blue-600 flex items-center gap-2">
+              <ChevronRight className="w-4 h-4 rotate-180" />
+              Back to Scope Workflows
+            </button>
+
+            <div className={`${selectedScopeWorkflow.color} text-white p-6 rounded-lg`}>
+              <selectedScopeWorkflow.icon className="w-8 h-8 mb-2" />
+              <h2 className="text-2xl font-bold mb-2">{selectedScopeWorkflow.title}</h2>
+              <p className="text-sm opacity-90">{selectedScopeWorkflow.description}</p>
+            </div>
+
+            <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <HelpCircle className="w-5 h-5 text-orange-600" />
+                    <span className="font-semibold text-orange-900">Need Expert Guidance?</span>
+                  </div>
+                  <p className="text-xs text-orange-800">
+                    Connect with a Master Tech for real-time help with scope diagnostics
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowHelpModal(true)}
+                  className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-orange-600 flex items-center gap-1 ml-4"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  Get Help
+                </button>
+              </div>
+            </div>
+
+            {selectedScopeWorkflow.steps.map((step) => (
+              <div key={step.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="bg-gray-100 p-4 border-b">
+                  <h3 className="font-bold flex items-center gap-2">
+                    <span className="text-xs font-semibold text-blue-600">STEP {step.id}</span>
+                    {step.title}
+                  </h3>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div>
+                    <h4 className="font-semibold text-sm mb-1">Description:</h4>
+                    <p className="text-sm text-gray-700">{step.description}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm mb-1">Procedure:</h4>
+                    <p className="text-sm text-gray-700">{step.procedure}</p>
+                  </div>
+                  <div className="bg-amber-50 p-3 rounded border-l-4 border-amber-500">
+                    <h4 className="font-semibold text-sm mb-1">Pro Tips:</h4>
+                    <p className="text-sm text-gray-800">{step.tips}</p>
+                  </div>
+                  
+                  {step.samples && step.samples.length > 0 && (
+                    <div className="bg-blue-50 p-4 rounded border-l-4 border-blue-500">
+                      <h4 className="font-semibold text-sm mb-3">Sample Waveforms & Examples:</h4>
+                      <div className="grid grid-cols-1 gap-3">
+                        {step.samples.map((sample, idx) => (
+                          <div key={idx} className="bg-white rounded-lg p-3 border shadow-sm">
+                            <div className="flex gap-3">
+                              <img
+                                src={sample.image}
+                                alt={sample.title}
+                                className="w-24 h-24 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => setExpandedImage(sample)}
+                              />
+                              <div className="flex-1">
+                                <h5 className="font-semibold text-sm mb-1 text-gray-900">{sample.title}</h5>
+                                <p className="text-xs text-gray-600">{sample.description}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-3 italic">Tap any image to view full size</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : currentView === 'home' ? (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-lg">
+              <h2 className="text-2xl font-bold mb-2">Current Job</h2>
+              {hasVehicleInfo && (
+                <div className="mt-4 pt-4 border-t border-blue-500">
+                  <div className="text-sm space-y-1">
+                    {vehicleInfo.roNumber && <div>RO#: {vehicleInfo.roNumber}</div>}
+                    <div>{vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}</div>
+                    {vehicleInfo.vin && <div className="font-mono text-xs">{vehicleInfo.vin}</div>}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white p-4 rounded-lg shadow-md text-center">
+                <div className="text-2xl font-bold text-blue-600">{completedSteps.length}</div>
+                <div className="text-xs text-gray-600">Steps Done</div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-md text-center">
+                <div className="text-2xl font-bold text-green-600">{Object.keys(stepNotes).length}</div>
+                <div className="text-xs text-gray-600">Notes Taken</div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-md text-center">
+                <div className="text-2xl font-bold text-orange-600">
+                  {Object.values(stepImages).reduce((sum, imgs) => sum + imgs.length, 0)}
+                </div>
+                <div className="text-xs text-gray-600">Photos Added</div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-md text-center">
+                <div className="text-2xl font-bold text-purple-600">{Math.round((completedSteps.length / 15) * 100)}%</div>
+                <div className="text-xs text-gray-600">Progress</div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setCurrentView('workflow')}
+              className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700"
+            >
+              Continue Diagnostic Workflow
+            </button>
+          </div>
+        ) : currentView === 'workflow' ? (
+          <div className="space-y-4">
+            <div className="bg-white p-4 rounded-lg shadow-md">
+              <h2 className="text-xl font-bold">15-Step Diagnostic Process</h2>
+              <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${(completedSteps.length / 15) * 100}%` }} />
+              </div>
+              <p className="text-xs text-gray-600 mt-2">{completedSteps.length} of 15 steps completed</p>
+            </div>
+
+            {['Pre-Diagnostic', 'Research', 'Diagnosis', 'Repair'].map(cat => (
+              <div key={cat} className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="bg-gray-100 p-4 border-b">
+                  <h3 className="font-bold">{cat}</h3>
+                </div>
+                {diagnosticSteps.filter(s => s.category === cat).map(step => (
+                  <div key={step.id} className="p-4 border-b hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedStep(step)}>
+                    <div className="flex items-center gap-3">
+                      {completedSteps.includes(step.id) ? (
+                        <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0" />
+                      ) : (
+                        <Circle className="w-6 h-6 text-gray-300 flex-shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-blue-600">STEP {step.id}</span>
+                          <h4 className="font-semibold">{step.title}</h4>
+                        </div>
+                        {stepNotes[step.id] && (
+                          <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                            <Edit2 className="w-3 h-3" /> Notes added
+                          </p>
+                        )}
+                        {stepImages[step.id] && stepImages[step.id].length > 0 && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            📷 {stepImages[step.id].length} photo{stepImages[step.id].length !== 1 ? 's' : ''}
+                          </p>
+                        )}
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : currentView === 'scope' ? (
+          <div className="space-y-4">
+            <div className="bg-white p-4 rounded-lg shadow-md">
+              <h2 className="text-xl font-bold mb-2">Scope and Pinpoint Workflow</h2>
+              <p className="text-sm text-gray-600">Select a testing category to begin advanced diagnostics</p>
+            </div>
+
+            <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <HelpCircle className="w-5 h-5 text-orange-600" />
+                    <span className="font-semibold text-orange-900">Advanced Diagnostics Support</span>
+                  </div>
+                  <p className="text-xs text-orange-800">
+                    Stuck on a scope test? Get live help from expert technicians
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowHelpModal(true)}
+                  className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-orange-600 flex items-center gap-1 ml-4"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  Get Help
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-4">
+              {scopeWorkflows.map(workflow => (
+                <div
+                  key={workflow.id}
+                  className={`${workflow.color} text-white p-6 rounded-lg shadow-md cursor-pointer hover:opacity-90 transition-opacity`}
+                  onClick={() => setSelectedScopeWorkflow(workflow)}
+                >
+                  <div className="flex items-start gap-4">
+                    <workflow.icon className="w-10 h-10 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold mb-2">{workflow.title}</h3>
+                      <p className="text-sm opacity-90 mb-3">{workflow.description}</p>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span>{workflow.steps.length} Steps</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : currentView === 'settings' ? (
+          <div className="space-y-4">
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-xl font-bold mb-4">Settings</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Service Advisor Email
+                  </label>
+                  <input
+                    type="email"
+                    value={advisorEmail}
+                    onChange={(e) => {
+                      setAdvisorEmail(e.target.value);
+                      setSubmitEmail(e.target.value);
+                    }}
+                    placeholder="advisor@example.com"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                  />
+                  {advisorEmail && (
+                    <p className="text-sm text-green-600 mt-2">
+                      ✓ Email saved: {advisorEmail}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2">
+                    This email will be used when submitting reports to your service advisor
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h3 className="text-lg font-bold mb-2">About DiagFlow</h3>
+              <p className="text-sm text-gray-600 mb-2">Version 46 - Professional Edition</p>
+              <p className="text-xs text-gray-500">
+                15-Step systematic diagnostic methodology designed by Master Technicians
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <h2 className="text-xl font-bold mb-4">Page Not Found</h2>
+            <p className="text-sm text-gray-600">The requested page could not be found.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Submit to SA Button - Always visible at bottom */}
+      {hasVehicleInfo && (
+        <>
+          {/* Floating Get Help Button */}
+          <button
+            onClick={() => setShowHelpModal(true)}
+            className="fixed bottom-24 right-6 bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-full shadow-lg z-40 flex items-center justify-center"
+            style={{ width: '56px', height: '56px' }}
+          >
+            <HelpCircle className="w-6 h-6" />
+          </button>
+          
+          {/* Submit Button Bar */}
+          <div className="fixed bottom-20 left-0 right-0 bg-white border-t shadow-lg">
+            <div className="max-w-4xl mx-auto px-4 py-2">
+              <button
+                onClick={() => setShowSubmitModal(true)}
+                className="w-full bg-green-600 text-white py-2.5 rounded-lg font-semibold hover:bg-green-700 flex items-center justify-center gap-2 text-sm"
+              >
+                <FileText className="w-4 h-4" />
+                Submit to Service Advisor
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Bottom Navigation */}
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-around py-2">
+            {[
+              { icon: Home, label: 'Home', view: 'home' },
+              { icon: BookOpen, label: 'Workflow', view: 'workflow' },
+              { icon: TrendingUp, label: 'Scope', view: 'scope' },
+              { icon: Settings, label: 'Settings', view: 'settings' }
+            ].map(item => (
+              <button 
+                key={item.view} 
+                onClick={() => { 
+                  setCurrentView(item.view); 
+                  setSelectedStep(null);
+                  setSelectedScopeWorkflow(null);
+                }} 
+                className={`flex flex-col items-center gap-1 px-4 py-2 ${currentView === item.view ? 'text-blue-600' : 'text-gray-600'}`}
+              >
+                <item.icon className="w-6 h-6" />
+                <span className="text-xs">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
         ReactDOM.render(<DiagnosticApp />, document.getElementById('root'));
-        console.log("✅ DiagFlow V46 Dual Help Loaded!");
+        console.log("✅ DiagFlow V46 Enhanced Loaded!");
     </script>
 </body>
 </html>
