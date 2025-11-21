@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>DiagFlow V46 - Professional Diagnostic Workflow</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -10,15 +12,27 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: touch;
+        }
+        html, body { overscroll-behavior-y: contain; }
         .modal-overlay { backdrop-filter: blur(4px); }
+        .help-button-float {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            z-index: 30;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
     
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect, useRef } = React;
         
         // Icons
         const Menu = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>;
@@ -31,13 +45,13 @@
         const ChevronRight = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>;
         const ChevronLeft = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>;
         const Edit2 = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>;
-        const Save = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>;
         const Camera = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>;
         const Send = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>;
         const X = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
         const ZoomIn = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" /></svg>;
-
-        console.log("DiagFlow V46 Complete - Loading");
+        const HelpCircle = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
+        const FileText = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
+        const Trash = ({className}) => <svg className={className || "w-5 h-5"} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
 
         function DiagnosticApp() {
             const [currentView, setCurrentView] = useState('vehicle-info');
@@ -46,6 +60,7 @@
             const [completedSteps, setCompletedSteps] = useState([]);
             const [expandedImage, setExpandedImage] = useState(null);
             const [showSubmitModal, setShowSubmitModal] = useState(false);
+            const [showHelpModal, setShowHelpModal] = useState(false);
             
             const [vehicleInfo, setVehicleInfo] = useState({
                 year: '', make: '', model: '', vin: '', roNumber: ''
@@ -54,114 +69,71 @@
             const [stepNotes, setStepNotes] = useState({});
             const [stepTraining, setStepTraining] = useState({});
             const [stepImages, setStepImages] = useState({});
+            const [savedReports, setSavedReports] = useState([]);
+            const [serviceAdvisorEmail, setServiceAdvisorEmail] = useState('');
+            const [tempEmail, setTempEmail] = useState('');
+
+            // Load from localStorage
+            useEffect(() => {
+                const saved = localStorage.getItem('diagflow-settings');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        setServiceAdvisorEmail(data.email || '');
+                        setTempEmail(data.email || '');
+                        setSavedReports(data.reports || []);
+                    } catch (e) {
+                        console.error('Load error:', e);
+                    }
+                }
+            }, []);
+
+            // Save to localStorage
+            useEffect(() => {
+                const data = {
+                    email: serviceAdvisorEmail,
+                    reports: savedReports
+                };
+                localStorage.setItem('diagflow-settings', JSON.stringify(data));
+            }, [serviceAdvisorEmail, savedReports]);
 
             const diagnosticSteps = [
-                { 
-                    id: 1, 
-                    title: "Pre-Scan Documentation", 
-                    category: "Pre-Diagnostic",
-                    description: "Perform pre-scan BEFORE any work begins. Document ALL DTCs present.",
-                    bestPractice: "Always perform pre-scan BEFORE any work begins. Document ALL DTCs present, including pending and history codes. Take screenshots or photos of scan data. This protects you from comebacks and establishes baseline condition."
-                },
-                { 
-                    id: 2, 
-                    title: "Test Drive & Data Capture", 
-                    category: "Pre-Diagnostic",
-                    description: "Duplicate customer concern. Record data during test drive.",
-                    bestPractice: "Duplicate customer concern if possible. Record data during test drive - freeze frame data, Mode 6 data, and live parameters. Note exact conditions when problem occurs (temperature, speed, load). Use your phone to video/audio record unusual sounds or behaviors."
-                },
-                { 
-                    id: 3, 
-                    title: "Baseline Health Check", 
-                    category: "Pre-Diagnostic",
-                    description: "Check fluid levels, visual inspection for damage.",
-                    bestPractice: "Check fluid levels, visual inspection for obvious damage, verify no unrelated issues exist. Look for aftermarket modifications, previous repairs, or collision damage. Document condition with photos. Don't assume basic maintenance was done."
-                },
-                { 
-                    id: 4, 
-                    title: "Digital Inspection", 
-                    category: "Pre-Diagnostic",
-                    description: "Use shop digital inspection. Document with photos.",
-                    bestPractice: "Use your shop's digital inspection process. Document everything with photos - this builds customer trust and protects against liability. Check for related issues that could cause the symptom. Note deferred maintenance that could affect diagnosis."
-                },
-                { 
-                    id: 5, 
-                    title: "Electrical System Evaluation", 
-                    category: "Pre-Diagnostic",
-                    description: "Test battery health, alternator output and ripple.",
-                    bestPractice: "CRITICAL: Test battery STATE OF HEALTH and capacity, not just voltage. Check alternator output and ripple. Verify stable voltage before any diagnostic work - low voltage causes false DTCs and intermittent issues. Load test battery if over 2 years old."
-                },
-                { 
-                    id: 6, 
-                    title: "TSB & Known Issues Research", 
-                    category: "Research",
-                    description: "Search manufacturer TSBs, NHTSA, tech forums.",
-                    bestPractice: "Search manufacturer TSBs, NHTSA database, and tech forums BEFORE diving into diagnosis. Many issues have known fixes or software updates. Check for recalls and warranty extensions. Document TSB numbers found - this justifies repair to customer."
-                },
-                { 
-                    id: 7, 
-                    title: "Wiring Diagrams & System Operation", 
-                    category: "Research",
-                    description: "Study wiring diagrams BEFORE testing.",
-                    bestPractice: "Study wiring diagrams and system operation BEFORE testing. Understand how the system works normally so you recognize abnormal. Identify all components in the circuit, their locations, and connectors. Know what voltages/resistances to expect."
-                },
-                { 
-                    id: 8, 
-                    title: "Stable Voltage Setup", 
-                    category: "Research",
-                    description: "Use battery maintainer during diagnostics.",
-                    bestPractice: "Use a battery maintainer or power supply during extended diagnostics. Unstable voltage during testing gives false results and can set DTCs. Many techs skip this and waste hours chasing ghosts. Maintain 12.6V minimum during all testing."
-                },
-                { 
-                    id: 9, 
-                    title: "Test Plan Development", 
-                    category: "Diagnosis",
-                    description: "Write test plan BEFORE starting. Get paid for skill.",
-                    bestPractice: "Write down your test plan BEFORE you start testing. What are you testing? What results prove/disprove your theory? Test the most likely causes first but have a systematic plan. Don't just throw parts at it or randomly test things. This is where you may need to sell more diag - Scope and Pinpoint testing. Get paid for your skill."
-                },
-                { 
-                    id: 10, 
-                    title: "Data Recording & Scope Work", 
-                    category: "Diagnosis",
-                    description: "Use scope to capture waveforms. Save captures.",
-                    bestPractice: "Use your scope to capture actual waveforms - don't just trust scan data. Save all scope captures with filename showing RO# and what was tested. Capture known-good and fault conditions. This is your evidence that proves the diagnosis."
-                },
-                { 
-                    id: 11, 
-                    title: "Delta Analysis & Data Mapping", 
-                    category: "Diagnosis",
-                    description: "Compare to baseline. Look for CHANGES.",
-                    bestPractice: "Compare current readings to baseline/known good values. Look for CHANGES - what's different when problem occurs vs when it doesn't? Map data relationships (fuel trim vs load, MAF vs RPM). The delta (change) often reveals the root cause."
-                },
-                { 
-                    id: 12, 
-                    title: "Part Verification", 
-                    category: "Diagnosis",
-                    description: "NEVER replace parts on DTCs alone. Test component.",
-                    bestPractice: "NEVER replace parts based on DTCs alone. Test the actual component - verify it's out of spec. Check connectors and wiring first - most 'bad parts' are actually wiring/connector issues. Get known-good readings from same vehicle if possible."
-                },
-                { 
-                    id: 13, 
-                    title: "Prove It Twice", 
-                    category: "Diagnosis",
-                    description: "Prove diagnosis TWO ways. Prevent comebacks.",
-                    bestPractice: "Prove your diagnosis TWO different ways. If sensor reads low, verify both the sensor output AND the circuit continuity. Duplicate the failure if intermittent. Never rely on one test. This prevents comebacks and wrong part installation."
-                },
-                { 
-                    id: 14, 
-                    title: "Quality Repair & Parts", 
-                    category: "Repair",
-                    description: "Use OE or quality parts. Follow procedures.",
-                    bestPractice: "Use OE or quality aftermarket parts - cheap parts cause comebacks. Follow manufacturer repair procedures exactly. Take photos of repair area before/after. Clean connectors, apply dielectric grease. If you find poor previous repairs, document and repair correctly."
-                },
-                { 
-                    id: 15, 
-                    title: "Post-Repair Validation & Post-Scan", 
-                    category: "Repair",
-                    description: "ALWAYS post-scan. Test drive and verify fix.",
-                    bestPractice: "ALWAYS post-scan after repair. Clear codes properly (not just erase). Test drive and verify concern is fixed. Check for any NEW codes created during repair. Run monitors to set readiness. Document successful repair with scan data showing fix. This proves you fixed it."
-                }
+                { id: 1, title: "Pre-Scan Documentation", category: "Pre-Diagnostic", description: "Document ALL DTCs before work begins.", bestPractice: "Always perform pre-scan BEFORE any work begins. Document ALL DTCs present, including pending and history codes." },
+                { id: 2, title: "Test Drive & Data Capture", category: "Pre-Diagnostic", description: "Duplicate concern and record data.", bestPractice: "Duplicate customer concern if possible. Record data during test drive." },
+                { id: 3, title: "Baseline Health Check", category: "Pre-Diagnostic", description: "Visual inspection and fluid check.", bestPractice: "Check fluid levels, visual inspection for damage." },
+                { id: 4, title: "Digital Inspection", category: "Pre-Diagnostic", description: "Document with photos.", bestPractice: "Use shop's digital inspection. Document with photos." },
+                { id: 5, title: "Electrical System Evaluation", category: "Pre-Diagnostic", description: "Test battery and alternator.", bestPractice: "Test battery STATE OF HEALTH, not just voltage." },
+                { id: 6, title: "TSB & Known Issues", category: "Research", description: "Research known fixes.", bestPractice: "Search TSBs and forums BEFORE diagnosis." },
+                { id: 7, title: "Wiring Diagrams", category: "Research", description: "Study system operation.", bestPractice: "Study diagrams BEFORE testing." },
+                { id: 8, title: "Stable Voltage Setup", category: "Research", description: "Use battery maintainer.", bestPractice: "Maintain stable voltage during testing." },
+                { id: 9, title: "Test Plan Development", category: "Diagnosis", description: "Plan before testing.", bestPractice: "Write test plan. Get paid for your skill." },
+                { id: 10, title: "Scope Work", category: "Diagnosis", description: "Capture waveforms.", bestPractice: "Use scope - don't just trust scan data." },
+                { id: 11, title: "Delta Analysis", category: "Diagnosis", description: "Compare to baseline.", bestPractice: "Look for CHANGES from baseline." },
+                { id: 12, title: "Part Verification", category: "Diagnosis", description: "Test components.", bestPractice: "NEVER replace on DTCs alone." },
+                { id: 13, title: "Prove It Twice", category: "Diagnosis", description: "Verify two ways.", bestPractice: "Prove diagnosis TWO ways." },
+                { id: 14, title: "Quality Repair", category: "Repair", description: "Use quality parts.", bestPractice: "Use OE or quality parts." },
+                { id: 15, title: "Post-Repair Validation", category: "Repair", description: "Post-scan and verify.", bestPractice: "ALWAYS post-scan. Test drive." }
             ];
+
+            const noteTimeoutRef = useRef({});
+            
+            const autoSaveNote = (stepId, note) => {
+                if (noteTimeoutRef.current[stepId]) {
+                    clearTimeout(noteTimeoutRef.current[stepId]);
+                }
+                noteTimeoutRef.current[stepId] = setTimeout(() => {
+                    setStepNotes(prev => ({ ...prev, [stepId]: note }));
+                }, 1000);
+            };
+
+            const autoSaveTraining = (stepId, training) => {
+                if (noteTimeoutRef.current['tr-' + stepId]) {
+                    clearTimeout(noteTimeoutRef.current['tr-' + stepId]);
+                }
+                noteTimeoutRef.current['tr-' + stepId] = setTimeout(() => {
+                    setStepTraining(prev => ({ ...prev, [stepId]: training }));
+                }, 1000);
+            };
 
             const toggleStepComplete = (stepId) => {
                 setCompletedSteps(prev => 
@@ -169,221 +141,138 @@
                 );
             };
 
-            const saveNote = (stepId, note) => {
-                setStepNotes(prev => ({ ...prev, [stepId]: note }));
-            };
-
-            const saveTraining = (stepId, training) => {
-                setStepTraining(prev => ({ ...prev, [stepId]: training }));
-            };
-
             const handleImageUpload = (stepId, event) => {
                 const files = Array.from(event.target.files).slice(0, 3);
-                const imagePromises = files.map(file => {
+                const promises = files.map(file => {
                     return new Promise((resolve) => {
                         const reader = new FileReader();
                         reader.onload = (e) => {
-                            resolve({
-                                id: Date.now() + Math.random(),
-                                url: e.target.result,
-                                name: file.name
-                            });
+                            resolve({ id: Date.now() + Math.random(), url: e.target.result, name: file.name });
                         };
                         reader.readAsDataURL(file);
                     });
                 });
 
-                Promise.all(imagePromises).then(newImages => {
+                Promise.all(promises).then(imgs => {
                     setStepImages(prev => ({
                         ...prev,
-                        [stepId]: [...(prev[stepId] || []), ...newImages].slice(0, 3)
+                        [stepId]: [...(prev[stepId] || []), ...imgs].slice(0, 3)
                     }));
                 });
             };
 
-            const deleteImage = (stepId, imageId) => {
+            const deleteImage = (stepId, imgId) => {
                 setStepImages(prev => ({
                     ...prev,
-                    [stepId]: (prev[stepId] || []).filter(img => img.id !== imageId)
+                    [stepId]: (prev[stepId] || []).filter(i => i.id !== imgId)
                 }));
             };
 
-            const submitToServiceAdvisor = () => {
-                const reportData = {
+            const submitToSA = () => {
+                const report = {
+                    id: Date.now(),
                     vehicleInfo,
                     completedSteps: completedSteps.length,
                     totalSteps: 15,
                     progress: Math.round((completedSteps.length / 15) * 100),
-                    steps: diagnosticSteps.map(step => ({
-                        id: step.id,
-                        title: step.title,
-                        completed: completedSteps.includes(step.id),
-                        notes: stepNotes[step.id] || '',
-                        training: stepTraining[step.id] || '',
-                        imageCount: (stepImages[step.id] || []).length
+                    steps: diagnosticSteps.map(s => ({
+                        id: s.id,
+                        title: s.title,
+                        completed: completedSteps.includes(s.id),
+                        notes: stepNotes[s.id] || '',
+                        training: stepTraining[s.id] || '',
+                        imageCount: (stepImages[s.id] || []).length
                     })),
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    date: new Date().toLocaleString()
                 };
 
-                console.log('Report Data:', reportData);
-                alert('Report generated! Check console for details.\n\nIn production, this would email the Service Advisor.');
+                setSavedReports(prev => [report, ...prev].slice(0, 20));
+                
+                if (serviceAdvisorEmail) {
+                    alert('Report saved!\\n\\nWould send to: ' + serviceAdvisorEmail + '\\n\\nView in Settings > Saved Reports');
+                } else {
+                    alert('Report saved!\\n\\nSet email in Settings to enable delivery.');
+                }
                 setShowSubmitModal(false);
             };
 
-            const StepDetailView = ({ step }) => {
+            const deleteReport = (id) => {
+                if (window.confirm('Delete this report?')) {
+                    setSavedReports(prev => prev.filter(r => r.id !== id));
+                }
+            };
+
+            const StepDetail = ({ step }) => {
                 const [noteText, setNoteText] = useState(stepNotes[step.id] || '');
                 const [trainingText, setTrainingText] = useState(stepTraining[step.id] || step.bestPractice);
-                const currentImages = stepImages[step.id] || [];
+                const imgs = stepImages[step.id] || [];
 
                 return (
                     <div className="space-y-4">
-                        <div className="bg-white p-4 rounded-lg shadow-md">
-                            <button 
-                                onClick={() => setSelectedStep(null)}
-                                className="flex items-center gap-2 text-blue-600 mb-4 hover:text-blue-700"
-                            >
-                                <ChevronLeft className="w-5 h-5" />
-                                Back to Workflow
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <button onClick={() => setSelectedStep(null)} className="flex items-center gap-2 text-blue-600 mb-4">
+                                <ChevronLeft /> Back
                             </button>
-                            
-                            <div className="flex items-start gap-3 mb-4">
-                                <button onClick={() => {
-                                    toggleStepComplete(step.id);
-                                    setSelectedStep(null);
-                                }} className="mt-1">
-                                    {completedSteps.includes(step.id) ? (
-                                        <CheckCircle className="w-8 h-8 text-green-500" />
-                                    ) : (
-                                        <Circle className="w-8 h-8 text-gray-300" />
-                                    )}
+                            <div className="flex gap-3 mb-4">
+                                <button onClick={() => { toggleStepComplete(step.id); setSelectedStep(null); }} className="mt-1">
+                                    {completedSteps.includes(step.id) ? <CheckCircle className="w-8 h-8 text-green-500" /> : <Circle className="w-8 h-8 text-gray-300" />}
                                 </button>
-                                <div className="flex-1">
-                                    <div className="text-xs font-bold text-blue-600 mb-1">STEP {step.id}</div>
-                                    <h2 className="text-xl font-bold mb-2">{step.title}</h2>
-                                    <p className="text-sm text-gray-600">{step.description}</p>
+                                <div>
+                                    <div className="text-xs font-bold text-blue-600">STEP {step.id}</div>
+                                    <h2 className="text-xl font-bold">{step.title}</h2>
+                                    <p className="text-sm text-gray-600 mt-1">{step.description}</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-white p-4 rounded-lg shadow-md">
-                            <h3 className="font-bold mb-3 flex items-center gap-2">
-                                <Edit2 className="w-5 h-5 text-orange-600" />
-                                Training Notes / Best Practice
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <h3 className="font-bold mb-2 flex items-center gap-2 text-orange-600">
+                                <Edit2 className="w-4 h-4" /> Training Notes
                             </h3>
-                            <textarea
-                                value={trainingText}
-                                onChange={(e) => setTrainingText(e.target.value)}
-                                placeholder="Enter best practices and training notes..."
-                                className="w-full px-3 py-2 border rounded-lg resize-none text-sm"
-                                rows={4}
-                            />
-                            <button
-                                onClick={() => saveTraining(step.id, trainingText)}
-                                className="mt-2 bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 text-sm flex items-center gap-2"
-                            >
-                                <Save className="w-4 h-4" />
-                                Save Training Notes
-                            </button>
+                            <textarea value={trainingText} onChange={(e) => { setTrainingText(e.target.value); autoSaveTraining(step.id, e.target.value); }} className="w-full p-2 border rounded text-sm" rows={3} />
+                            <p className="text-xs text-gray-500 mt-1">Auto-saved</p>
                         </div>
 
-                        <div className="bg-white p-4 rounded-lg shadow-md">
-                            <div className="flex items-center justify-between mb-3">
-                                <h3 className="font-bold flex items-center gap-2">
-                                    <Edit2 className="w-5 h-5 text-blue-600" />
-                                    Technician Notes
-                                </h3>
-                                {stepNotes[step.id] && (
-                                    <span className="text-xs text-green-600 font-medium">✓ Saved</span>
-                                )}
-                            </div>
-                            <textarea
-                                value={noteText}
-                                onChange={(e) => setNoteText(e.target.value)}
-                                placeholder="Add your diagnostic notes for this step..."
-                                className="w-full px-3 py-2 border rounded-lg resize-none"
-                                rows={5}
-                            />
-                            <div className="flex gap-2 mt-3">
-                                <button
-                                    onClick={() => saveNote(step.id, noteText)}
-                                    className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center gap-2"
-                                >
-                                    <Save className="w-5 h-5" />
-                                    Save Note
-                                </button>
-                                {stepNotes[step.id] && (
-                                    <button
-                                        onClick={() => {
-                                            setNoteText('');
-                                            saveNote(step.id, '');
-                                        }}
-                                        className="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300"
-                                    >
-                                        Clear
-                                    </button>
-                                )}
-                            </div>
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <h3 className="font-bold mb-2 flex items-center gap-2">
+                                <Edit2 className="w-4 h-4 text-blue-600" /> Tech Notes
+                            </h3>
+                            <textarea value={noteText} onChange={(e) => { setNoteText(e.target.value); autoSaveNote(step.id, e.target.value); }} placeholder="Your diagnostic notes..." className="w-full p-2 border rounded" rows={4} />
+                            <p className="text-xs text-gray-500 mt-1">Auto-saved</p>
                         </div>
 
-                        <div className="bg-white p-4 rounded-lg shadow-md">
-                            <h3 className="font-bold mb-3 flex items-center gap-2">
-                                <Camera className="w-5 h-5 text-purple-600" />
-                                Photo Documentation (Max 3)
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <h3 className="font-bold mb-2 flex items-center gap-2">
+                                <Camera className="w-4 h-4 text-purple-600" /> Photos (Max 3)
                             </h3>
-                            
-                            <div className="grid grid-cols-3 gap-3 mb-3">
-                                {currentImages.map(img => (
+                            <div className="grid grid-cols-3 gap-2">
+                                {imgs.map(img => (
                                     <div key={img.id} className="relative group">
-                                        <img 
-                                            src={img.url} 
-                                            alt={img.name}
-                                            className="w-full h-24 object-cover rounded-lg cursor-pointer border-2 border-gray-200 hover:border-blue-500"
-                                            onClick={() => setExpandedImage(img)}
-                                        />
-                                        <button
-                                            onClick={() => deleteImage(step.id, img.id)}
-                                            className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <X className="w-4 h-4" />
+                                        <img src={img.url} alt={img.name} className="w-full h-20 object-cover rounded border cursor-pointer" onClick={() => setExpandedImage(img)} />
+                                        <button onClick={() => deleteImage(step.id, img.id)} className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full opacity-0 group-hover:opacity-100">
+                                            <X className="w-3 h-3" />
                                         </button>
-                                        <div className="absolute bottom-1 right-1 bg-black bg-opacity-50 text-white p-1 rounded">
-                                            <ZoomIn className="w-4 h-4" />
-                                        </div>
                                     </div>
                                 ))}
-                                {currentImages.length < 3 && (
-                                    <label className="w-full h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50">
-                                        <Camera className="w-6 h-6 text-gray-400" />
-                                        <span className="text-xs text-gray-500 mt-1">Add Photo</span>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            className="hidden"
-                                            onChange={(e) => handleImageUpload(step.id, e)}
-                                            multiple
-                                        />
+                                {imgs.length < 3 && (
+                                    <label className="h-20 border-2 border-dashed rounded flex flex-col items-center justify-center cursor-pointer hover:border-blue-500">
+                                        <Camera className="w-5 h-5 text-gray-400" />
+                                        <span className="text-xs text-gray-500">Add</span>
+                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(step.id, e)} multiple />
                                     </label>
                                 )}
                             </div>
-                            <p className="text-xs text-gray-500">{currentImages.length} of 3 photos added</p>
                         </div>
 
-                        <button
-                            onClick={() => {
-                                toggleStepComplete(step.id);
-                                setSelectedStep(null);
-                            }}
-                            className={'w-full py-3 rounded-lg font-semibold ' + (
-                                completedSteps.includes(step.id)
-                                    ? 'bg-green-600 text-white hover:bg-green-700'
-                                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                            )}
-                        >
+                        <button onClick={() => { toggleStepComplete(step.id); setSelectedStep(null); }} className={'w-full py-3 rounded-lg font-semibold ' + (completedSteps.includes(step.id) ? 'bg-green-600 text-white' : 'bg-blue-600 text-white')}>
                             {completedSteps.includes(step.id) ? '✓ Mark Incomplete & Return' : '✓ Mark Complete & Return'}
                         </button>
                     </div>
                 );
             };
+
+            const showHelp = currentView !== 'vehicle-info' && !selectedStep;
 
             return (
                 <div className="min-h-screen bg-gray-100">
@@ -397,37 +286,33 @@
                                     <div>
                                         <h1 className="text-2xl font-bold text-blue-600">DiagFlow</h1>
                                         <p className="text-lg font-extrabold text-orange-600 tracking-wide">NEVER MISS A STEP</p>
-                                        <p className="text-xs text-gray-500">V46 Complete</p>
+                                        <p className="text-xs text-gray-500">V46 Enhanced</p>
                                     </div>
                                 </div>
                                 {hasVehicleInfo && (
-                                    <div className="flex gap-2">
-                                        <button 
-                                            onClick={() => setShowSubmitModal(true)}
-                                            className="text-sm bg-green-600 text-white font-medium px-3 py-2 rounded-lg hover:bg-green-700 flex items-center gap-2"
-                                        >
-                                            <Send className="w-4 h-4" />
-                                            Submit to SA
-                                        </button>
-                                        <button onClick={() => {
-                                            if (window.confirm('Start new job?')) {
-                                                setVehicleInfo({ year: '', make: '', model: '', vin: '', roNumber: '' });
-                                                setHasVehicleInfo(false);
-                                                setCurrentView('vehicle-info');
-                                                setCompletedSteps([]);
-                                                setStepNotes({});
-                                                setStepTraining({});
-                                                setStepImages({});
-                                                setSelectedStep(null);
-                                            }
-                                        }} className="text-sm text-blue-600 font-medium px-3 py-2 border border-blue-600 rounded-lg hover:bg-blue-50">
-                                            New Job
-                                        </button>
-                                    </div>
+                                    <button onClick={() => {
+                                        if (window.confirm('Start new job?')) {
+                                            setVehicleInfo({ year: '', make: '', model: '', vin: '', roNumber: '' });
+                                            setHasVehicleInfo(false);
+                                            setCurrentView('vehicle-info');
+                                            setCompletedSteps([]);
+                                            setStepNotes({});
+                                            setStepTraining({});
+                                            setStepImages({});
+                                        }
+                                    }} className="text-sm text-blue-600 font-medium px-3 py-2 border border-blue-600 rounded-lg">
+                                        New Job
+                                    </button>
                                 )}
                             </div>
                         </div>
                     </div>
+
+                    {showHelp && (
+                        <button onClick={() => setShowHelpModal(true)} className="help-button-float bg-orange-500 text-white p-4 rounded-full hover:bg-orange-600">
+                            <HelpCircle className="w-6 h-6" />
+                        </button>
+                    )}
 
                     {menuOpen && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setMenuOpen(false)}>
@@ -439,20 +324,11 @@
                                     {[
                                         { icon: Home, label: 'Home', view: 'home' },
                                         { icon: BookOpen, label: 'Workflow', view: 'workflow' },
-                                        { icon: TrendingUp, label: 'Scope & Pinpoint', view: 'scope' },
+                                        { icon: TrendingUp, label: 'Scope', view: 'scope' },
                                         { icon: Settings, label: 'Settings', view: 'settings' }
                                     ].map(item => (
-                                        <button
-                                            key={item.view}
-                                            onClick={() => { 
-                                                setCurrentView(item.view); 
-                                                setSelectedStep(null);
-                                                setMenuOpen(false); 
-                                            }}
-                                            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100"
-                                        >
-                                            <item.icon />
-                                            <span>{item.label}</span>
+                                        <button key={item.view} onClick={() => { setCurrentView(item.view); setSelectedStep(null); setMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100">
+                                            <item.icon /> <span>{item.label}</span>
                                         </button>
                                     ))}
                                 </nav>
@@ -461,62 +337,31 @@
                     )}
 
                     {expandedImage && (
-                        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center modal-overlay" onClick={() => setExpandedImage(null)}>
-                            <div className="relative max-w-4xl max-h-screen p-4">
-                                <button
-                                    onClick={() => setExpandedImage(null)}
-                                    className="absolute top-6 right-6 bg-white text-gray-800 p-2 rounded-full hover:bg-gray-200"
-                                >
+                        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center" onClick={() => setExpandedImage(null)}>
+                            <div className="relative max-w-4xl p-4">
+                                <button onClick={() => setExpandedImage(null)} className="absolute top-6 right-6 bg-white p-2 rounded-full">
                                     <X className="w-6 h-6" />
                                 </button>
-                                <img 
-                                    src={expandedImage.url} 
-                                    alt={expandedImage.name}
-                                    className="max-w-full max-h-screen object-contain rounded-lg"
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                                <p className="text-white text-center mt-4 text-sm">{expandedImage.name}</p>
+                                <img src={expandedImage.url} alt={expandedImage.name} className="max-w-full max-h-screen object-contain rounded" onClick={(e) => e.stopPropagation()} />
                             </div>
                         </div>
                     )}
 
                     {showSubmitModal && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" onClick={() => setShowSubmitModal(false)}>
-                            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+                            <div className="bg-white rounded-lg p-6 max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
                                 <h3 className="text-xl font-bold mb-4">Submit to Service Advisor</h3>
-                                <div className="space-y-3 text-sm mb-6">
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Vehicle:</span>
-                                        <span className="font-semibold">{vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">RO Number:</span>
-                                        <span className="font-semibold">{vehicleInfo.roNumber || 'N/A'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Steps Completed:</span>
-                                        <span className="font-semibold">{completedSteps.length} of 15</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Progress:</span>
-                                        <span className="font-semibold">{Math.round((completedSteps.length / 15) * 100)}%</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Photos Added:</span>
-                                        <span className="font-semibold">{Object.values(stepImages).reduce((sum, imgs) => sum + imgs.length, 0)}</span>
-                                    </div>
+                                <div className="space-y-2 text-sm mb-6">
+                                    <div className="flex justify-between"><span>Vehicle:</span><span className="font-semibold">{vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}</span></div>
+                                    <div className="flex justify-between"><span>RO#:</span><span className="font-semibold">{vehicleInfo.roNumber || 'N/A'}</span></div>
+                                    <div className="flex justify-between"><span>Completed:</span><span className="font-semibold">{completedSteps.length} of 15</span></div>
+                                    <div className="flex justify-between"><span>Photos:</span><span className="font-semibold">{Object.values(stepImages).reduce((s, i) => s + i.length, 0)}</span></div>
                                 </div>
                                 <div className="flex gap-3">
-                                    <button
-                                        onClick={submitToServiceAdvisor}
-                                        className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700"
-                                    >
-                                        Generate Report
+                                    <button onClick={submitToSA} className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold">
+                                        Save Report
                                     </button>
-                                    <button
-                                        onClick={() => setShowSubmitModal(false)}
-                                        className="px-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                                    >
+                                    <button onClick={() => setShowSubmitModal(false)} className="px-4 bg-gray-200 rounded-lg">
                                         Cancel
                                     </button>
                                 </div>
@@ -524,180 +369,127 @@
                         </div>
                     )}
 
-                    <div className="max-w-4xl mx-auto p-4 pb-24">
-                        {selectedStep ? (
-                            <StepDetailView step={selectedStep} />
-                        ) : currentView === 'vehicle-info' ? (
-                            <div className="space-y-4">
-                                <div className="bg-white p-6 rounded-lg shadow-md">
-                                    <h2 className="text-xl font-bold mb-2">Vehicle & Job Information</h2>
-                                    <p className="text-sm text-gray-600 mb-6">Enter vehicle details to begin your diagnostic workflow.</p>
-                                    
-                                    <div className="space-y-4">
-                                        <div>
-                                            <label className="block text-sm font-medium mb-1 text-gray-700">RO Number</label>
-                                            <input 
-                                                type="text" 
-                                                className="w-full px-4 py-2 border rounded-lg" 
-                                                placeholder="12345" 
-                                                value={vehicleInfo.roNumber} 
-                                                onChange={(e) => setVehicleInfo({...vehicleInfo, roNumber: e.target.value})} 
-                                            />
-                                        </div>
-
-                                        <div className="grid grid-cols-3 gap-3">
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1 text-gray-700">Year</label>
-                                                <input 
-                                                    type="text" 
-                                                    className="w-full px-4 py-2 border rounded-lg" 
-                                                    placeholder="2024" 
-                                                    value={vehicleInfo.year} 
-                                                    onChange={(e) => setVehicleInfo({...vehicleInfo, year: e.target.value})} 
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1 text-gray-700">Make</label>
-                                                <input 
-                                                    type="text" 
-                                                    className="w-full px-4 py-2 border rounded-lg" 
-                                                    placeholder="Ford" 
-                                                    value={vehicleInfo.make} 
-                                                    onChange={(e) => setVehicleInfo({...vehicleInfo, make: e.target.value})} 
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium mb-1 text-gray-700">Model</label>
-                                                <input 
-                                                    type="text" 
-                                                    className="w-full px-4 py-2 border rounded-lg" 
-                                                    placeholder="F-150" 
-                                                    value={vehicleInfo.model} 
-                                                    onChange={(e) => setVehicleInfo({...vehicleInfo, model: e.target.value})} 
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium mb-1 text-gray-700">VIN (Vehicle Identification Number)</label>
-                                            <input 
-                                                type="text" 
-                                                className="w-full px-4 py-2 border rounded-lg font-mono text-sm uppercase" 
-                                                placeholder="1FTFW1E84MFA00000" 
-                                                maxLength={17}
-                                                value={vehicleInfo.vin} 
-                                                onChange={(e) => setVehicleInfo({...vehicleInfo, vin: e.target.value.toUpperCase()})} 
-                                            />
-                                            <p className="text-xs text-gray-500 mt-1">17 characters</p>
-                                        </div>
-                                    </div>
-
-                                    <button 
-                                        onClick={() => { 
-                                            setHasVehicleInfo(true); 
-                                            setCurrentView('home'); 
-                                        }} 
-                                        className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 text-lg"
-                                    >
-                                        Start Diagnostic Workflow →
+                    {showHelpModal && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" onClick={() => setShowHelpModal(false)}>
+                            <div className="bg-white rounded-lg p-6 max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+                                <h3 className="text-xl font-bold mb-4">Get Expert Help</h3>
+                                <p className="text-sm text-gray-600 mb-6">Need assistance with a diagnostic challenge? Connect with a Master Technician for guidance.</p>
+                                <div className="space-y-3">
+                                    <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold">
+                                        Request Diagnostic Support
+                                    </button>
+                                    <button className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold">
+                                        Scope Work Consultation
+                                    </button>
+                                    <button onClick={() => setShowHelpModal(false)} className="w-full bg-gray-200 py-3 rounded-lg font-semibold">
+                                        Cancel
                                     </button>
                                 </div>
+                                <p className="text-xs text-gray-500 mt-4 text-center">Help requests logged for callback</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="max-w-4xl mx-auto p-4 pb-32">
+                        {selectedStep ? (
+                            <StepDetail step={selectedStep} />
+                        ) : currentView === 'vehicle-info' ? (
+                            <div className="bg-white p-6 rounded-lg shadow">
+                                <h2 className="text-xl font-bold mb-2">Vehicle & Job Information</h2>
+                                <p className="text-sm text-gray-600 mb-6">Enter vehicle details to begin.</p>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">RO Number</label>
+                                        <input type="text" className="w-full px-4 py-2 border rounded-lg" placeholder="12345" value={vehicleInfo.roNumber} onChange={(e) => setVehicleInfo({...vehicleInfo, roNumber: e.target.value})} />
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Year</label>
+                                            <input type="text" className="w-full px-4 py-2 border rounded-lg" placeholder="2024" value={vehicleInfo.year} onChange={(e) => setVehicleInfo({...vehicleInfo, year: e.target.value})} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Make</label>
+                                            <input type="text" className="w-full px-4 py-2 border rounded-lg" placeholder="Ford" value={vehicleInfo.make} onChange={(e) => setVehicleInfo({...vehicleInfo, make: e.target.value})} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Model</label>
+                                            <input type="text" className="w-full px-4 py-2 border rounded-lg" placeholder="F-150" value={vehicleInfo.model} onChange={(e) => setVehicleInfo({...vehicleInfo, model: e.target.value})} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">VIN</label>
+                                        <input type="text" className="w-full px-4 py-2 border rounded-lg font-mono text-sm uppercase" placeholder="1FTFW1E84MFA00000" maxLength={17} value={vehicleInfo.vin} onChange={(e) => setVehicleInfo({...vehicleInfo, vin: e.target.value.toUpperCase()})} />
+                                        <p className="text-xs text-gray-500 mt-1">17 characters</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => { setHasVehicleInfo(true); setCurrentView('home'); }} className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold text-lg">
+                                    Start Diagnostic Workflow →
+                                </button>
                             </div>
                         ) : currentView === 'home' ? (
                             <div className="space-y-6">
                                 <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-lg shadow-lg">
                                     <h2 className="text-2xl font-bold mb-2">Current Job</h2>
-                                    {hasVehicleInfo && (
-                                        <div className="mt-4 pt-4 border-t border-blue-500">
-                                            <div className="text-sm space-y-1">
-                                                {vehicleInfo.roNumber && <div className="font-semibold">RO#: {vehicleInfo.roNumber}</div>}
-                                                <div className="text-lg">{vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}</div>
-                                                {vehicleInfo.vin && <div className="font-mono text-xs opacity-90">{vehicleInfo.vin}</div>}
-                                            </div>
+                                    <div className="mt-4 pt-4 border-t border-blue-500">
+                                        <div className="text-sm space-y-1">
+                                            {vehicleInfo.roNumber && <div>RO#: {vehicleInfo.roNumber}</div>}
+                                            <div className="text-lg">{vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}</div>
+                                            {vehicleInfo.vin && <div className="font-mono text-xs opacity-90">{vehicleInfo.vin}</div>}
                                         </div>
-                                    )}
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-white p-4 rounded-lg shadow-md text-center">
-                                        <div className="text-3xl font-bold text-blue-600">{completedSteps.length}</div>
-                                        <div className="text-xs text-gray-600 mt-1">Steps Completed</div>
                                     </div>
-                                    <div className="bg-white p-4 rounded-lg shadow-md text-center">
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-white p-4 rounded-lg shadow text-center">
+                                        <div className="text-3xl font-bold text-blue-600">{completedSteps.length}</div>
+                                        <div className="text-xs text-gray-600 mt-1">Steps Done</div>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-lg shadow text-center">
                                         <div className="text-3xl font-bold text-green-600">{Object.keys(stepNotes).filter(k => stepNotes[k]).length}</div>
                                         <div className="text-xs text-gray-600 mt-1">Notes Added</div>
                                     </div>
-                                    <div className="bg-white p-4 rounded-lg shadow-md text-center">
-                                        <div className="text-3xl font-bold text-purple-600">{Object.values(stepImages).reduce((sum, imgs) => sum + imgs.length, 0)}</div>
-                                        <div className="text-xs text-gray-600 mt-1">Photos Added</div>
+                                    <div className="bg-white p-4 rounded-lg shadow text-center">
+                                        <div className="text-3xl font-bold text-purple-600">{Object.values(stepImages).reduce((s, i) => s + i.length, 0)}</div>
+                                        <div className="text-xs text-gray-600 mt-1">Photos</div>
                                     </div>
-                                    <div className="bg-white p-4 rounded-lg shadow-md text-center">
+                                    <div className="bg-white p-4 rounded-lg shadow text-center">
                                         <div className="text-3xl font-bold text-orange-600">{Math.round((completedSteps.length / 15) * 100)}%</div>
                                         <div className="text-xs text-gray-600 mt-1">Progress</div>
                                     </div>
                                 </div>
-
-                                <button 
-                                    onClick={() => setCurrentView('workflow')} 
-                                    className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 text-lg shadow-md"
-                                >
-                                    Continue Diagnostic Workflow →
+                                <button onClick={() => setCurrentView('workflow')} className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold text-lg">
+                                    Continue Workflow →
                                 </button>
                             </div>
                         ) : currentView === 'workflow' ? (
                             <div className="space-y-4">
-                                <div className="bg-white p-4 rounded-lg shadow-md">
-                                    <h2 className="text-xl font-bold mb-3">15-Step Diagnostic Process</h2>
+                                <div className="bg-white p-4 rounded-lg shadow">
+                                    <h2 className="text-xl font-bold mb-3">15-Step Process</h2>
                                     <div className="w-full bg-gray-200 rounded-full h-3">
-                                        <div 
-                                            className="bg-blue-600 h-3 rounded-full transition-all" 
-                                            style={{ width: (completedSteps.length / 15 * 100) + '%' }} 
-                                        />
+                                        <div className="bg-blue-600 h-3 rounded-full" style={{ width: (completedSteps.length / 15 * 100) + '%' }} />
                                     </div>
-                                    <p className="text-sm text-gray-600 mt-2 font-medium">
-                                        {completedSteps.length} of 15 steps completed • {Math.round((completedSteps.length / 15) * 100)}%
-                                    </p>
+                                    <p className="text-sm text-gray-600 mt-2">{completedSteps.length} of 15 • {Math.round((completedSteps.length / 15) * 100)}%</p>
                                 </div>
-
                                 {['Pre-Diagnostic', 'Research', 'Diagnosis', 'Repair'].map(cat => (
-                                    <div key={cat} className="bg-white rounded-lg shadow-md overflow-hidden">
+                                    <div key={cat} className="bg-white rounded-lg shadow overflow-hidden">
                                         <div className="bg-gradient-to-r from-gray-100 to-gray-200 p-4 border-b">
                                             <h3 className="font-bold text-lg">{cat}</h3>
                                         </div>
                                         {diagnosticSteps.filter(s => s.category === cat).map(step => (
-                                            <div 
-                                                key={step.id} 
-                                                className="p-4 border-b hover:bg-blue-50 cursor-pointer transition-colors" 
-                                                onClick={() => setSelectedStep(step)}
-                                            >
+                                            <div key={step.id} className="p-4 border-b hover:bg-blue-50 cursor-pointer" onClick={() => setSelectedStep(step)}>
                                                 <div className="flex items-center gap-3">
-                                                    {completedSteps.includes(step.id) ? (
-                                                        <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0" />
-                                                    ) : (
-                                                        <Circle className="w-6 h-6 text-gray-300 flex-shrink-0" />
-                                                    )}
-                                                    <div className="flex-1 min-w-0">
+                                                    {completedSteps.includes(step.id) ? <CheckCircle className="w-6 h-6 text-green-500" /> : <Circle className="w-6 h-6 text-gray-300" />}
+                                                    <div className="flex-1">
                                                         <div className="flex items-center gap-2 mb-1">
-                                                            <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                                                                STEP {step.id}
-                                                            </span>
+                                                            <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2 py-1 rounded">STEP {step.id}</span>
                                                             <h4 className="font-semibold">{step.title}</h4>
                                                         </div>
                                                         <p className="text-xs text-gray-600">{step.description}</p>
-                                                        <div className="flex gap-3 mt-2">
-                                                            {stepNotes[step.id] && (
-                                                                <span className="text-xs text-green-600 font-medium flex items-center gap-1">
-                                                                    <Edit2 className="w-3 h-3" /> Notes
-                                                                </span>
-                                                            )}
-                                                            {(stepImages[step.id] || []).length > 0 && (
-                                                                <span className="text-xs text-purple-600 font-medium flex items-center gap-1">
-                                                                    <Camera className="w-3 h-3" /> {(stepImages[step.id] || []).length} photo{(stepImages[step.id] || []).length !== 1 ? 's' : ''}
-                                                                </span>
-                                                            )}
+                                                        <div className="flex gap-3 mt-1">
+                                                            {stepNotes[step.id] && <span className="text-xs text-green-600">✓ Notes</span>}
+                                                            {(stepImages[step.id] || []).length > 0 && <span className="text-xs text-purple-600">📷 {(stepImages[step.id] || []).length}</span>}
                                                         </div>
                                                     </div>
-                                                    <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                                                    <ChevronRight className="w-5 h-5 text-gray-400" />
                                                 </div>
                                             </div>
                                         ))}
@@ -705,62 +497,100 @@
                                 ))}
                             </div>
                         ) : currentView === 'scope' ? (
-                            <div className="bg-white p-6 rounded-lg shadow-md">
+                            <div className="bg-white p-6 rounded-lg shadow">
                                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                                    <TrendingUp />
-                                    Scope & Pinpoint Testing
+                                    <TrendingUp /> Scope & Pinpoint Testing
                                 </h2>
-                                <p className="text-gray-600 mb-4">Advanced diagnostic workflows coming soon!</p>
-                                <p className="text-sm text-gray-500">This section will include:</p>
-                                <ul className="text-sm text-gray-600 ml-4 mt-2 space-y-1">
-                                    <li>• Baseline Testing (Relative Compression, VE)</li>
-                                    <li>• Cam/Crank Correlation</li>
-                                    <li>• In-Cylinder Pressure Testing</li>
-                                    <li>• CAN Bus Diagnostics</li>
-                                    <li>• Sample Waveforms & Procedures</li>
-                                </ul>
+                                <p className="text-gray-600 mb-4">Advanced diagnostic workflows</p>
+                                <div className="space-y-3">
+                                    <div className="p-4 border rounded-lg hover:bg-gray-50">
+                                        <h3 className="font-bold">Baseline Testing</h3>
+                                        <p className="text-sm text-gray-600">Compression, VE, engine health</p>
+                                    </div>
+                                    <div className="p-4 border rounded-lg hover:bg-gray-50">
+                                        <h3 className="font-bold">Cam/Crank Correlation</h3>
+                                        <p className="text-sm text-gray-600">Timing verification</p>
+                                    </div>
+                                    <div className="p-4 border rounded-lg hover:bg-gray-50">
+                                        <h3 className="font-bold">CAN Bus Diagnostics</h3>
+                                        <p className="text-sm text-gray-600">Network testing</p>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-4">Full workflows coming in next update</p>
                             </div>
                         ) : (
-                            <div className="bg-white p-6 rounded-lg shadow-md">
-                                <h2 className="text-xl font-bold mb-4">Settings</h2>
-                                <p className="text-gray-600">DiagFlow V46 Complete</p>
-                                <p className="text-sm text-gray-500 mt-2">Configuration options coming soon!</p>
+                            <div className="space-y-4">
+                                <div className="bg-white p-6 rounded-lg shadow">
+                                    <h2 className="text-xl font-bold mb-4">Settings</h2>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Service Advisor Email</label>
+                                            <div className="flex gap-2">
+                                                <input type="email" value={tempEmail} onChange={(e) => setTempEmail(e.target.value)} className="flex-1 px-4 py-2 border rounded-lg" placeholder="sa@shop.com" />
+                                                <button onClick={() => { setServiceAdvisorEmail(tempEmail); alert('Email saved!'); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg">
+                                                    Save
+                                                </button>
+                                            </div>
+                                            {serviceAdvisorEmail && <p className="text-xs text-green-600 mt-1">✓ Currently: {serviceAdvisorEmail}</p>}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-6 rounded-lg shadow">
+                                    <h3 className="text-lg font-bold mb-3">Saved Reports ({savedReports.length})</h3>
+                                    {savedReports.length === 0 ? (
+                                        <p className="text-sm text-gray-500">No reports yet. Submit a job to save reports.</p>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {savedReports.map(r => (
+                                                <div key={r.id} className="p-3 border rounded-lg">
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <div className="font-semibold">{r.vehicleInfo.year} {r.vehicleInfo.make} {r.vehicleInfo.model}</div>
+                                                            <div className="text-sm text-gray-600">RO#: {r.vehicleInfo.roNumber || 'N/A'}</div>
+                                                            <div className="text-xs text-gray-500">{r.date}</div>
+                                                            <div className="text-xs text-blue-600 mt-1">{r.progress}% Complete</div>
+                                                        </div>
+                                                        <button onClick={() => deleteReport(r.id)} className="text-red-600 p-1">
+                                                            <Trash className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>
 
-                    <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
-                        <div className="max-w-4xl mx-auto">
-                            <div className="flex justify-around py-2">
-                                {[
-                                    { icon: Home, label: 'Home', view: 'home' },
-                                    { icon: BookOpen, label: 'Workflow', view: 'workflow' },
-                                    { icon: TrendingUp, label: 'Scope', view: 'scope' },
-                                    { icon: Settings, label: 'Settings', view: 'settings' }
-                                ].map(item => (
-                                    <button 
-                                        key={item.view} 
-                                        onClick={() => { 
-                                            setCurrentView(item.view); 
-                                            setSelectedStep(null); 
-                                        }} 
-                                        className={'flex flex-col items-center gap-1 px-6 py-2 rounded-lg ' + (
-                                            currentView === item.view ? 'text-blue-600 bg-blue-50' : 'text-gray-600'
-                                        )}
-                                    >
-                                        <item.icon />
-                                        <span className="text-xs font-medium">{item.label}</span>
-                                    </button>
-                                ))}
+                    {hasVehicleInfo && !selectedStep && (
+                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
+                            <div className="max-w-4xl mx-auto">
+                                <button onClick={() => setShowSubmitModal(true)} className="w-full bg-green-600 text-white py-3 font-semibold hover:bg-green-700 flex items-center justify-center gap-2">
+                                    <Send /> Submit to Service Advisor
+                                </button>
+                                <div className="flex justify-around py-2">
+                                    {[
+                                        { icon: Home, label: 'Home', view: 'home' },
+                                        { icon: BookOpen, label: 'Workflow', view: 'workflow' },
+                                        { icon: TrendingUp, label: 'Scope', view: 'scope' },
+                                        { icon: Settings, label: 'Settings', view: 'settings' }
+                                    ].map(item => (
+                                        <button key={item.view} onClick={() => { setCurrentView(item.view); setSelectedStep(null); }} className={'flex flex-col items-center gap-1 px-6 py-2 rounded-lg ' + (currentView === item.view ? 'text-blue-600 bg-blue-50' : 'text-gray-600')}>
+                                            <item.icon /> <span className="text-xs font-medium">{item.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             );
         }
 
         ReactDOM.render(<DiagnosticApp />, document.getElementById('root'));
-        console.log("✅ DiagFlow V46 Complete Loaded!");
+        console.log("✅ DiagFlow V46 Enhanced Loaded!");
     </script>
 </body>
 </html>
