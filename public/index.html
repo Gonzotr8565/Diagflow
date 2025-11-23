@@ -562,7 +562,7 @@ const DiagnosticApp = () => {
 
     try {
       const supportData = {
-        email: process.env.SUPPORT_EMAIL || 'support@diagflow.com',
+        email: 'support@diagflow.com',
         subject: `DiagFlow Support Request - ${supportForm.year} ${supportForm.make} ${supportForm.model}`,
         helpType: supportForm.helpType,
         vehicleInfo: {
@@ -1612,6 +1612,7 @@ const DiagnosticApp = () => {
       )}
 
       {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t">
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-around py-2">
             {[
