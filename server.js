@@ -1,379 +1,163 @@
 const express = require('express');
-const path = require('path');
 const cors = require('cors');
 const multer = require('multer');
+const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
-// Middleware
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
+if (!fs.existsSync('./uploads')) {
+  fs.mkdirSync('./uploads');
 }
 
-// Configure multer for file uploads
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadsDir);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'));
     }
+  }
 });
 
-const upload = multer({
-    storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-    fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|gif|webp/;
-        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
-        
-        if (extname && mimetype) {
-            return cb(null, true);
-        } else {
-            cb(new Error('Only image files are allowed!'));
-        }
-    }
-});
+let educationalContent = [{
+  id: 1,
+  title: "Introduction to React",
+  description: "Learn the basics of React framework",
+  content: "React is a JavaScript library for building user interfaces...",
+  imageUrl: null,
+  category: "Programming",
+  createdAt: new Date().toISOString()
+}];
 
-// =====================================
-// SERVE FRONTEND (DiagFlow V46)
-// =====================================
+let nextId = 2;
 
-// Serve static files from public directory
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Serve DiagFlow V46 at root
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// =====================================
-// API ENDPOINTS
-// =====================================
-
-// API Info endpoint
-app.get('/api', (req, res) => {
-    res.json({
-        message: "DiagFlow API v1.0.0",
-        version: "1.0.0",
-        status: "running",
-        endpoints: {
-            frontend: "GET / - DiagFlow V46 Web Application",
-            jobs: "POST /api/jobs - Save diagnostic job data",
-            images: "POST /api/images/upload - Upload diagnostic images",
-            report: "POST /api/submit-report - Generate and email PDF report",
-            support: "POST /api/support-request - Submit support ticket",
-            health: "GET /api/health - Health check"
-        }
-    });
-});
-
-// Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'development'
-    });
+  res.json({ status: 'ok', message: 'Education API is running' });
 });
 
-// =====================================
-// SAVE DIAGNOSTIC JOB
-// =====================================
-
-app.post('/api/jobs', (req, res) => {
-    try {
-        const jobData = req.body;
-        
-        // Validate required fields
-        if (!jobData.vehicleInfo) {
-            return res.status(400).json({
-                success: false,
-                error: 'Vehicle information is required'
-            });
-        }
-
-        // In production, save to database
-        // For now, we'll just log and return success
-        console.log('📋 Job Data Received:', {
-            vehicle: jobData.vehicleInfo,
-            completedSteps: jobData.completedSteps?.length || 0,
-            notesCount: Object.keys(jobData.stepNotes || {}).length,
-            imagesCount: Object.values(jobData.stepImages || {}).reduce((sum, imgs) => sum + imgs.length, 0)
-        });
-
-        // Save to file system (temporary - replace with DB in production)
-        const jobsDir = path.join(__dirname, 'jobs');
-        if (!fs.existsSync(jobsDir)) {
-            fs.mkdirSync(jobsDir, { recursive: true });
-        }
-
-        const jobId = `JOB-${Date.now()}`;
-        const jobFile = path.join(jobsDir, `${jobId}.json`);
-        
-        fs.writeFileSync(jobFile, JSON.stringify({
-            ...jobData,
-            jobId,
-            savedAt: new Date().toISOString()
-        }, null, 2));
-
-        res.json({
-            success: true,
-            message: 'Job saved successfully',
-            jobId: jobId,
-            savedAt: new Date().toISOString()
-        });
-
-    } catch (error) {
-        console.error('❌ Error saving job:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to save job data',
-            message: error.message
-        });
-    }
+app.get('/api/content', (req, res) => {
+  const { category, search } = req.query;
+  let filtered = educationalContent;
+  if (category) {
+    filtered = filtered.filter(item => item.category.toLowerCase() === category.toLowerCase());
+  }
+  if (search) {
+    filtered = filtered.filter(item => item.title.toLowerCase().includes(search.toLowerCase()) || item.description.toLowerCase().includes(search.toLowerCase()));
+  }
+  res.json({ success: true, count: filtered.length, data: filtered });
 });
 
-// =====================================
-// IMAGE UPLOAD
-// =====================================
-
-app.post('/api/images/upload', upload.array('images', 10), (req, res) => {
-    try {
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).json({
-                success: false,
-                error: 'No images uploaded'
-            });
-        }
-
-        const uploadedFiles = req.files.map(file => ({
-            filename: file.filename,
-            originalName: file.originalname,
-            size: file.size,
-            mimetype: file.mimetype,
-            path: `/uploads/${file.filename}`,
-            uploadedAt: new Date().toISOString()
-        }));
-
-        console.log(`📸 Uploaded ${uploadedFiles.length} image(s)`);
-
-        res.json({
-            success: true,
-            message: `Successfully uploaded ${uploadedFiles.length} image(s)`,
-            files: uploadedFiles
-        });
-
-    } catch (error) {
-        console.error('❌ Error uploading images:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to upload images',
-            message: error.message
-        });
-    }
+app.get('/api/content/:id', (req, res) => {
+  const content = educationalContent.find(item => item.id === parseInt(req.params.id));
+  if (!content) {
+    return res.status(404).json({ success: false, message: 'Content not found' });
+  }
+  res.json({ success: true, data: content });
 });
 
-// Serve uploaded images
-app.use('/uploads', express.static(uploadsDir));
-
-// =====================================
-// SUBMIT REPORT TO SERVICE ADVISOR
-// =====================================
-
-app.post('/api/submit-report', async (req, res) => {
-    try {
-        const { email, reportData } = req.body;
-
-        if (!email) {
-            return res.status(400).json({
-                success: false,
-                error: 'Email address is required'
-            });
-        }
-
-        if (!reportData) {
-            return res.status(400).json({
-                success: false,
-                error: 'Report data is required'
-            });
-        }
-
-        // Log the report submission
-        console.log('📧 Report Submission:', {
-            email,
-            vehicle: `${reportData.vehicleInfo?.year} ${reportData.vehicleInfo?.make} ${reportData.vehicleInfo?.model}`,
-            completedSteps: reportData.completedSteps,
-            totalSteps: reportData.totalSteps
-        });
-
-        // Save report data
-        const reportsDir = path.join(__dirname, 'reports');
-        if (!fs.existsSync(reportsDir)) {
-            fs.mkdirSync(reportsDir, { recursive: true });
-        }
-
-        const reportId = `REPORT-${Date.now()}`;
-        const reportFile = path.join(reportsDir, `${reportId}.json`);
-        
-        fs.writeFileSync(reportFile, JSON.stringify({
-            reportId,
-            email,
-            reportData,
-            submittedAt: new Date().toISOString()
-        }, null, 2));
-
-        // TODO: In production, integrate with:
-        // - PDF generation library (e.g., pdfkit, puppeteer)
-        // - Email service (e.g., SendGrid, Nodemailer, AWS SES)
-        
-        res.json({
-            success: true,
-            message: `Report generated and will be sent to ${email}`,
-            reportId: reportId,
-            submittedAt: new Date().toISOString(),
-            note: 'PDF generation and email delivery pending integration'
-        });
-
-    } catch (error) {
-        console.error('❌ Error submitting report:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to submit report',
-            message: error.message
-        });
-    }
+app.post('/api/content', (req, res) => {
+  const { title, description, content, category } = req.body;
+  if (!title || !description || !content) {
+    return res.status(400).json({ success: false, message: 'Title, description, and content are required' });
+  }
+  const newContent = { id: nextId++, title, description, content, category: category || 'General', imageUrl: null, createdAt: new Date().toISOString() };
+  educationalContent.push(newContent);
+  res.status(201).json({ success: true, message: 'Content created successfully', data: newContent });
 });
 
-// =====================================
-// SUPPORT REQUEST
-// =====================================
-
-app.post('/api/support-request', (req, res) => {
-    try {
-        const { email, subject, helpType, vehicleInfo, description, timestamp } = req.body;
-
-        if (!helpType || !description) {
-            return res.status(400).json({
-                success: false,
-                error: 'Help type and description are required'
-            });
-        }
-
-        console.log('🆘 Support Request:', {
-            helpType,
-            vehicle: vehicleInfo ? `${vehicleInfo.year} ${vehicleInfo.make} ${vehicleInfo.model}` : 'N/A',
-            description: description.substring(0, 50) + '...'
-        });
-
-        // Save support request
-        const supportDir = path.join(__dirname, 'support');
-        if (!fs.existsSync(supportDir)) {
-            fs.mkdirSync(supportDir, { recursive: true });
-        }
-
-        const ticketId = `TICKET-${Date.now()}`;
-        const ticketFile = path.join(supportDir, `${ticketId}.json`);
-        
-        fs.writeFileSync(ticketFile, JSON.stringify({
-            ticketId,
-            email: email || 'support@diagflow.com',
-            subject,
-            helpType,
-            vehicleInfo,
-            description,
-            timestamp: timestamp || new Date().toISOString(),
-            status: 'open'
-        }, null, 2));
-
-        // TODO: In production, send notification email to support team
-
-        res.json({
-            success: true,
-            message: 'Support request submitted successfully',
-            ticketId: ticketId,
-            submittedAt: new Date().toISOString(),
-            note: 'A Master Technician will contact you within 24 hours'
-        });
-
-    } catch (error) {
-        console.error('❌ Error submitting support request:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to submit support request',
-            message: error.message
-        });
-    }
+app.put('/api/content/:id', (req, res) => {
+  const index = educationalContent.findIndex(item => item.id === parseInt(req.params.id));
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: 'Content not found' });
+  }
+  const { title, description, content, category } = req.body;
+  educationalContent[index] = { ...educationalContent[index], ...(title && { title }), ...(description && { description }), ...(content && { content }), ...(category && { category }), updatedAt: new Date().toISOString() };
+  res.json({ success: true, message: 'Content updated successfully', data: educationalContent[index] });
 });
 
-// =====================================
-// ERROR HANDLING
-// =====================================
-
-// 404 handler for API routes
-app.use('/api/*', (req, res) => {
-    res.status(404).json({
-        success: false,
-        error: 'API endpoint not found',
-        path: req.path
-    });
+app.delete('/api/content/:id', (req, res) => {
+  const index = educationalContent.findIndex(item => item.id === parseInt(req.params.id));
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: 'Content not found' });
+  }
+  const deleted = educationalContent.splice(index, 1);
+  res.json({ success: true, message: 'Content deleted successfully', data: deleted[0] });
 });
 
-// Global error handler
+app.post('/api/upload', upload.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'No image file provided' });
+  }
+  const imageUrl = req.protocol + '://' + req.get('host') + '/uploads/' + req.file.filename;
+  res.json({ success: true, message: 'Image uploaded successfully', data: { filename: req.file.filename, imageUrl: imageUrl } });
+});
+
+app.post('/api/content/:id/image', upload.single('image'), (req, res) => {
+  const content = educationalContent.find(item => item.id === parseInt(req.params.id));
+  if (!content) {
+    return res.status(404).json({ success: false, message: 'Content not found' });
+  }
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'No image file provided' });
+  }
+  const imageUrl = req.protocol + '://' + req.get('host') + '/uploads/' + req.file.filename;
+  content.imageUrl = imageUrl;
+  res.json({ success: true, message: 'Image attached to content successfully', data: content });
+});
+
+app.get('/api/categories', (req, res) => {
+  const categories = [...new Set(educationalContent.map(item => item.category))];
+  res.json({ success: true, data: categories });
+});
+
 app.use((err, req, res, next) => {
-    console.error('❌ Server Error:', err);
-    
-    res.status(err.status || 500).json({
-        success: false,
-        error: err.message || 'Internal server error',
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-    });
+  console.error(err.stack);
+  res.status(500).json({ success: false, message: err.message || 'Something went wrong!' });
 });
-
-// =====================================
-// START SERVER
-// =====================================
 
 app.listen(PORT, () => {
-    console.log('');
-    console.log('╔═══════════════════════════════════════════════════════╗');
-    console.log('║                                                       ║');
-    console.log('║         🚀 DiagFlow V46 Server Running! 🚀          ║');
-    console.log('║                                                       ║');
-    console.log('╚═══════════════════════════════════════════════════════╝');
-    console.log('');
-    console.log(`📱 Frontend:  http://localhost:${PORT}/`);
-    console.log(`🔌 API Info:  http://localhost:${PORT}/api`);
-    console.log(`💚 Health:    http://localhost:${PORT}/api/health`);
-    console.log('');
-    console.log('📋 API Endpoints:');
-    console.log('   POST /api/jobs              - Save diagnostic job');
-    console.log('   POST /api/images/upload     - Upload images');
-    console.log('   POST /api/submit-report     - Submit report to SA');
-    console.log('   POST /api/support-request   - Request expert help');
-    console.log('');
-    console.log(`⚙️  Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`📂 Working Dir: ${__dirname}`);
-    console.log('');
-    console.log('✅ Server ready to accept connections!');
-    console.log('');
+  console.log('Education API server running on port ' + PORT);
+  console.log('Access the API at http://localhost:' + PORT + '/api');
+});
+// In your server.js, add these routes:
+
+// Save diagnostic job
+app.post('/api/jobs', (req, res) => {
+  const jobData = req.body;
+  // Save to database
+  res.json({ success: true, jobId: 'generated-id' });
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-    console.log('👋 SIGTERM received, shutting down gracefully...');
-    process.exit(0);
+// Upload images
+app.post('/api/images/upload', upload.single('image'), (req, res) => {
+  // Handle file upload
+  res.json({ success: true, imageUrl: 'url-to-uploaded-image' });
 });
 
-module.exports = app;
+// Submit report to SA
+app.post('/api/submit-report', async (req, res) => {
+  const { email, reportData } = req.body;
+  // Generate PDF and send email
+  res.json({ success: true, message: 'Report sent' });
+});

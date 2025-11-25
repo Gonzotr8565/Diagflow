@@ -75,8 +75,8 @@ const DiagnosticApp = () => {
     description: ''
   });
 
-  const API_BASE_URL = 'https://your-backend-api.com';
-  const SAMPLE_WAVEFORMS_URL = 'https://your-samples-site.com/waveforms';
+  const API_BASE_URL = 'https://diagflow-production.up.railway.app';
+  const SAMPLE_WAVEFORMS_URL = 'https://diagflow-production.up.railway.app/samples';
 
   const diagnosticSteps = [
     { 
@@ -246,17 +246,17 @@ const DiagnosticApp = () => {
             {
               title: 'Clean Sensor Signals',
               description: 'Both cam and crank show clean, consistent waveforms. Hall sensors show sharp square waves, magnetic sensors show clean sine waves.',
-              image: 'https://diagflow-production.up.railway.app/public/samples/cam-crank-clean.jpg'
+              image: 'https://diagflow-production.up.railway.app/samples/cam-crank-clean.jpg'
             },
             {
               title: 'Weak Sensor Signal',
               description: 'Crank sensor amplitude is low or erratic. May cause intermittent no-start or stalling. Check sensor gap and wiring.',
-              image: 'https://diagflow-production.up.railway.app/public/samples/cam-crank-weak.jpg'
+              image: 'https://diagflow-production.up.railway.app/samples/cam-crank-weak.jpg'
             },
             {
               title: 'Noise Interference',
               description: 'Signal shows electrical noise or dropouts. Check for damaged wiring, poor grounds, or electromagnetic interference.',
-              image: 'https://diagflow-production.up.railway.app/public/samples/cam-crank-noise.jpg'
+              image: 'https://diagflow-production.up.railway.app/samples/cam-crank-noise.jpg'
             }
           ]
         },
