@@ -161,3 +161,4 @@ app.post('/api/submit-report', async (req, res) => {
   // Generate PDF and send email
   res.json({ success: true, message: 'Report sent' });
 });
+
