@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0066ff"/>
+      <stop offset="100%" style="stop-color:#0044cc"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="250" fill="url(#bg)"/>
+  
+  <!-- D letter stylized as diagnostic tool -->
+  <path d="M140 130 L140 382 L220 382 C320 382 380 310 380 256 C380 202 320 130 220 130 Z" 
+        fill="none" stroke="white" stroke-width="35" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Checkmark inside -->
+  <path d="M200 260 L240 300 L320 200" 
+        fill="none" stroke="white" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Flow dots -->
+  <circle cx="420" cy="180" r="18" fill="white" opacity="0.9"/>
+  <circle cx="450" cy="256" r="14" fill="white" opacity="0.7"/>
+  <circle cx="420" cy="332" r="10" fill="white" opacity="0.5"/>
+</svg>

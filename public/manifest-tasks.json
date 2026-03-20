@@ -1,0 +1,34 @@
+{
+  "name": "DiagFlow Tasks",
+  "short_name": "Tasks",
+  "description": "Franklin-style task management with cloud sync",
+  "start_url": "/tasks",
+  "scope": "/tasks",
+  "display": "standalone",
+  "background_color": "#2563eb",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/tasks-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/tasks-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "business"],
+  "shortcuts": [
+    {
+      "name": "Add Task",
+      "short_name": "Add",
+      "url": "/tasks?action=add",
+      "icon": "/icons/tasks-icon-192.png"
+    }
+  ]
+}

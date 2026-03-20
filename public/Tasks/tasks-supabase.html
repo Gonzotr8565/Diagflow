@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="DiagFlow Tasks">
+    <meta name="theme-color" content="#2563eb">
+    <title>DiagFlow Task Manager</title>
+    
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f3f4f6;
+            min-height: 100vh;
+            overscroll-behavior: none;
+        }
+        html { overscroll-behavior: none; }
+        .sync-indicator {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://qafmmnwjgzlssogsipua.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhZm1tbndqZ3psc3NvZ3NpcHVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MTA0MDgsImV4cCI6MjA4MzI4NjQwOH0.67M7Ea2lDXK4bYRsPuZ0fagb4RtHAn5A2cAyBWV8TcQ';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Get or create a user ID (stored in localStorage for simplicity)
+        function getUserId() {
+            let userId = localStorage.getItem('diagflow_user_id');
+            if (!userId) {
+                userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('diagflow_user_id', userId);
+            }
+            return userId;
+        }
+
+        function DiagFlowTasks() {
+            const [tasks, setTasks] = useState([]);
+            const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+            const [showAddModal, setShowAddModal] = useState(false);
+            const [showActionModal, setShowActionModal] = useState(false);
+            const [showForwardModal, setShowForwardModal] = useState(false);
+            const [showCalendar, setShowCalendar] = useState(false);
+            const [showNotes, setShowNotes] = useState(false);
+            const [selectedTask, setSelectedTask] = useState(null);
+            const [noteText, setNoteText] = useState('');
+            const [calMonth, setCalMonth] = useState(new Date());
+            const [notificationPermission, setNotificationPermission] = useState('default');
+            const [syncStatus, setSyncStatus] = useState('synced'); // 'synced', 'syncing', 'offline'
+            const [userId] = useState(getUserId());
+            const [newTask, setNewTask] = useState({ 
+                title: '', 
+                priority: 'B', 
+                type: 'general', 
+                notes: '', 
+                vehicle: '',
+                time: '',
+                reminder: true
+            });
+
+            const taskTypes = {
+                callback: { label: 'Customer Callback', icon: '📞' },
+                parts: { label: 'Parts Check', icon: '📦' },
+                diagnostic: { label: 'Diagnostic Follow-up', icon: '🔧' },
+                general: { label: 'General Task', icon: '📋' }
+            };
+
+            const priColors = {
+                A: '#dc2626',
+                B: '#d97706',
+                C: '#16a34a'
+            };
+
+            const timeOptions = [
+                { value: '', label: 'No specific time' },
+                { value: '06:00', label: '6:00 AM' },
+                { value: '06:30', label: '6:30 AM' },
+                { value: '07:00', label: '7:00 AM' },
+                { value: '07:30', label: '7:30 AM' },
+                { value: '08:00', label: '8:00 AM' },
+                { value: '08:30', label: '8:30 AM' },
+                { value: '09:00', label: '9:00 AM' },
+                { value: '09:30', label: '9:30 AM' },
+                { value: '10:00', label: '10:00 AM' },
+                { value: '10:30', label: '10:30 AM' },
+                { value: '11:00', label: '11:00 AM' },
+                { value: '11:30', label: '11:30 AM' },
+                { value: '12:00', label: '12:00 PM' },
+                { value: '12:30', label: '12:30 PM' },
+                { value: '13:00', label: '1:00 PM' },
+                { value: '13:30', label: '1:30 PM' },
+                { value: '14:00', label: '2:00 PM' },
+                { value: '14:30', label: '2:30 PM' },
+                { value: '15:00', label: '3:00 PM' },
+                { value: '15:30', label: '3:30 PM' },
+                { value: '16:00', label: '4:00 PM' },
+                { value: '16:30', label: '4:30 PM' },
+                { value: '17:00', label: '5:00 PM' },
+                { value: '17:30', label: '5:30 PM' },
+                { value: '18:00', label: '6:00 PM' },
+                { value: '18:30', label: '6:30 PM' },
+                { value: '19:00', label: '7:00 PM' },
+                { value: '19:30', label: '7:30 PM' },
+                { value: '20:00', label: '8:00 PM' },
+            ];
+
+            // Load tasks from Supabase
+            const loadTasks = useCallback(async () => {
+                setSyncStatus('syncing');
+                try {
+                    const { data, error } = await supabase
+                        .from('tasks')
+                        .select('*')
+                        .eq('user_id', userId)
+                        .order('date', { ascending: true });
+
+                    if (error) throw error;
+                    
+                    setTasks(data || []);
+                    setSyncStatus('synced');
+                } catch (error) {
+                    console.error('Error loading tasks:', error);
+                    setSyncStatus('offline');
+                    // Fall back to localStorage
+                    const stored = localStorage.getItem('diagflow_tasks_backup');
+                    if (stored) setTasks(JSON.parse(stored));
+                }
+            }, [userId]);
+
+            // Save task to Supabase
+            const saveTask = async (task) => {
+                setSyncStatus('syncing');
+                try {
+                    const { error } = await supabase
+                        .from('tasks')
+                        .upsert({
+                            ...task,
+                            user_id: userId,
+                            updated_at: new Date().toISOString()
+                        });
+
+                    if (error) throw error;
+                    setSyncStatus('synced');
+                } catch (error) {
+                    console.error('Error saving task:', error);
+                    setSyncStatus('offline');
+                }
+            };
+
+            // Delete task from Supabase
+            const removeTask = async (taskId) => {
+                setSyncStatus('syncing');
+                try {
+                    const { error } = await supabase
+                        .from('tasks')
+                        .delete()
+                        .eq('id', taskId)
+                        .eq('user_id', userId);
+
+                    if (error) throw error;
+                    setSyncStatus('synced');
+                } catch (error) {
+                    console.error('Error deleting task:', error);
+                    setSyncStatus('offline');
+                }
+            };
+
+            // Initial load
+            useEffect(() => {
+                loadTasks();
+            }, [loadTasks]);
+
+            // Set up real-time subscription
+            useEffect(() => {
+                const channel = supabase
+                    .channel('tasks-changes')
+                    .on('postgres_changes', 
+                        { 
+                            event: '*', 
+                            schema: 'public', 
+                            table: 'tasks',
+                            filter: `user_id=eq.${userId}`
+                        }, 
+                        (payload) => {
+                            console.log('Real-time update:', payload);
+                            loadTasks(); // Reload all tasks on any change
+                        }
+                    )
+                    .subscribe();
+
+                return () => {
+                    supabase.removeChannel(channel);
+                };
+            }, [userId, loadTasks]);
+
+            // Backup to localStorage
+            useEffect(() => {
+                localStorage.setItem('diagflow_tasks_backup', JSON.stringify(tasks));
+            }, [tasks]);
+
+            // Notification permission
+            useEffect(() => {
+                if ('Notification' in window) {
+                    setNotificationPermission(Notification.permission);
+                }
+            }, []);
+
+            const requestNotificationPermission = async () => {
+                if ('Notification' in window) {
+                    const permission = await Notification.requestPermission();
+                    setNotificationPermission(permission);
+                    return permission === 'granted';
+                }
+                return false;
+            };
+
+            const scheduleNotification = (task) => {
+                if (!task.time || !task.reminder || task.completed) return;
+                if (notificationPermission !== 'granted') return;
+
+                const taskDateTime = new Date(task.date + 'T' + task.time);
+                const reminderTime = new Date(taskDateTime.getTime() - 15 * 60 * 1000);
+                const now = new Date();
+
+                if (reminderTime > now) {
+                    const timeout = reminderTime.getTime() - now.getTime();
+                    setTimeout(() => {
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            new Notification('⏰ Task in 15 minutes', {
+                                body: taskTypes[task.type]?.icon + ' ' + task.title + (task.vehicle ? ' - ' + task.vehicle : ''),
+                                icon: '/icons/icon-192.png',
+                                tag: task.id,
+                                requireInteraction: true
+                            });
+                        }
+                    }, timeout);
+                }
+            };
+
+            const todayStr = new Date().toISOString().split('T')[0];
+            const isToday = selectedDate === todayStr;
+
+            const getTasksForDate = (date) => {
+                return tasks
+                    .filter(t => t.date === date)
+                    .sort((a, b) => {
+                        if (a.completed !== b.completed) return a.completed ? 1 : -1;
+                        if (a.time && b.time) return a.time.localeCompare(b.time);
+                        if (a.time && !b.time) return -1;
+                        if (!a.time && b.time) return 1;
+                        const order = { A: 0, B: 1, C: 2 };
+                        return order[a.priority] - order[b.priority];
+                    });
+            };
+
+            const getDayIndicators = (dateStr) => {
+                const dayTasks = tasks.filter(t => t.date === dateStr && !t.completed);
+                return {
+                    A: dayTasks.some(t => t.priority === 'A'),
+                    B: dayTasks.some(t => t.priority === 'B'),
+                    C: dayTasks.some(t => t.priority === 'C')
+                };
+            };
+
+            const formatTime = (time24) => {
+                if (!time24) return '';
+                const [hours, minutes] = time24.split(':');
+                const h = parseInt(hours);
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                const h12 = h % 12 || 12;
+                return h12 + ':' + minutes + ' ' + ampm;
+            };
+
+            const addTask = async () => {
+                if (!newTask.title.trim()) return;
+                
+                if (newTask.time && newTask.reminder && notificationPermission === 'default') {
+                    await requestNotificationPermission();
+                }
+
+                const task = {
+                    id: Date.now().toString(),
+                    ...newTask,
+                    date: selectedDate,
+                    completed: false
+                };
+                
+                // Optimistic update
+                setTasks([...tasks, task]);
+                
+                // Save to Supabase
+                await saveTask(task);
+                
+                if (selectedDate === todayStr) {
+                    scheduleNotification(task);
+                }
+                
+                setNewTask({ title: '', priority: 'B', type: 'general', notes: '', vehicle: '', time: '', reminder: true });
+                setShowAddModal(false);
+            };
+
+            const toggleComplete = async (taskId) => {
+                const task = tasks.find(t => t.id === taskId);
+                if (!task) return;
+
+                const updatedTask = { ...task, completed: !task.completed };
+                
+                // Optimistic update
+                setTasks(tasks.map(t => t.id === taskId ? updatedTask : t));
+                
+                // Save to Supabase
+                await saveTask(updatedTask);
+                
+                setShowActionModal(false);
+                setSelectedTask(null);
+            };
+
+            const forwardTask = async (taskId, newDate) => {
+                const task = tasks.find(t => t.id === taskId);
+                if (!task) return;
+
+                const updatedTask = { ...task, date: newDate, completed: false };
+                
+                // Optimistic update
+                setTasks(tasks.map(t => t.id === taskId ? updatedTask : t));
+                
+                // Save to Supabase
+                await saveTask(updatedTask);
+                
+                setShowForwardModal(false);
+                setShowActionModal(false);
+                setSelectedTask(null);
+            };
+
+            const deleteTask = async (taskId) => {
+                // Optimistic update
+                setTasks(tasks.filter(t => t.id !== taskId));
+                
+                // Delete from Supabase
+                await removeTask(taskId);
+                
+                setShowActionModal(false);
+                setSelectedTask(null);
+            };
+
+            const openNotes = (task) => {
+                setSelectedTask(task);
+                setNoteText(task.notes || '');
+                setShowNotes(true);
+                setShowActionModal(false);
+            };
+
+            const saveNotes = async () => {
+                if (selectedTask) {
+                    const updatedTask = { ...selectedTask, notes: noteText };
+                    
+                    // Optimistic update
+                    setTasks(tasks.map(t => t.id === selectedTask.id ? updatedTask : t));
+                    
+                    // Save to Supabase
+                    await saveTask(updatedTask);
+                }
+                setShowNotes(false);
+                setSelectedTask(null);
+            };
+
+            const navigateDate = (dir) => {
+                const d = new Date(selectedDate);
+                d.setDate(d.getDate() + dir);
+                setSelectedDate(d.toISOString().split('T')[0]);
+            };
+
+            const formatDateDisplay = (dateStr) => {
+                const d = new Date(dateStr + 'T12:00:00');
+                if (dateStr === todayStr) return 'Today';
+                const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+                if (dateStr === yesterday.toISOString().split('T')[0]) return 'Yesterday';
+                const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+                if (dateStr === tomorrow.toISOString().split('T')[0]) return 'Tomorrow';
+                return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            };
+
+            const getCalendarDays = () => {
+                const year = calMonth.getFullYear();
+                const month = calMonth.getMonth();
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                const startPad = firstDay.getDay();
+                const days = [];
+                
+                for (let i = 0; i < startPad; i++) {
+                    const d = new Date(year, month, -startPad + i + 1);
+                    days.push({ date: d, current: false });
+                }
+                for (let i = 1; i <= lastDay.getDate(); i++) {
+                    days.push({ date: new Date(year, month, i), current: true });
+                }
+                const remaining = 42 - days.length;
+                for (let i = 1; i <= remaining; i++) {
+                    days.push({ date: new Date(year, month + 1, i), current: false });
+                }
+                return days;
+            };
+
+            const dayTasks = getTasksForDate(selectedDate);
+            const doneCount = dayTasks.filter(t => t.completed).length;
+
+            // Sync status indicator
+            const SyncIndicator = () => {
+                if (syncStatus === 'syncing') {
+                    return <span className="text-xs bg-yellow-500 px-2 py-1 rounded-full sync-indicator">⟳</span>;
+                } else if (syncStatus === 'offline') {
+                    return <span className="text-xs bg-red-500 px-2 py-1 rounded-full">⚠️ Offline</span>;
+                } else {
+                    return <span className="text-xs bg-green-500 px-2 py-1 rounded-full">☁️ Synced</span>;
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-100">
+                    {/* Header */}
+                    <div className="bg-blue-600 text-white p-4 sticky top-0 z-10">
+                        <div className="flex justify-between items-center mb-3">
+                            <div className="flex items-center gap-3">
+                                <a href="/" className="text-white/80 hover:text-white text-sm">← DiagFlow</a>
+                                <h1 className="text-xl font-bold">📋 Tasks</h1>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <SyncIndicator />
+                                {notificationPermission === 'granted' && (
+                                    <span className="text-xs bg-green-500 px-2 py-1 rounded-full">🔔</span>
+                                )}
+                                <span className="bg-blue-700 px-3 py-1 rounded-full text-sm">{doneCount}/{dayTasks.length}</span>
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center bg-blue-700 rounded-lg p-2">
+                            <button onClick={() => navigateDate(-1)} className="px-3 py-1 text-xl">◀</button>
+                            <button onClick={() => setShowCalendar(true)} className="flex-1 text-center">
+                                <div className="text-lg font-semibold">{formatDateDisplay(selectedDate)}</div>
+                                <div className="text-xs opacity-80">Tap for calendar</div>
+                            </button>
+                            <button onClick={() => navigateDate(1)} className="px-3 py-1 text-xl">▶</button>
+                        </div>
+
+                        {!isToday && (
+                            <button 
+                                onClick={() => setSelectedDate(todayStr)}
+                                className="w-full mt-2 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium"
+                            >
+                                📍 Return to Today
+                            </button>
+                        )}
+
+                        {notificationPermission === 'default' && (
+                            <button 
+                                onClick={requestNotificationPermission}
+                                className="w-full mt-2 py-2 bg-amber-500 hover:bg-amber-600 rounded-lg text-sm font-medium"
+                            >
+                                🔔 Enable Reminders
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Legend */}
+                    <div className="flex justify-center gap-4 py-2 bg-white border-b text-xs">
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-600"></span> A=Vital</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-amber-500"></span> B=Important</span>
+                        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-green-600"></span> C=Optional</span>
+                    </div>
+
+                    {/* Task List */}
+                    <div className="p-4 pb-24">
+                        {dayTasks.length === 0 ? (
+                            <div className="text-center py-12 text-gray-500">
+                                <div className="text-5xl mb-4">📝</div>
+                                <p className="font-medium">No tasks for {formatDateDisplay(selectedDate)}</p>
+                                <p className="text-sm">Tap + to add a task</p>
+                            </div>
+                        ) : (
+                            dayTasks.map(task => (
+                                <div
+                                    key={task.id}
+                                    className={`bg-white rounded-lg shadow-sm mb-3 overflow-hidden ${task.completed ? 'opacity-50' : ''}`}
+                                    style={{ borderLeft: '4px solid ' + priColors[task.priority] }}
+                                >
+                                    <div className="flex items-center p-3">
+                                        <button
+                                            onClick={() => toggleComplete(task.id)}
+                                            className="w-7 h-7 rounded-full border-2 flex items-center justify-center mr-3 flex-shrink-0"
+                                            style={task.completed ? { background: '#16a34a', borderColor: '#16a34a', color: 'white' } : { borderColor: '#d1d5db' }}
+                                        >
+                                            {task.completed && '✓'}
+                                        </button>
+                                        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => { setSelectedTask(task); setShowActionModal(true); }}>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="text-xs px-2 py-0.5 rounded font-bold text-white" style={{ background: priColors[task.priority] }}>{task.priority}</span>
+                                                {task.time && (
+                                                    <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
+                                                        ⏰ {formatTime(task.time)}
+                                                    </span>
+                                                )}
+                                                <span>{taskTypes[task.type]?.icon}</span>
+                                                <span className={`font-medium ${task.completed ? 'line-through text-gray-400' : ''}`}>{task.title}</span>
+                                            </div>
+                                            {task.vehicle && <div className="text-xs text-gray-500 mt-1">🚗 {task.vehicle}</div>}
+                                            {task.notes && <div className="text-xs text-blue-600 mt-1">📝 {task.notes.substring(0, 50)}{task.notes.length > 50 ? '...' : ''}</div>}
+                                            {task.time && task.reminder && !task.completed && (
+                                                <div className="text-xs text-green-600 mt-1">🔔 Reminder 15 min before</div>
+                                            )}
+                                        </div>
+                                        <button onClick={() => { setSelectedTask(task); setShowActionModal(true); }} className="p-2 text-gray-400 text-xl">⋮</button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    {/* FAB */}
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full text-3xl flex items-center justify-center z-50 shadow-lg"
+                    >+</button>
+
+                    {/* Calendar Modal */}
+                    {showCalendar && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowCalendar(false)}>
+                            <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+                                <div className="bg-blue-600 text-white p-3 flex justify-between items-center">
+                                    <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() - 1))} className="p-2 text-lg">◀</button>
+                                    <span className="font-bold">{calMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                                    <button onClick={() => setCalMonth(new Date(calMonth.getFullYear(), calMonth.getMonth() + 1))} className="p-2 text-lg">▶</button>
+                                </div>
+                                
+                                <div className="grid grid-cols-7 text-center text-xs font-medium text-gray-500 py-2 bg-gray-50">
+                                    {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => <div key={d}>{d}</div>)}
+                                </div>
+                                
+                                <div className="grid grid-cols-7 gap-1 p-2">
+                                    {getCalendarDays().map((day, i) => {
+                                        const dStr = day.date.toISOString().split('T')[0];
+                                        const ind = getDayIndicators(dStr);
+                                        const isSel = dStr === selectedDate;
+                                        const isTodayCell = dStr === todayStr;
+                                        
+                                        return (
+                                            <button
+                                                key={i}
+                                                onClick={() => { setSelectedDate(dStr); setShowCalendar(false); }}
+                                                className={`
+                                                    aspect-square flex flex-col items-center justify-center rounded-lg text-sm
+                                                    ${!day.current ? 'text-gray-300' : 'text-gray-700'}
+                                                    ${isSel ? 'bg-blue-600 text-white' : ''}
+                                                    ${isTodayCell && !isSel ? 'ring-2 ring-blue-500 font-bold' : ''}
+                                                `}
+                                            >
+                                                {day.date.getDate()}
+                                                {day.current && (ind.A || ind.B || ind.C) && (
+                                                    <div className="flex gap-0.5 mt-0.5">
+                                                        {ind.A && <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>}
+                                                        {ind.B && <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>}
+                                                        {ind.C && <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>}
+                                                    </div>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                
+                                <div className="p-3 border-t">
+                                    <button onClick={() => { setSelectedDate(todayStr); setShowCalendar(false); }} className="w-full py-2 text-blue-600 font-medium">
+                                        Go to Today
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Add Task Modal */}
+                    {showAddModal && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center" onClick={() => setShowAddModal(false)}>
+                            <div className="bg-white w-full max-w-md rounded-t-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                                <div className="p-4 border-b flex justify-between items-center sticky top-0 bg-white">
+                                    <h2 className="text-lg font-bold">New Task</h2>
+                                    <button onClick={() => setShowAddModal(false)} className="text-2xl text-gray-500">✕</button>
+                                </div>
+                                <div className="p-4 space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Task Title *</label>
+                                        <input type="text" className="w-full p-3 border rounded-lg" placeholder="What needs to be done?" value={newTask.title} onChange={e => setNewTask({ ...newTask, title: e.target.value })} />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">⏰ Time (optional)</label>
+                                        <select 
+                                            className="w-full p-3 border rounded-lg bg-white"
+                                            value={newTask.time}
+                                            onChange={e => setNewTask({ ...newTask, time: e.target.value })}
+                                        >
+                                            {timeOptions.map(opt => (
+                                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {newTask.time && (
+                                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                            <div>
+                                                <div className="font-medium text-sm">🔔 Reminder</div>
+                                                <div className="text-xs text-gray-500">Notify 15 min before</div>
+                                            </div>
+                                            <button
+                                                onClick={() => setNewTask({ ...newTask, reminder: !newTask.reminder })}
+                                                className={`w-12 h-7 rounded-full transition-colors ${newTask.reminder ? 'bg-green-500' : 'bg-gray-300'}`}
+                                            >
+                                                <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${newTask.reminder ? 'translate-x-6' : 'translate-x-1'}`} />
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">Priority</label>
+                                        <div className="flex gap-2">
+                                            {['A', 'B', 'C'].map(p => (
+                                                <button key={p} onClick={() => setNewTask({ ...newTask, priority: p })} className={`flex-1 py-3 rounded-lg font-bold ${newTask.priority === p ? 'text-white' : 'bg-gray-100 text-gray-600'}`} style={newTask.priority === p ? { background: priColors[p] } : {}}>
+                                                    {p}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">Type</label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {Object.entries(taskTypes).map(([key, type]) => (
+                                                <button key={key} onClick={() => setNewTask({ ...newTask, type: key })} className={`p-3 rounded-lg text-left border-2 ${newTask.type === key ? 'border-blue-500 bg-blue-50' : 'border-transparent bg-gray-50'}`}>
+                                                    <span className="text-xl">{type.icon}</span>
+                                                    <span className="block text-sm mt-1">{type.label}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Vehicle (optional)</label>
+                                        <input type="text" className="w-full p-3 border rounded-lg" placeholder="e.g., 2024 RAV4 - Smith" value={newTask.vehicle} onChange={e => setNewTask({ ...newTask, vehicle: e.target.value })} />
+                                    </div>
+                                    
+                                    <button onClick={addTask} disabled={!newTask.title.trim()} className={`w-full py-4 rounded-lg font-bold text-lg ${newTask.title.trim() ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                                        Add Task
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Action Modal */}
+                    {showActionModal && selectedTask && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center" onClick={() => { setShowActionModal(false); setSelectedTask(null); }}>
+                            <div className="bg-white w-full max-w-md rounded-t-2xl" onClick={e => e.stopPropagation()}>
+                                <div className="p-4 border-b">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-xs px-2 py-0.5 rounded font-bold text-white" style={{ background: priColors[selectedTask.priority] }}>{selectedTask.priority}</span>
+                                        {selectedTask.time && (
+                                            <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700">⏰ {formatTime(selectedTask.time)}</span>
+                                        )}
+                                        <span className="font-medium">{selectedTask.title}</span>
+                                    </div>
+                                    {selectedTask.vehicle && <div className="text-sm text-gray-500 mt-1">🚗 {selectedTask.vehicle}</div>}
+                                </div>
+                                <div className="p-2">
+                                    <button onClick={() => toggleComplete(selectedTask.id)} className="w-full p-4 text-left flex items-center gap-3 hover:bg-gray-50 rounded-lg">
+                                        <span className="text-2xl">{selectedTask.completed ? '↩️' : '✅'}</span>
+                                        <span>{selectedTask.completed ? 'Mark Incomplete' : 'Mark Complete'}</span>
+                                    </button>
+                                    <button onClick={() => openNotes(selectedTask)} className="w-full p-4 text-left flex items-center gap-3 hover:bg-gray-50 rounded-lg">
+                                        <span className="text-2xl">📝</span>
+                                        <span>Add / Edit Notes</span>
+                                    </button>
+                                    <button onClick={() => setShowForwardModal(true)} className="w-full p-4 text-left flex items-center gap-3 hover:bg-gray-50 rounded-lg">
+                                        <span className="text-2xl">📅</span>
+                                        <span>Forward to Another Day</span>
+                                    </button>
+                                    <button onClick={() => deleteTask(selectedTask.id)} className="w-full p-4 text-left flex items-center gap-3 hover:bg-red-50 rounded-lg text-red-600">
+                                        <span className="text-2xl">🗑️</span>
+                                        <span>Delete Task</span>
+                                    </button>
+                                </div>
+                                <button onClick={() => { setShowActionModal(false); setSelectedTask(null); }} className="w-full p-4 text-gray-500 border-t font-medium">Cancel</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Notes Modal */}
+                    {showNotes && selectedTask && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowNotes(false)}>
+                            <div className="bg-white w-full max-w-md rounded-2xl" onClick={e => e.stopPropagation()}>
+                                <div className="p-4 border-b">
+                                    <h3 className="font-bold text-lg">📝 Task Notes</h3>
+                                    <p className="text-sm text-gray-500">{selectedTask.title}</p>
+                                </div>
+                                <div className="p-4">
+                                    <textarea
+                                        className="w-full p-3 border rounded-lg"
+                                        rows={6}
+                                        placeholder="Add notes, details, observations..."
+                                        value={noteText}
+                                        onChange={e => setNoteText(e.target.value)}
+                                    />
+                                </div>
+                                <div className="p-4 border-t flex gap-3">
+                                    <button onClick={() => setShowNotes(false)} className="flex-1 py-3 border rounded-lg text-gray-600">Cancel</button>
+                                    <button onClick={saveNotes} className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium">Save Notes</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Forward Modal */}
+                    {showForwardModal && selectedTask && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowForwardModal(false)}>
+                            <div className="bg-white w-full max-w-sm rounded-2xl" onClick={e => e.stopPropagation()}>
+                                <div className="p-4 border-b">
+                                    <h3 className="font-bold text-lg">Forward Task To...</h3>
+                                    <p className="text-sm text-gray-500">{selectedTask.title}</p>
+                                </div>
+                                <div className="p-4 space-y-2">
+                                    {[{ label: 'Tomorrow', days: 1 }, { label: 'In 2 Days', days: 2 }, { label: 'Next Week', days: 7 }].map(opt => {
+                                        const d = new Date(); d.setDate(d.getDate() + opt.days);
+                                        return (
+                                            <button key={opt.label} onClick={() => forwardTask(selectedTask.id, d.toISOString().split('T')[0])} className="w-full p-4 bg-gray-50 hover:bg-blue-50 rounded-lg flex justify-between">
+                                                <span className="font-medium">{opt.label}</span>
+                                                <span className="text-gray-500 text-sm">{d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                                            </button>
+                                        );
+                                    })}
+                                    <div className="pt-2">
+                                        <label className="block text-sm font-medium mb-1">Or pick a date:</label>
+                                        <input type="date" className="w-full p-3 border rounded-lg" min={todayStr} onChange={e => { if (e.target.value) forwardTask(selectedTask.id, e.target.value); }} />
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowForwardModal(false)} className="w-full p-4 text-gray-500 border-t">Cancel</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<DiagFlowTasks />);
+    </script>
+</body>
+</html>

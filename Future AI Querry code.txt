@@ -1,0 +1,14 @@
+	Future AI Querry code. 
+
+// In the AI modal button click:
+const response = await fetch('/api/ai-analysis', {
+  method: 'POST',
+  body: JSON.stringify({
+    vehicleInfo,
+    steps: diagnosticSteps.map(s => ({
+      ...s,
+      completed: completedSteps.includes(s.id),
+      notes: stepNotes[s.id]
+    }))
+  })
+});

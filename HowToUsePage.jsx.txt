@@ -1,0 +1,520 @@
+// DiagFlow How to Use Page Component
+// Paste this into your Settings section or create a new route/component
+
+import React, { useState } from 'react';
+
+const HowToUsePage = () => {
+  const [activeSection, setActiveSection] = useState('overview');
+
+  const sections = [
+    { id: 'overview', title: 'Overview', icon: '📋' },
+    { id: 'getting-started', title: 'Getting Started', icon: '🚀' },
+    { id: 'diagnostic-workflow', title: '15-Step Workflow', icon: '🔧' },
+    { id: 'scope-testing', title: 'Scope Testing', icon: '📊' },
+    { id: 'photos-notes', title: 'Photos & Notes', icon: '📸' },
+    { id: 'parts-request', title: 'Parts Request', icon: '🔩' },
+    { id: 'reports', title: 'PDF Reports', icon: '📄' },
+    { id: 'tips', title: 'Pro Tips', icon: '💡' },
+  ];
+
+  return (
+    <div style={{ 
+      maxWidth: '900px', 
+      margin: '0 auto', 
+      padding: '20px',
+      fontFamily: 'Arial, sans-serif'
+    }}>
+      {/* Header */}
+      <div style={{ 
+        textAlign: 'center', 
+        marginBottom: '30px',
+        padding: '20px',
+        background: 'linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%)',
+        borderRadius: '12px',
+        color: 'white'
+      }}>
+        <h1 style={{ margin: '0 0 10px 0', fontSize: '28px' }}>📖 How to Use DiagFlow</h1>
+        <p style={{ margin: 0, opacity: 0.9 }}>Your guide to mastering systematic diagnostics</p>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div style={{ 
+        display: 'flex', 
+        flexWrap: 'wrap',
+        gap: '8px', 
+        marginBottom: '24px',
+        justifyContent: 'center'
+      }}>
+        {sections.map(section => (
+          <button
+            key={section.id}
+            onClick={() => setActiveSection(section.id)}
+            style={{
+              padding: '10px 16px',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: activeSection === section.id ? '600' : '400',
+              background: activeSection === section.id ? '#1e3a5f' : '#e8e8e8',
+              color: activeSection === section.id ? 'white' : '#333',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {section.icon} {section.title}
+          </button>
+        ))}
+      </div>
+
+      {/* Content Sections */}
+      <div style={{ 
+        background: '#f8f9fa', 
+        borderRadius: '12px', 
+        padding: '24px',
+        minHeight: '400px'
+      }}>
+
+        {/* Overview Section */}
+        {activeSection === 'overview' && (
+          <div>
+            <h2 style={{ color: '#1e3a5f', marginTop: 0 }}>Welcome to DiagFlow</h2>
+            <p style={{ fontSize: '16px', lineHeight: '1.6' }}>
+              DiagFlow is a professional automotive diagnostic training and workflow management 
+              application built on the <strong>"Never Miss A Step"</strong> methodology. 
+              Developed from 45 years of hands-on diagnostic experience, DiagFlow helps 
+              technicians work through complex vehicle problems systematically.
+            </p>
+            
+            <div style={{ 
+              background: 'white', 
+              padding: '20px', 
+              borderRadius: '8px',
+              marginTop: '20px',
+              borderLeft: '4px solid #1e3a5f'
+            }}>
+              <h3 style={{ marginTop: 0, color: '#1e3a5f' }}>Key Features</h3>
+              <ul style={{ lineHeight: '1.8' }}>
+                <li><strong>15-Step Diagnostic Workflow</strong> – Structured approach to never miss critical steps</li>
+                <li><strong>Scope Testing Module</strong> – Sample waveforms and testing procedures</li>
+                <li><strong>Photo Documentation</strong> – Capture and attach images to each step</li>
+                <li><strong>Notes Per Step</strong> – Document findings as you work</li>
+                <li><strong>Parts Request</strong> – Build parts lists and submit directly to service advisors</li>
+                <li><strong>PDF Report Generation</strong> – Professional reports for service advisors</li>
+                <li><strong>Email Integration</strong> – Send reports directly to advisors</li>
+                <li><strong>Progress Tracking</strong> – Visual progress through the diagnostic process</li>
+                <li><strong>PWA Support</strong> – Install on your phone or tablet for shop floor use</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Getting Started Section */}
+        {activeSection === 'getting-started' && (
+          <div>
+            <h2 style={{ color: '#1e3a5f', marginTop: 0 }}>Getting Started</h2>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <StepCard 
+                number="1" 
+                title="Log In" 
+                content="Use your assigned credentials to log into DiagFlow. Your session will remain active for streamlined workflow."
+              />
+              <StepCard 
+                number="2" 
+                title="Enter Vehicle Information" 
+                content="Start by entering the vehicle details: Year, Make, Model, VIN, Mileage, and Customer Concern. This forms the header of your diagnostic report."
+              />
+              <StepCard 
+                number="3" 
+                title="Begin Diagnostic Workflow" 
+                content="Click 'Start Diagnosis' to begin working through the 15-step process. Each step guides you through a specific diagnostic task."
+              />
+              <StepCard 
+                number="4" 
+                title="Document As You Go" 
+                content="Add notes and photos at each step. This documentation becomes part of your final report and helps with comebacks."
+              />
+              <StepCard 
+                number="5" 
+                title="Generate Report" 
+                content="When complete, generate a PDF report and email it to your service advisor with one click."
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 15-Step Workflow Section */}
+        {activeSection === 'diagnostic-workflow' && (
+          <div>
+            <h2 style={{ color: '#1e3a5f', marginTop: 0 }}>The 15-Step Diagnostic Workflow</h2>
+            <p style={{ marginBottom: '20px' }}>
+              The heart of DiagFlow is the <strong>"Never Miss A Step"</strong> methodology. 
+              Each step is designed to systematically guide you through the diagnostic process.
+            </p>
+            
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+              gap: '12px' 
+            }}>
+              {[
+                { step: 1, title: 'Verify the Concern', desc: 'Confirm the customer complaint is reproducible' },
+                { step: 2, title: 'Perform Visual Inspection', desc: 'Check for obvious issues, damage, or tampering' },
+                { step: 3, title: 'Check Technical Service Bulletins', desc: 'Research known issues and fixes' },
+                { step: 4, title: 'Check for Diagnostic Trouble Codes', desc: 'Scan all modules for current and history codes' },
+                { step: 5, title: 'Analyze Freeze Frame Data', desc: 'Review conditions when code set' },
+                { step: 6, title: 'Review Mode $06 Data', desc: 'Check test results and thresholds' },
+                { step: 7, title: 'Research System Operation', desc: 'Understand how the system works' },
+                { step: 8, title: 'Develop a Diagnostic Plan', desc: 'Create a logical test sequence' },
+                { step: 9, title: 'Perform Pinpoint Tests', desc: 'Test specific components and circuits' },
+                { step: 10, title: 'Scope Testing', desc: 'Verify signals and waveforms' },
+                { step: 11, title: 'Interpret Results', desc: 'Analyze all test data' },
+                { step: 12, title: 'Identify Root Cause', desc: 'Determine the actual failure' },
+                { step: 13, title: 'Repair Verification Plan', desc: 'Plan how to confirm the fix' },
+                { step: 14, title: 'Perform Repair', desc: 'Execute repair and submit parts request to SA' },
+                { step: 15, title: 'Verify Repair', desc: 'Confirm the concern is resolved' },
+              ].map(item => (
+                <div key={item.step} style={{
+                  background: 'white',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  borderLeft: '4px solid #2d5a87'
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '10px',
+                    marginBottom: '4px'
+                  }}>
+                    <span style={{
+                      background: '#1e3a5f',
+                      color: 'white',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '14px',
+                      fontWeight: 'bold'
+                    }}>
+                      {item.step}
+                    </span>
+                    <strong>{item.title}</strong>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#666', paddingLeft: '38px' }}>
+                    {item.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Scope Testing Section */}
+        {activeSection === 'scope-testing' && (
+          <div>
+            <h2 style={{ color: '#1e3a5f', marginTop: 0 }}>Scope Testing Module</h2>
+            <p>
+              The Scope Testing module provides reference waveforms and testing procedures 
+              to help you verify component operation.
+            </p>
+            
+            <div style={{ 
+              background: 'white', 
+              padding: '20px', 
+              borderRadius: '8px',
+              marginTop: '20px'
+            }}>
+              <h3 style={{ marginTop: 0 }}>How to Use Scope Testing</h3>
+              <ol style={{ lineHeight: '1.8' }}>
+                <li>Navigate to Step 10 (Scope Testing) in your workflow</li>
+                <li>Select the system category you're testing</li>
+                <li>Choose the specific component or signal type</li>
+                <li>View the reference waveform and expected parameters</li>
+                <li>Compare your actual waveform to the reference</li>
+                <li>Document your findings with notes and photos</li>
+              </ol>
+            </div>
+
+            <div style={{ 
+              background: '#fff3cd', 
+              padding: '16px', 
+              borderRadius: '8px',
+              marginTop: '16px',
+              border: '1px solid #ffc107'
+            }}>
+              <strong>⚠️ Pro Tip:</strong> Always verify your scope settings match the reference. 
+              Time base and voltage scale differences can make a good signal look bad. Use Prest menu, or custom porobes. 
+            </div>
+          </div>
+        )}
+
+        {/* Photos & Notes Section */}
+        {activeSection === 'photos-notes' && (
+          <div>
+            <h2 style={{ color: '#1e3a5f', marginTop: 0 }}>Photos & Notes</h2>
+            <p>
+              Thorough documentation is key to professional diagnostics and protecting yourself 
+              from comebacks. DiagFlow makes it easy to capture evidence at every step.
+            </p>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '20px' }}>
+              <div style={{ background: 'white', padding: '20px', borderRadius: '8px' }}>
+                <h3 style={{ marginTop: 0 }}>📸 Adding Photos</h3>
+                <ul style={{ lineHeight: '1.8' }}>
+                  <li>Tap the camera icon on any step</li>
+                  <li>Take a photo or select from gallery</li>
+                  <li>Photos are attached to that specific step</li>
+                  <li>All photos appear in your final report</li>
+                </ul>
+              </div>
+              
+              <div style={{ background: 'white', padding: '20px', borderRadius: '8px' }}>
+                <h3 style={{ marginTop: 0 }}>📝 Adding Notes</h3>
+                <ul style={{ lineHeight: '1.8' }}>
+                  <li>Tap the notes field on any step</li>
+                  <li>Type your findings and observations</li>
+                  <li>Include measurements and readings</li>
+                  <li>Notes carry through to the report</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style={{ 
+              background: '#d4edda', 
+              padding: '16px', 
+              borderRadius: '8px',
+              marginTop: '16px',
+              border: '1px solid #28a745'
+            }}>
+              <strong>✅ Best Practice:</strong> Document what you find even if it's normal. 
+              "Verified battery voltage at 12.8V or above" is valuable information when reviewing a comeback.
+            </div>
+          </div>
+        )}
+
+        {/* Parts Request Section */}
+        {activeSection === 'parts-request' && (
+          <div>
+            <h2 style={{ color: '#1e3a5f', marginTop: 0 }}>🔩 Parts Request</h2>
+            <p>
+              The Parts Request feature in Step 14 (Perform Repair) allows you to build a complete 
+              parts list and submit it directly to your service advisor. No more handwritten notes 
+              or forgotten items—everything is documented and sent professionally.
+            </p>
+            
+            <div style={{ background: 'white', padding: '20px', borderRadius: '8px', marginTop: '20px' }}>
+              <h3 style={{ marginTop: 0 }}>How to Add Parts</h3>
+              <ol style={{ lineHeight: '2' }}>
+                <li>Navigate to <strong>Step 14 - Perform Repair</strong> in your workflow</li>
+                <li>Locate the <strong>Parts Request</strong> section (green left border)</li>
+                <li>Enter the <strong>Part Name / Description</strong> (e.g., "Water Pump", "WP Gasket")</li>
+                <li>Enter the <strong>Part # or Type</strong> (e.g., "OE", manufacturer part number)</li>
+                <li>Set the <strong>Quantity</strong> needed (defaults to 1)</li>
+                <li>Check <strong>In Stock</strong> if you know the part is available in inventory</li>
+                <li>Use the <strong>image icon</strong> to attach a photo of the part or part number</li>
+                <li>Click <strong>"+ Add Part to Request"</strong> to add another part line</li>
+                <li>Repeat for all parts needed to complete the repair</li>
+              </ol>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+              <div style={{ background: 'white', padding: '20px', borderRadius: '8px' }}>
+                <h3 style={{ marginTop: 0 }}>📋 Part Entry Fields</h3>
+                <ul style={{ lineHeight: '1.8' }}>
+                  <li><strong>Part Name/Description:</strong> What the part is</li>
+                  <li><strong>Part # or Type:</strong> OE, aftermarket, or specific part number</li>
+                  <li><strong>Quantity:</strong> How many needed</li>
+                  <li><strong>In Stock:</strong> Check if already in inventory</li>
+                  <li><strong>Image:</strong> Photo of part or label</li>
+                </ul>
+              </div>
+              
+              <div style={{ background: 'white', padding: '20px', borderRadius: '8px' }}>
+                <h3 style={{ marginTop: 0 }}>📤 Submitting to SA</h3>
+                <ul style={{ lineHeight: '1.8' }}>
+                  <li>Review all parts in your list</li>
+                  <li>Use "Remove" to delete incorrect entries</li>
+                  <li>Click <strong>"Submit to Service Advisor"</strong></li>
+                  <li>Parts list is included in your report</li>
+                  <li>SA receives complete parts requirements</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style={{ 
+              background: '#d4edda', 
+              padding: '16px', 
+              borderRadius: '8px',
+              marginTop: '16px',
+              border: '1px solid #28a745'
+            }}>
+              <strong>✅ Pro Tip:</strong> Always include part numbers when possible. This eliminates 
+              confusion at the parts counter and speeds up the ordering process. Use the image feature 
+              to photograph the part number label directly off the old part.
+            </div>
+
+            <div style={{ 
+              background: '#fff3cd', 
+              padding: '16px', 
+              borderRadius: '8px',
+              marginTop: '16px',
+              border: '1px solid #ffc107'
+            }}>
+              <strong>⚠️ Remember:</strong> Check "In Stock" for parts you know are on the shelf. 
+              This helps the SA know what needs to be ordered vs. what's ready to go.
+            </div>
+          </div>
+        )}
+
+        {/* PDF Reports Section */}
+        {activeSection === 'reports' && (
+          <div>
+            <h2 style={{ color: '#1e3a5f', marginTop: 0 }}>PDF Reports</h2>
+            <p>
+              DiagFlow generates professional PDF reports that document your entire diagnostic 
+              process. These reports can be emailed directly to service advisors.
+            </p>
+            
+            <div style={{ background: 'white', padding: '20px', borderRadius: '8px', marginTop: '20px' }}>
+              <h3 style={{ marginTop: 0 }}>Report Contents</h3>
+              <ul style={{ lineHeight: '1.8' }}>
+                <li><strong>Vehicle Information:</strong> Year, Make, Model, VIN, Mileage</li>
+                <li><strong>Customer Concern:</strong> The original complaint</li>
+                <li><strong>Diagnostic Steps:</strong> All 15 steps with completion status</li>
+                <li><strong>Notes:</strong> Your documentation from each step</li>
+                <li><strong>Photos:</strong> All attached images</li>
+                <li><strong>Findings:</strong> Root cause and recommended repairs</li>
+                <li><strong>Technician Info:</strong> Your name and date</li>
+              </ul>
+            </div>
+
+            <div style={{ background: 'white', padding: '20px', borderRadius: '8px', marginTop: '16px' }}>
+              <h3 style={{ marginTop: 0 }}>Generating & Sending Reports</h3>
+              <ol style={{ lineHeight: '1.8' }}>
+                <li>Complete your diagnostic workflow (or as much as needed)</li>
+                <li>Click "Generate Report" button</li>
+                <li>Review the PDF preview</li>
+                <li>Enter the service advisor's email address</li>
+                <li>Click "Send" to deliver the report</li>
+              </ol>
+            </div>
+          </div>
+        )}
+
+        {/* Pro Tips Section */}
+        {activeSection === 'tips' && (
+          <div>
+            <h2 style={{ color: '#1e3a5f', marginTop: 0 }}>Pro Tips</h2>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <TipCard 
+                icon="🎯"
+                title="Don't Skip Steps"
+                content="Even if you 'know' what's wrong, work through the process. The step you skip is often the one that catches the intermittent or secondary issue."
+              />
+              <TipCard 
+                icon="📱"
+                title="Install as PWA"
+                content="Install DiagFlow on your phone or tablet for quick access on the shop floor. On iOS, tap Share → Add to Home Screen. On Android, tap the menu → Install App."
+              />
+              <TipCard 
+                icon="📷"
+                title="Photo Everything"
+                content="Before and after photos protect you from comebacks. A picture of a connector that was already corroded or a part that was already damaged is invaluable."
+              />
+              <TipCard 
+                icon="💾"
+                title="Save Often"
+                content="DiagFlow auto-saves your progress, but if you're documenting complex findings, tap save periodically to ensure nothing is lost."
+              />
+              <TipCard 
+                icon="📊"
+                title="Use Reference Waveforms"
+                content="The scope testing module isn't just for training—use the reference waveforms during actual diagnosis to quickly verify good signals."
+              />
+              <TipCard 
+                icon="📋"
+                title="Complete Reports Build Trust"
+                content="Service advisors and customers trust thorough documentation. A complete DiagFlow report shows you did the work professionally. And, The AI help will not show unless you finish enough steps. This forces you to do enough due diligence, and it is likely you will have it fixed, before you try "AI"."
+              />
+              <TipCard 
+                icon="🔩"
+                title="Parts Request Saves Time"
+                content="Build your parts list in Step 14 as you identify what's needed. Include part numbers and photos—the SA gets everything in one submission instead of multiple trips to your bay."
+              />
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* Footer */}
+      <div style={{ 
+        textAlign: 'center', 
+        marginTop: '24px', 
+        padding: '16px',
+        color: '#666',
+        fontSize: '14px'
+      }}>
+        <p style={{ margin: 0 }}>
+          DiagFlow v47 Pro • diagflow.org • "Never Miss A Step"
+        </p>
+        <p style={{ margin: '8px 0 0 0', fontSize: '12px' }}>
+          © {new Date().getFullYear()} TPR Enterprises. All rights reserved. Copyright, 2025. 
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// Helper Components
+const StepCard = ({ number, title, content }) => (
+  <div style={{
+    display: 'flex',
+    gap: '16px',
+    background: 'white',
+    padding: '16px',
+    borderRadius: '8px'
+  }}>
+    <div style={{
+      width: '40px',
+      height: '40px',
+      background: '#1e3a5f',
+      color: 'white',
+      borderRadius: '50%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '18px',
+      fontWeight: 'bold',
+      flexShrink: 0
+    }}>
+      {number}
+    </div>
+    <div>
+      <h3 style={{ margin: '0 0 4px 0', color: '#1e3a5f' }}>{title}</h3>
+      <p style={{ margin: 0, color: '#666' }}>{content}</p>
+    </div>
+  </div>
+);
+
+const TipCard = ({ icon, title, content }) => (
+  <div style={{
+    display: 'flex',
+    gap: '16px',
+    background: 'white',
+    padding: '16px',
+    borderRadius: '8px',
+    borderLeft: '4px solid #ffc107'
+  }}>
+    <div style={{ fontSize: '28px' }}>{icon}</div>
+    <div>
+      <h3 style={{ margin: '0 0 4px 0', color: '#1e3a5f' }}>{title}</h3>
+      <p style={{ margin: 0, color: '#666' }}>{content}</p>
+    </div>
+  </div>
+);
+
+export default HowToUsePage;
