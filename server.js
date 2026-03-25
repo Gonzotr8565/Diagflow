@@ -1,9 +1,28 @@
 const express = require('express');
 const cors = require('cors');
 const { Resend } = require('resend');
-const PDFDocument = require('pdfkit');
+const PdfPrinter = require('pdfmake/src/printer');
 const path = require('path');
 const crypto = require('crypto');
+const Anthropic = require('@anthropic-ai/sdk');
+
+// Initialize PDFMake fonts for Node.js
+const fonts = {
+  Roboto: {
+    normal: path.join(__dirname, 'node_modules', 'pdfmake', 'build', 'vfs_fonts.js') ? 
+      require('pdfmake/build/vfs_fonts').pdfMake?.vfs || require('pdfmake/build/vfs_fonts').vfs : null
+  }
+};
+
+// For pdfmake Node printer, use built-in fonts path
+const printer = new PdfPrinter({
+  Roboto: {
+    normal: path.resolve(__dirname, 'node_modules/pdfmake/fonts/Roboto-Regular.ttf'),
+    bold: path.resolve(__dirname, 'node_modules/pdfmake/fonts/Roboto-Medium.ttf'),
+    italics: path.resolve(__dirname, 'node_modules/pdfmake/fonts/Roboto-Italic.ttf'),
+    bolditalics: path.resolve(__dirname, 'node_modules/pdfmake/fonts/Roboto-MediumItalic.ttf')
+  }
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,6 +34,15 @@ app.use(express.static('public'));
 // Auth Configuration
 const BETA_PASSWORD = process.env.BETA_PASSWORD || 'diagflow2024';
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
+
+// Anthropic AI Configuration
+let anthropic = null;
+if (process.env.ANTHROPIC_API_KEY) {
+  anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  console.log('Anthropic AI configured successfully');
+} else {
+  console.warn('ANTHROPIC_API_KEY not set - AI analysis disabled');
+}
 
 // Simple JWT-like token generation
 function generateToken(data) {
@@ -79,311 +107,327 @@ app.get('/tasks', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'tasks.html'));
 });
 
-// ============ PDF GENERATION ============
+// ============ PDF GENERATION (PDFMake - Node.js Printer) ============
 function generatePDFReport(reportData) {
   return new Promise((resolve, reject) => {
-    const chunks = [];
-    const doc = new PDFDocument({ 
-      size: 'LETTER', 
-      margins: { top: 50, bottom: 70, left: 50, right: 50 },
-      bufferPages: true
-    });
+    try {
+      const v = reportData.vehicleInfo || {};
+      const shopName = reportData.shopName || '';
+      const techName = reportData.technicianName || '';
+      const steps = reportData.steps || [];
+      const partsRequest = reportData.partsRequest || [];
+      const completed = reportData.completedSteps || 0;
+      const total = reportData.totalSteps || 15;
+      const percentage = Math.round((completed / total) * 100);
 
-    doc.on('data', chunk => chunks.push(chunk));
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-    doc.on('error', reject);
+      console.log('Parts Request received:', JSON.stringify(partsRequest, null, 2));
 
-    const pageWidth = doc.page.width - 100;
-    const v = reportData.vehicleInfo || {};
-    const shopName = reportData.shopName || '';
-    const techName = reportData.technicianName || '';
+      // Build steps table rows
+      const stepsTableBody = [
+        [
+          { text: 'Status', style: 'tableHeader' },
+          { text: '#', style: 'tableHeader' },
+          { text: 'Step', style: 'tableHeader' },
+          { text: 'Notes', style: 'tableHeader' }
+        ]
+      ];
 
-    // ============ HEADER ============
-    doc.rect(0, 0, doc.page.width, 80).fill('#0066ff');
-    
-    doc.fillColor('#ffffff')
-       .fontSize(28)
-       .font('Helvetica-Bold')
-       .text('DiagFlow', 50, 20);
-    
-    doc.fontSize(12)
-       .font('Helvetica')
-       .text('Professional Diagnostic Report', 50, 50);
+      steps.forEach(step => {
+        const statusText = step.completed ? '✓' : '○';
+        const statusColor = step.completed ? '#22c55e' : '#999999';
+        stepsTableBody.push([
+          { text: statusText, color: statusColor, bold: true, alignment: 'center' },
+          { text: step.id.toString(), alignment: 'center' },
+          { text: step.title || '', bold: true },
+          { text: step.notes || '-', fontSize: 9, color: '#666666' }
+        ]);
+      });
 
-    if (shopName) {
-      doc.fontSize(14)
-         .font('Helvetica-Bold')
-         .text(shopName, 400, 25, { align: 'right', width: 150 });
-    }
+      // Build parts table rows
+      const partsTableBody = [
+        [
+          { text: 'Part/Labor', style: 'partsHeader' },
+          { text: 'Type', style: 'partsHeader', alignment: 'center' },
+          { text: 'Stock', style: 'partsHeader', alignment: 'center' }
+        ]
+      ];
 
-    doc.fontSize(10)
-       .font('Helvetica-Oblique')
-       .fillColor('#99ccff')
-       .text('Never Miss A Step', 400, 50, { align: 'right', width: 150 });
+      partsRequest.forEach(part => {
+        const partName = part.partName || part.name || 'Unnamed Part';
+        const partNumber = part.partNumber || '';
+        const isLabor = part.laborItem;
+        const inStock = part.inStock;
 
-    doc.y = 100;
+        const nameCell = partNumber 
+          ? { text: [{ text: partName + '\n', bold: true }, { text: 'P/N: ' + partNumber, fontSize: 9, color: '#666666' }] }
+          : { text: partName, bold: true };
 
-    // ============ VEHICLE INFO BOX ============
-    doc.fillColor('#f5f5f5')
-       .rect(50, doc.y, pageWidth, 85)
-       .fill();
-    
-    doc.strokeColor('#dddddd')
-       .rect(50, doc.y, pageWidth, 85)
-       .stroke();
+        const typeCell = {
+          text: isLabor ? 'Labor' : 'Part',
+          color: isLabor ? '#3b82f6' : '#666666',
+          bold: true,
+          alignment: 'center'
+        };
 
-    const boxY = doc.y + 10;
-    
-    doc.fillColor('#0066ff')
-       .fontSize(12)
-       .font('Helvetica-Bold')
-       .text('VEHICLE INFORMATION', 60, boxY);
-
-    doc.fillColor('#333333')
-       .fontSize(10)
-       .font('Helvetica');
-
-    const vehicleText = [v.year, v.make, v.model].filter(Boolean).join(' ') || 'N/A';
-    doc.text(`Year/Make/Model: ${vehicleText}`, 60, boxY + 20);
-    doc.text(`VIN: ${v.vin || 'N/A'}`, 60, boxY + 35);
-    doc.text(`Mileage: ${v.mileage || 'N/A'}`, 60, boxY + 50);
-
-    doc.text(`RO Number: ${v.roNumber || 'N/A'}`, 320, boxY + 20);
-    doc.text(`Technician: ${techName || 'N/A'}`, 320, boxY + 35);
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, 320, boxY + 50);
-
-    doc.y = boxY + 85;
-
-    // ============ PROGRESS BAR ============
-    const completed = reportData.completedSteps || 0;
-    const total = reportData.totalSteps || 15;
-    const percentage = Math.round((completed / total) * 100);
-
-    doc.fillColor('#0066ff')
-       .fontSize(12)
-       .font('Helvetica-Bold')
-       .text('DIAGNOSTIC PROGRESS', 50, doc.y);
-
-    doc.y += 18;
-
-    doc.fillColor('#e0e0e0')
-       .roundedRect(50, doc.y, pageWidth, 22, 3)
-       .fill();
-
-    const progressWidth = Math.max((completed / total) * pageWidth, 0);
-    if (progressWidth > 0) {
-      doc.fillColor(percentage === 100 ? '#22c55e' : '#0066ff')
-         .roundedRect(50, doc.y, progressWidth, 22, 3)
-         .fill();
-    }
-
-    doc.fillColor('#333333')
-       .fontSize(10)
-       .font('Helvetica-Bold')
-       .text(`${completed} of ${total} steps completed (${percentage}%)`, 50, doc.y + 5, { 
-         align: 'center', 
-         width: pageWidth 
-       });
-
-    doc.y += 35;
-
-    // ============ STEPS TABLE ============
-    doc.fillColor('#0066ff')
-       .fontSize(12)
-       .font('Helvetica-Bold')
-       .text('DIAGNOSTIC WORKFLOW', 50, doc.y);
-
-    doc.y += 18;
-
-    const headerY = doc.y;
-    doc.fillColor('#0066ff')
-       .rect(50, headerY, pageWidth, 22)
-       .fill();
-
-    doc.fillColor('#ffffff')
-       .fontSize(9)
-       .font('Helvetica-Bold');
-    
-    doc.text('Status', 55, headerY + 6);
-    doc.text('#', 100, headerY + 6);
-    doc.text('Description', 125, headerY + 6);
-    doc.text('Category', 400, headerY + 6);
-
-    doc.y = headerY + 22;
-
-    const steps = reportData.steps || [];
-    
-    steps.forEach((step, index) => {
-      if (doc.y > 680) {
-        doc.addPage();
-        doc.y = 50;
-      }
-
-      const isCompleted = step.completed;
-      const hasNotes = step.notes && step.notes.trim().length > 0;
-      const rowHeight = hasNotes ? 38 : 22;
-      const rowColor = index % 2 === 0 ? '#ffffff' : '#f8f8f8';
-
-      doc.fillColor(rowColor)
-         .rect(50, doc.y, pageWidth, rowHeight)
-         .fill();
-
-      const statusX = 65;
-      const statusY = doc.y + 11;
-      
-      if (isCompleted) {
-        doc.circle(statusX, statusY, 6).fill('#22c55e');
-        doc.strokeColor('#ffffff')
-           .lineWidth(1.5)
-           .moveTo(statusX - 3, statusY)
-           .lineTo(statusX - 1, statusY + 3)
-           .lineTo(statusX + 4, statusY - 3)
-           .stroke();
-      } else {
-        doc.circle(statusX, statusY, 6)
-           .lineWidth(1.5)
-           .strokeColor('#cccccc')
-           .stroke();
-      }
-
-      doc.fillColor('#333333')
-         .fontSize(9)
-         .font('Helvetica')
-         .text(step.id.toString(), 100, doc.y + 6);
-
-      doc.text(step.title || '', 125, doc.y + 6, { width: 260 });
-
-      doc.fillColor('#666666')
-         .fontSize(8)
-         .text(step.category || '', 400, doc.y + 6, { width: 100 });
-
-      if (hasNotes) {
-        doc.fillColor('#0066ff')
-           .fontSize(8)
-           .font('Helvetica-Oblique')
-           .text(`Note: ${step.notes}`, 125, doc.y + 20, { width: 380 });
-      }
-
-      doc.strokeColor('#e0e0e0')
-         .lineWidth(0.5)
-         .moveTo(50, doc.y + rowHeight)
-         .lineTo(50 + pageWidth, doc.y + rowHeight)
-         .stroke();
-
-      doc.y += rowHeight;
-    });
-
-    // ============ IMAGES SECTION ============
-    const stepsWithImages = steps.filter(s => s.images && s.images.length > 0);
-    
-    if (stepsWithImages.length > 0) {
-      if (doc.y > 500) {
-        doc.addPage();
-        doc.y = 50;
-      } else {
-        doc.y += 20;
-      }
-
-      doc.fillColor('#0066ff')
-         .fontSize(12)
-         .font('Helvetica-Bold')
-         .text('DIAGNOSTIC IMAGES', 50, doc.y);
-
-      doc.y += 20;
-
-      stepsWithImages.forEach(step => {
-        if (doc.y > 600) {
-          doc.addPage();
-          doc.y = 50;
+        let stockCell;
+        if (isLabor) {
+          stockCell = { text: '-', color: '#9ca3af', alignment: 'center' };
+        } else {
+          stockCell = {
+            text: inStock ? 'In Stock' : 'Order',
+            color: inStock ? '#22c55e' : '#ef4444',
+            bold: true,
+            alignment: 'center'
+          };
         }
 
-        doc.fillColor('#333333')
-           .fontSize(10)
-           .font('Helvetica-Bold')
-           .text(`Step ${step.id}: ${step.title}`, 50, doc.y);
-
-        doc.y += 15;
-
-        step.images.forEach((img, imgIndex) => {
-          if (doc.y > 650) {
-            doc.addPage();
-            doc.y = 50;
-          }
-
-          try {
-            const imgData = typeof img === 'string' ? img : img.url;
-            if (imgData && imgData.startsWith('data:image')) {
-              const base64Data = imgData.split(',')[1];
-              const imgBuffer = Buffer.from(base64Data, 'base64');
-              doc.image(imgBuffer, 50, doc.y, { width: 150, height: 100 });
-              doc.y += 110;
-            }
-          } catch (imgErr) {
-            console.error('Error embedding image:', imgErr.message);
-            doc.fillColor('#999999')
-               .fontSize(8)
-               .text(`[Image ${imgIndex + 1} could not be embedded]`, 50, doc.y);
-            doc.y += 15;
-          }
-        });
-
-        doc.y += 10;
+        partsTableBody.push([nameCell, typeCell, stockCell]);
       });
-    }
 
-    // ============ FOOTER ON ALL PAGES ============
-    const pages = doc.bufferedPageRange();
-    for (let i = 0; i < pages.count; i++) {
-      doc.switchToPage(i);
-      
-      doc.fillColor('#e0e0e0')
-         .rect(0, doc.page.height - 50, doc.page.width, 50)
-         .fill();
-      
-      doc.fillColor('#666666')
-         .fontSize(8)
-         .font('Helvetica')
-         .text(
-           `Generated by DiagFlow | ${new Date().toLocaleString()}`,
-           50,
-           doc.page.height - 35,
-           { align: 'center', width: doc.page.width - 100 }
-         );
-      
-      doc.text(
-        `Page ${i + 1} of ${pages.count}`,
-        50,
-        doc.page.height - 25,
-        { align: 'center', width: doc.page.width - 100 }
-      );
-    }
+      // Parts summary
+      const partsCount = partsRequest.filter(p => !p.laborItem).length;
+      const inStockCount = partsRequest.filter(p => !p.laborItem && p.inStock).length;
+      const toOrderCount = partsRequest.filter(p => !p.laborItem && !p.inStock).length;
+      const laborCount = partsRequest.filter(p => p.laborItem).length;
 
-    doc.end();
+      // Document definition
+      const docDefinition = {
+        pageSize: 'LETTER',
+        pageMargins: [40, 60, 40, 60],
+        
+        header: {
+          columns: [
+            {
+              text: 'DiagFlow',
+              style: 'headerTitle',
+              width: '*'
+            },
+            {
+              text: shopName || '',
+              style: 'headerShop',
+              width: 'auto',
+              alignment: 'right'
+            }
+          ],
+          margin: [40, 20, 40, 0]
+        },
+        
+        footer: function(currentPage, pageCount) {
+          return {
+            text: 'Generated by DiagFlow | Never Miss A Step | Page ' + currentPage + ' of ' + pageCount,
+            alignment: 'center',
+            fontSize: 8,
+            color: '#999999',
+            margin: [40, 20, 40, 0]
+          };
+        },
+
+        content: [
+          // Vehicle Info Box
+          {
+            table: {
+              widths: ['30%', '20%', '30%', '20%'],
+              body: [
+                [
+                  { text: 'Year/Make/Model', fillColor: '#f0f0f0', bold: true },
+                  { text: [v.year, v.make, v.model].filter(Boolean).join(' ') || 'N/A', colSpan: 3 },
+                  {}, {}
+                ],
+                [
+                  { text: 'VIN', fillColor: '#f0f0f0', bold: true },
+                  { text: v.vin || 'N/A' },
+                  { text: 'RO Number', fillColor: '#f0f0f0', bold: true },
+                  { text: v.roNumber || 'N/A' }
+                ],
+                [
+                  { text: 'Mileage', fillColor: '#f0f0f0', bold: true },
+                  { text: v.mileage || 'N/A' },
+                  { text: 'Technician', fillColor: '#f0f0f0', bold: true },
+                  { text: techName || 'N/A' }
+                ]
+              ]
+            },
+            layout: 'lightHorizontalLines',
+            margin: [0, 0, 0, 15]
+          },
+
+          // Progress
+          {
+            text: 'Progress',
+            style: 'sectionHeader',
+            margin: [0, 0, 0, 5]
+          },
+          {
+            text: completed + ' of ' + total + ' steps completed (' + percentage + '%)',
+            fontSize: 14,
+            bold: true,
+            color: percentage === 100 ? '#22c55e' : '#0066ff',
+            margin: [0, 0, 0, 15]
+          },
+
+          // Diagnostic Workflow
+          {
+            text: 'Diagnostic Workflow',
+            style: 'sectionHeader',
+            margin: [0, 0, 0, 10]
+          },
+          {
+            table: {
+              headerRows: 1,
+              widths: [30, 25, '*', '*'],
+              body: stepsTableBody
+            },
+            layout: {
+              fillColor: function(rowIndex) {
+                return rowIndex === 0 ? '#0066ff' : (rowIndex % 2 === 0 ? '#f8f8f8' : null);
+              },
+              hLineWidth: function() { return 0.5; },
+              vLineWidth: function() { return 0; },
+              hLineColor: function() { return '#e0e0e0'; }
+            },
+            margin: [0, 0, 0, 15]
+          },
+
+          // Parts Request Section (if any)
+          ...(partsRequest.length > 0 ? [
+            {
+              text: 'Parts & Labor Request',
+              style: 'partsTitle',
+              margin: [0, 20, 0, 10]
+            },
+            {
+              table: {
+                headerRows: 1,
+                widths: ['*', 80, 80],
+                body: partsTableBody
+              },
+              layout: {
+                fillColor: function(rowIndex) {
+                  return rowIndex === 0 ? '#dcfce7' : (rowIndex % 2 === 0 ? '#f9fafb' : null);
+                },
+                hLineWidth: function(i) {
+                  return i === 1 ? 2 : 0.5;
+                },
+                vLineWidth: function() { return 0; },
+                hLineColor: function(i) {
+                  return i === 1 ? '#86efac' : '#e5e7eb';
+                }
+              },
+              margin: [0, 0, 0, 10]
+            },
+            {
+              text: [
+                { text: 'Summary: ', bold: true },
+                partsCount + ' parts (' + inStockCount + ' in stock, ' + toOrderCount + ' to order) | ' + laborCount + ' labor items'
+              ],
+              color: '#166534',
+              fontSize: 10,
+              margin: [0, 0, 0, 15]
+            }
+          ] : [])
+        ],
+
+        styles: {
+          headerTitle: {
+            fontSize: 24,
+            bold: true,
+            color: '#0066ff'
+          },
+          headerShop: {
+            fontSize: 12,
+            bold: true,
+            color: '#333333'
+          },
+          sectionHeader: {
+            fontSize: 14,
+            bold: true,
+            color: '#0066ff'
+          },
+          tableHeader: {
+            bold: true,
+            fontSize: 10,
+            color: 'white',
+            fillColor: '#0066ff'
+          },
+          partsTitle: {
+            fontSize: 14,
+            bold: true,
+            color: '#166534'
+          },
+          partsHeader: {
+            bold: true,
+            fontSize: 10,
+            color: '#166534'
+          }
+        },
+
+        defaultStyle: {
+          font: 'Roboto',
+          fontSize: 10
+        }
+      };
+
+      // Generate PDF using Node.js printer (NOT browser createPdf)
+      const pdfDoc = printer.createPdfKitDocument(docDefinition);
+      const chunks = [];
+      
+      pdfDoc.on('data', chunk => chunks.push(chunk));
+      pdfDoc.on('end', () => {
+        console.log('PDF generated successfully');
+        resolve(Buffer.concat(chunks));
+      });
+      pdfDoc.on('error', err => {
+        console.error('PDF stream error:', err);
+        reject(err);
+      });
+      
+      pdfDoc.end();
+
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      reject(error);
+    }
   });
 }
 
 // Submit Report Endpoint
 app.post('/api/submit-report', async (req, res) => {
+  // 60 second timeout for the whole operation
+  const timeout = setTimeout(() => {
+    if (!res.headersSent) {
+      console.error('Submit report timed out after 60s');
+      res.status(504).json({ success: false, error: 'Request timed out. Please try again.' });
+    }
+  }, 60000);
+
   try {
-    const { reportData, recipientEmail, recipients } = req.body;
+    const { reportData, recipientEmail, recipients, email } = req.body;
 
     if (!resend) {
-      return res.status(500).json({ success: false, error: 'Email service not configured. Set RESEND_API_KEY in Railway environment variables.' });
+      clearTimeout(timeout);
+      return res.status(500).json({ success: false, error: 'Email service not configured' });
     }
 
+    console.log('Generating PDF report...');
     const pdfBuffer = await generatePDFReport(reportData);
+    console.log('PDF generated, size:', pdfBuffer.length, 'bytes');
+    
     const v = reportData.vehicleInfo || {};
     const filename = `DiagFlow_Report_${v.year || 'Vehicle'}_${v.make || ''}_${v.model || ''}_${Date.now()}.pdf`;
 
-    // Support both 'recipients' (array from frontend) and 'recipientEmail' (string, legacy)
+    // Support multiple input formats: recipients array, recipientEmail string, or email string
     let emailList = [];
-    if (recipients && Array.isArray(recipients)) {
+    
+    if (Array.isArray(recipients) && recipients.length > 0) {
       emailList = recipients.map(e => e.trim()).filter(e => e);
     } else if (recipientEmail) {
       emailList = recipientEmail.split(',').map(e => e.trim()).filter(e => e);
+    } else if (email) {
+      emailList = email.split(',').map(e => e.trim()).filter(e => e);
     }
 
     if (emailList.length === 0) {
+      clearTimeout(timeout);
       return res.status(400).json({ success: false, error: 'No recipient email provided' });
     }
 
@@ -402,7 +446,7 @@ app.post('/api/submit-report', async (req, res) => {
             ${reportData.partsRequest.map(part => `
               <tr>
                 <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">
-                  <strong>${part.name}</strong>
+                  <strong>${part.partName || part.name || 'Unnamed Part'}</strong>
                   ${part.partNumber ? `<br><span style="color: #666; font-size: 11px;">P/N: ${part.partNumber}</span>` : ''}
                   ${part.notes ? `<br><span style="color: #666; font-size: 11px;">Note: ${part.notes}</span>` : ''}
                 </td>
@@ -499,11 +543,13 @@ app.post('/api/submit-report', async (req, res) => {
     const failed = results.filter(r => r.status === 'rejected').length;
     
     if (failed > 0) {
-      console.warn(`Email sending: ${successful} successful, ${failed} failed`);
+      const errors = results.filter(r => r.status === 'rejected').map(r => r.reason?.message || 'Unknown error');
+      console.warn(`Email sending: ${successful} successful, ${failed} failed`, errors);
     } else {
       console.log(`All ${successful} emails sent successfully!`);
     }
     
+    clearTimeout(timeout);
     res.json({ 
       success: true, 
       sent: successful,
@@ -512,8 +558,11 @@ app.post('/api/submit-report', async (req, res) => {
     });
 
   } catch (error) {
+    clearTimeout(timeout);
     console.error('Submit report error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, error: error.message });
+    }
   }
 });
 
@@ -629,9 +678,113 @@ app.post('/api/support-request', async (req, res) => {
   }
 });
 
+// =============================================
+// AI DIAGNOSTIC ANALYSIS ENDPOINT
+// =============================================
+app.post('/api/ai-analysis', async (req, res) => {
+  try {
+    if (!anthropic) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'AI service not configured. Please add ANTHROPIC_API_KEY to environment variables.' 
+      });
+    }
+
+    const { reportData } = req.body;
+    const v = reportData.vehicleInfo || {};
+    const steps = reportData.steps || [];
+    const partsRequest = reportData.partsRequest || [];
+    
+    const completedSteps = steps.filter(s => s.completed);
+    const stepsWithNotes = steps.filter(s => s.notes && s.notes.trim());
+    const stepsWithImages = steps.filter(s => s.images && s.images.length > 0);
+    
+    const diagnosticSummary = stepsWithNotes.map(s => 
+      `Step ${s.id} (${s.title}): ${s.notes}`
+    ).join('\n\n');
+
+    const partsListText = partsRequest.length > 0 
+      ? partsRequest.map(p => `- ${p.partName || p.name}${p.partNumber ? ` (P/N: ${p.partNumber})` : ''}${p.inStock ? ' [In Stock]' : ' [Needs Order]'}`).join('\n')
+      : 'No parts requested yet.';
+
+    const systemPrompt = `You are an expert ASE Master Certified automotive diagnostic technician with 45+ years of experience. You specialize in systematic diagnosis using the "Never Miss A Step" 15-step methodology.
+
+Your role is to analyze diagnostic findings from other technicians and provide:
+1. Confirmation or questions about the diagnosis path
+2. Potential root causes they may have missed
+3. Common failures for this specific vehicle/symptom
+4. Recommended next steps or additional tests
+5. Any safety concerns or critical issues
+
+Be direct and technical - you're talking to fellow technicians. Use proper terminology. Reference TSBs or common issues when relevant. If the notes are sparse, ask clarifying questions about what tests were performed.
+
+Format your response clearly with sections. Be helpful but also challenge assumptions if the diagnostic path seems incomplete.`;
+
+    const userMessage = `Please analyze this diagnostic case:
+
+**VEHICLE INFORMATION:**
+- Year/Make/Model: ${v.year || 'Unknown'} ${v.make || 'Unknown'} ${v.model || 'Unknown'}
+- VIN: ${v.vin || 'Not provided'}
+- Mileage: ${v.mileage || 'Not recorded'}
+- RO#: ${v.roNumber || 'N/A'}
+
+**DIAGNOSTIC PROGRESS:**
+- Steps Completed: ${completedSteps.length} of ${steps.length}
+- Steps with Documentation: ${stepsWithNotes.length}
+- Steps with Photos: ${stepsWithImages.length}
+
+**TECHNICIAN'S FINDINGS:**
+${diagnosticSummary || 'No notes recorded in diagnostic steps.'}
+
+**PARTS IDENTIFIED:**
+${partsListText}
+
+---
+
+Based on this information, please provide your analysis. If the documentation is sparse, ask what specific tests or observations the tech has made. If there's enough info, provide your diagnostic insights and recommendations.`;
+
+    console.log('AI Analysis requested for:', `${v.year} ${v.make} ${v.model}`);
+
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      system: systemPrompt,
+      messages: [
+        { role: 'user', content: userMessage }
+      ]
+    });
+
+    const analysisText = message.content[0].text;
+    
+    console.log('AI Analysis completed successfully');
+    
+    res.json({ 
+      success: true, 
+      analysis: analysisText,
+      usage: {
+        inputTokens: message.usage.input_tokens,
+        outputTokens: message.usage.output_tokens
+      }
+    });
+
+  } catch (error) {
+    console.error('AI Analysis error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'AI analysis failed. Please try again.' 
+    });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', version: 'V47 Pro', auth: 'enabled' });
+  res.json({ 
+    status: 'ok', 
+    version: 'V49', 
+    auth: 'enabled',
+    ai: anthropic ? 'configured' : 'not configured',
+    email: resend ? 'configured' : 'not configured'
+  });
 });
 
 // Serve frontend (catch-all - must be last)
@@ -642,11 +795,11 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log('');
   console.log('==============================================');
-  console.log('  DiagFlow V47 Pro Server');
+  console.log('  DiagFlow V49 Server');
   console.log('==============================================');
   console.log('  Port:', PORT);
   console.log('  Auth: Enabled');
-  console.log('  Password:', BETA_PASSWORD);
+  console.log('  AI:', anthropic ? 'Configured (Claude)' : 'Not configured');
   console.log('  Email:', process.env.RESEND_API_KEY ? 'Configured' : 'Not configured');
   console.log('  From:', FROM_EMAIL);
   console.log('  Support:', SUPPORT_EMAIL);
