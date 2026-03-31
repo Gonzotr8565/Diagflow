@@ -10,9 +10,29 @@
     <meta name="description" content="Franklin-style task management with cloud sync">
     <title>DiagFlow Tasks</title>
     
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest-tasks.json">
+    <!-- PWA Manifest - inline to avoid conflicts with main DiagFlow manifest -->
+    <link rel="manifest" id="tasks-manifest">
     <link rel="apple-touch-icon" href="/icons/tasks-icon-192.png">
+    <script>
+        // Inline manifest to ensure Tasks PWA is independent
+        const manifest = {
+            name: "DiagFlow Tasks",
+            short_name: "Tasks",
+            description: "Franklin-style task management with cloud sync",
+            start_url: "/tasks",
+            scope: "/tasks",
+            display: "standalone",
+            background_color: "#2563eb",
+            theme_color: "#2563eb",
+            orientation: "portrait-primary",
+            icons: [
+                { src: "/icons/tasks-icon-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
+                { src: "/icons/tasks-icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+            ]
+        };
+        const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+        document.getElementById('tasks-manifest').href = URL.createObjectURL(blob);
+    </script>
     
     <!-- Supabase + React -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -260,7 +280,7 @@
         // Main Task Manager Component
         function TaskManager({ user, onLogout }) {
             const [tasks, setTasks] = useState([]);
-            const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+            const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
             const [showAddModal, setShowAddModal] = useState(false);
             const [showActionModal, setShowActionModal] = useState(false);
             const [showForwardModal, setShowForwardModal] = useState(false);
@@ -458,7 +478,7 @@
                 }
             };
 
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = new Date().toLocaleDateString('en-CA');
             const isToday = selectedDate === todayStr;
 
             const getTasksForDate = (date) => {
@@ -568,18 +588,18 @@
             };
 
             const navigateDate = (dir) => {
-                const d = new Date(selectedDate);
+                const d = new Date(selectedDate + 'T12:00:00');
                 d.setDate(d.getDate() + dir);
-                setSelectedDate(d.toISOString().split('T')[0]);
+                setSelectedDate(d.toLocaleDateString('en-CA'));
             };
 
             const formatDateDisplay = (dateStr) => {
                 const d = new Date(dateStr + 'T12:00:00');
                 if (dateStr === todayStr) return 'Today';
                 const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-                if (dateStr === yesterday.toISOString().split('T')[0]) return 'Yesterday';
+                if (dateStr === yesterday.toLocaleDateString('en-CA')) return 'Yesterday';
                 const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-                if (dateStr === tomorrow.toISOString().split('T')[0]) return 'Tomorrow';
+                if (dateStr === tomorrow.toLocaleDateString('en-CA')) return 'Tomorrow';
                 return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
             };
 
@@ -781,7 +801,7 @@
                                 
                                 <div className="grid grid-cols-7 gap-1 p-2">
                                     {getCalendarDays().map((day, i) => {
-                                        const dStr = day.date.toISOString().split('T')[0];
+                                        const dStr = day.date.toLocaleDateString('en-CA');
                                         const ind = getDayIndicators(dStr);
                                         const isSel = dStr === selectedDate;
                                         const isTodayCell = dStr === todayStr;
@@ -964,14 +984,30 @@
                         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowForwardModal(false)}>
                             <div className="bg-white w-full max-w-sm rounded-2xl" onClick={e => e.stopPropagation()}>
                                 <div className="p-4 border-b">
-                                    <h3 className="font-bold text-lg">Forward Task To...</h3>
+                                    <h3 className="font-bold text-lg">Move Task To...</h3>
                                     <p className="text-sm text-gray-500">{selectedTask.title}</p>
+                                    <p className="text-xs text-gray-400 mt-1">Currently: {new Date(selectedTask.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
                                 </div>
                                 <div className="p-4 space-y-2">
-                                    {[{ label: 'Tomorrow', days: 1 }, { label: 'In 2 Days', days: 2 }, { label: 'Next Week', days: 7 }].map(opt => {
-                                        const d = new Date(); d.setDate(d.getDate() + opt.days);
+                                    {/* Bring to Today - only show if not already today */}
+                                    {selectedTask.date !== todayStr && (
+                                        <button 
+                                            onClick={() => forwardTask(selectedTask.id, todayStr)} 
+                                            className="w-full p-4 bg-blue-50 hover:bg-blue-100 rounded-lg flex justify-between border-2 border-blue-200"
+                                        >
+                                            <span className="font-medium text-blue-700">📍 Bring to Today</span>
+                                            <span className="text-blue-600 text-sm">{new Date(todayStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                                        </button>
+                                    )}
+                                    
+                                    {/* Forward options - calculated from TASK's current date */}
+                                    {[{ label: '+1 Day', days: 1 }, { label: '+2 Days', days: 2 }, { label: '+1 Week', days: 7 }].map(opt => {
+                                        const taskDate = new Date(selectedTask.date + 'T12:00:00');
+                                        const d = new Date(taskDate);
+                                        d.setDate(d.getDate() + opt.days);
+                                        const newDateStr = d.toLocaleDateString('en-CA');
                                         return (
-                                            <button key={opt.label} onClick={() => forwardTask(selectedTask.id, d.toISOString().split('T')[0])} className="w-full p-4 bg-gray-50 hover:bg-blue-50 rounded-lg flex justify-between">
+                                            <button key={opt.label} onClick={() => forwardTask(selectedTask.id, newDateStr)} className="w-full p-4 bg-gray-50 hover:bg-blue-50 rounded-lg flex justify-between">
                                                 <span className="font-medium">{opt.label}</span>
                                                 <span className="text-gray-500 text-sm">{d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                                             </button>
@@ -979,7 +1015,7 @@
                                     })}
                                     <div className="pt-2">
                                         <label className="block text-sm font-medium mb-1">Or pick a date:</label>
-                                        <input type="date" className="w-full p-3 border rounded-lg" min={todayStr} onChange={e => { if (e.target.value) forwardTask(selectedTask.id, e.target.value); }} />
+                                        <input type="date" className="w-full p-3 border rounded-lg" onChange={e => { if (e.target.value) forwardTask(selectedTask.id, e.target.value); }} />
                                     </div>
                                 </div>
                                 <button onClick={() => setShowForwardModal(false)} className="w-full p-4 text-gray-500 border-t">Cancel</button>

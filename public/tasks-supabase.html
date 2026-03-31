@@ -60,7 +60,7 @@
 
         function DiagFlowTasks() {
             const [tasks, setTasks] = useState([]);
-            const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+            const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA'));
             const [showAddModal, setShowAddModal] = useState(false);
             const [showActionModal, setShowActionModal] = useState(false);
             const [showForwardModal, setShowForwardModal] = useState(false);
@@ -261,7 +261,7 @@
                 }
             };
 
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = new Date().toLocaleDateString('en-CA');
             const isToday = selectedDate === todayStr;
 
             const getTasksForDate = (date) => {
@@ -389,18 +389,18 @@
             };
 
             const navigateDate = (dir) => {
-                const d = new Date(selectedDate);
+                const d = new Date(selectedDate + 'T12:00:00');
                 d.setDate(d.getDate() + dir);
-                setSelectedDate(d.toISOString().split('T')[0]);
+                setSelectedDate(d.toLocaleDateString('en-CA'));
             };
 
             const formatDateDisplay = (dateStr) => {
                 const d = new Date(dateStr + 'T12:00:00');
                 if (dateStr === todayStr) return 'Today';
                 const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
-                if (dateStr === yesterday.toISOString().split('T')[0]) return 'Yesterday';
+                if (dateStr === yesterday.toLocaleDateString('en-CA')) return 'Yesterday';
                 const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-                if (dateStr === tomorrow.toISOString().split('T')[0]) return 'Tomorrow';
+                if (dateStr === tomorrow.toLocaleDateString('en-CA')) return 'Tomorrow';
                 return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
             };
 
@@ -562,7 +562,7 @@
                                 
                                 <div className="grid grid-cols-7 gap-1 p-2">
                                     {getCalendarDays().map((day, i) => {
-                                        const dStr = day.date.toISOString().split('T')[0];
+                                        const dStr = day.date.toLocaleDateString('en-CA');
                                         const ind = getDayIndicators(dStr);
                                         const isSel = dStr === selectedDate;
                                         const isTodayCell = dStr === todayStr;
@@ -752,7 +752,7 @@
                                     {[{ label: 'Tomorrow', days: 1 }, { label: 'In 2 Days', days: 2 }, { label: 'Next Week', days: 7 }].map(opt => {
                                         const d = new Date(); d.setDate(d.getDate() + opt.days);
                                         return (
-                                            <button key={opt.label} onClick={() => forwardTask(selectedTask.id, d.toISOString().split('T')[0])} className="w-full p-4 bg-gray-50 hover:bg-blue-50 rounded-lg flex justify-between">
+                                            <button key={opt.label} onClick={() => forwardTask(selectedTask.id, d.toLocaleDateString('en-CA'))} className="w-full p-4 bg-gray-50 hover:bg-blue-50 rounded-lg flex justify-between">
                                                 <span className="font-medium">{opt.label}</span>
                                                 <span className="text-gray-500 text-sm">{d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
                                             </button>
