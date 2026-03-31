@@ -68,6 +68,8 @@
             const [showNotes, setShowNotes] = useState(false);
             const [selectedTask, setSelectedTask] = useState(null);
             const [noteText, setNoteText] = useState('');
+            const [taskImages, setTaskImages] = useState([]);
+            const [uploadingImage, setUploadingImage] = useState(false);
             const [calMonth, setCalMonth] = useState(new Date());
             const [notificationPermission, setNotificationPermission] = useState('default');
             const [syncStatus, setSyncStatus] = useState('synced'); // 'synced', 'syncing', 'offline'
@@ -367,20 +369,47 @@
                 setSelectedTask(null);
             };
 
+            const uploadImage = async (file) => {
+                if (!file || !selectedTask) return;
+                setUploadingImage(true);
+                try {
+                    const ext = file.name.split('.').pop() || 'jpg';
+                    const path = `${userId}/${selectedTask.id}/${Date.now()}.${ext}`;
+                    const { error } = await supabase.storage.from('task-images').upload(path, file);
+                    if (error) throw error;
+                    const { data: { publicUrl } } = supabase.storage.from('task-images').getPublicUrl(path);
+                    setTaskImages(prev => [...prev, { path, url: publicUrl }]);
+                } catch (err) {
+                    console.error('Image upload failed:', err);
+                    alert('Upload failed. Ensure the "task-images" bucket exists in Supabase Storage.');
+                }
+                setUploadingImage(false);
+            };
+
+            const deleteImage = async (imgPath) => {
+                try { await supabase.storage.from('task-images').remove([imgPath]); } catch (e) {}
+                setTaskImages(prev => prev.filter(i => i.path !== imgPath));
+            };
+
             const openNotes = (task) => {
                 setSelectedTask(task);
                 setNoteText(task.notes || '');
+                const paths = task.images || [];
+                setTaskImages(paths.map(p => ({
+                    path: p,
+                    url: supabase.storage.from('task-images').getPublicUrl(p).data.publicUrl
+                })));
                 setShowNotes(true);
                 setShowActionModal(false);
             };
 
             const saveNotes = async () => {
                 if (selectedTask) {
-                    const updatedTask = { ...selectedTask, notes: noteText };
-                    
+                    const updatedTask = { ...selectedTask, notes: noteText, images: taskImages.map(i => i.path) };
+
                     // Optimistic update
                     setTasks(tasks.map(t => t.id === selectedTask.id ? updatedTask : t));
-                    
+
                     // Save to Supabase
                     await saveTask(updatedTask);
                 }
@@ -529,6 +558,7 @@
                                             </div>
                                             {task.vehicle && <div className="text-xs text-gray-500 mt-1">🚗 {task.vehicle}</div>}
                                             {task.notes && <div className="text-xs text-blue-600 mt-1">📝 {task.notes.substring(0, 50)}{task.notes.length > 50 ? '...' : ''}</div>}
+                                            {task.images?.length > 0 && <div className="text-xs text-purple-600 mt-1">📷 {task.images.length} photo{task.images.length > 1 ? 's' : ''}</div>}
                                             {task.time && task.reminder && !task.completed && (
                                                 <div className="text-xs text-green-600 mt-1">🔔 Reminder 15 min before</div>
                                             )}
@@ -720,21 +750,38 @@
                         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowNotes(false)}>
                             <div className="bg-white w-full max-w-md rounded-2xl" onClick={e => e.stopPropagation()}>
                                 <div className="p-4 border-b">
-                                    <h3 className="font-bold text-lg">📝 Task Notes</h3>
+                                    <h3 className="font-bold text-lg">📝 Notes & Photos</h3>
                                     <p className="text-sm text-gray-500">{selectedTask.title}</p>
                                 </div>
-                                <div className="p-4">
+                                <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
                                     <textarea
                                         className="w-full p-3 border rounded-lg"
-                                        rows={6}
+                                        rows={4}
                                         placeholder="Add notes, details, observations..."
                                         value={noteText}
                                         onChange={e => setNoteText(e.target.value)}
                                     />
+                                    {taskImages.length > 0 && (
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {taskImages.map((img, idx) => (
+                                                <div key={img.path} className="relative rounded-lg overflow-hidden bg-gray-100" style={{paddingTop:'100%'}}>
+                                                    <img src={img.url} alt={`photo ${idx+1}`} className="absolute inset-0 w-full h-full object-cover" />
+                                                    <button
+                                                        onClick={() => deleteImage(img.path)}
+                                                        className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs leading-none"
+                                                    >✕</button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <label className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-dashed cursor-pointer ${uploadingImage ? 'opacity-50 pointer-events-none' : 'hover:bg-gray-50'} text-gray-500`}>
+                                        <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files[0]) uploadImage(e.target.files[0]); e.target.value=''; }} />
+                                        {uploadingImage ? '⏳ Uploading...' : '📷 Add Photo'}
+                                    </label>
                                 </div>
                                 <div className="p-4 border-t flex gap-3">
                                     <button onClick={() => setShowNotes(false)} className="flex-1 py-3 border rounded-lg text-gray-600">Cancel</button>
-                                    <button onClick={saveNotes} className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium">Save Notes</button>
+                                    <button onClick={saveNotes} className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium">Save</button>
                                 </div>
                             </div>
                         </div>
