@@ -379,15 +379,19 @@
             const saveTask = async (task) => {
                 setSyncStatus('syncing');
                 try {
-                    const { error } = await supabase
-                        .from('tasks')
-                        .upsert({
-                            ...task,
-                            user_id: user.id,
-                            updated_at: new Date().toISOString()
-                        });
-
-                    if (error) throw error;
+                    const { images, ...taskWithoutImages } = task;
+                    const payload = { ...taskWithoutImages, user_id: user.id, updated_at: new Date().toISOString() };
+                    // Try with images first; fall back without if column missing
+                    const { error } = await supabase.from('tasks').upsert({ ...payload, images });
+                    if (error) {
+                        if (error.code === '42703' || error.message?.includes('images')) {
+                            // Column doesn't exist yet — save without it
+                            const { error: e2 } = await supabase.from('tasks').upsert(payload);
+                            if (e2) throw e2;
+                        } else {
+                            throw error;
+                        }
+                    }
                     setSyncStatus('synced');
                 } catch (error) {
                     console.error('Error saving task:', error);
