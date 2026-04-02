@@ -101,7 +101,11 @@ const LoginScreen = ({ onLogin }) => {
 
       if (data.success) {
         localStorage.setItem('diagflow_token', data.token);
-        onLogin(data.token);
+        // Store organization info
+        if (data.organization) {
+          localStorage.setItem('diagflow_org', JSON.stringify(data.organization));
+        }
+        onLogin(data.token, data.organization);
       } else {
         setError('Invalid password. Please try again.');
       }
@@ -162,7 +166,7 @@ const LoginScreen = ({ onLogin }) => {
         </form>
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          Version 47 Pro • Beta Testing
+          Version 49 Pro • Multi-Shop
         </p>
       </div>
     </div>
@@ -285,7 +289,7 @@ const HowToUsePage = () => {
             <div className="space-y-4">
               <StepCard number="1" title="Log In" content="Use your assigned credentials to log into DiagFlow. Your session will remain active for streamlined workflow." />
               <StepCard number="2" title="Enter Vehicle Information" content="Start by entering the vehicle details: Year, Make, Model, VIN, Mileage, and RO Number. This forms the header of your diagnostic report." />
-              <StepCard number="3" title="Begin Diagnostic Workflow" content="Click 'Start Diagnosis' to begin working through the 15-step process. Each step guides you through a specific diagnostic task." />
+              <StepCard number="3" title="Begin Diagnostic Workflow" content="Click 'Start Diagnosis' to begin working through the 13-step process. Each step guides you through a specific diagnostic task." />
               <StepCard number="4" title="Document As You Go" content="Add notes and photos at each step. This documentation becomes part of your final report and helps with comebacks." />
               <StepCard number="5" title="Generate Report" content="When complete, generate a PDF report and email it to your service advisor with one click." />
             </div>
@@ -498,7 +502,7 @@ const HowToUsePage = () => {
 
       {/* Footer */}
       <div className="text-center text-gray-500 text-sm py-4">
-        <p>DiagFlow V49 Pro • Master Tech Automotive • "Never Miss A Step"</p>
+        <p>DiagFlow V49 Pro • {organization?.name || 'DiagFlow Beta'} • "Never Miss A Step"</p>
       </div>
     </div>
   );
@@ -513,6 +517,12 @@ const DiagnosticApp = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [completedSteps, setCompletedSteps] = useState([]);
   
+  // Organization state (V49 Multi-Org)
+  const [organization, setOrganization] = useState(() => {
+    const saved = localStorage.getItem('diagflow_org');
+    return saved ? JSON.parse(saved) : null;
+  });
+  
   const [vehicleInfo, setVehicleInfo] = useState({
     year: '',
     make: '',
@@ -523,30 +533,23 @@ const DiagnosticApp = () => {
   });
   const [hasVehicleInfo, setHasVehicleInfo] = useState(false);
   const [stepNotes, setStepNotes] = useState({});
+  const [stepImages, setStepImages] = useState({});
+  const [partsRequest, setPartsRequest] = useState([]);
+  
+  // Fuel Trim capture table (Step 2)
   const [fuelTrims, setFuelTrims] = useState({
     idle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
     lightThrottle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
     loaded: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' }
   });
+  
+  // Post-repair fuel trims (Step 13)
   const [postRepairTrims, setPostRepairTrims] = useState({
     idle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
     lightThrottle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
     loaded: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' }
   });
-  const updateFuelTrim = (condition, field, value) => {
-    setFuelTrims(prev => ({
-      ...prev,
-      [condition]: { ...prev[condition], [field]: value }
-    }));
-  };
-  const updatePostRepairTrim = (condition, field, value) => {
-    setPostRepairTrims(prev => ({
-      ...prev,
-      [condition]: { ...prev[condition], [field]: value }
-    }));
-  };
-  const [stepImages, setStepImages] = useState({});
-  const [partsRequest, setPartsRequest] = useState([]);
+  
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -575,31 +578,109 @@ const DiagnosticApp = () => {
   const [shopName, setShopName] = useState('');
   const [technicianName, setTechnicianName] = useState('');
 
-  // Load settings and archived reports from localStorage on mount
+  // Load settings from localStorage on mount
   useEffect(() => {
     const savedShopName = localStorage.getItem('diagflow_shopName');
     const savedTechnicianName = localStorage.getItem('diagflow_technicianName');
     const savedAdvisorEmail = localStorage.getItem('diagflow_advisorEmail');
-    const savedArchive = localStorage.getItem('diagflow_archive');
     if (savedShopName) setShopName(savedShopName);
     if (savedTechnicianName) setTechnicianName(savedTechnicianName);
     if (savedAdvisorEmail) {
       setAdvisorEmail(savedAdvisorEmail);
       setSubmitEmail(savedAdvisorEmail);
     }
-    if (savedArchive) {
-      try {
-        setArchivedReports(JSON.parse(savedArchive));
-      } catch (e) {
-        console.log('Error loading archive:', e);
-      }
-    }
   }, []);
+
+  // Load archived reports when organization changes
+  useEffect(() => {
+    const loadArchive = async () => {
+      let loadedReports = [];
+      
+      if (organization?.id) {
+        const localArchiveKey = `diagflow_archive_${organization.id}`;
+        
+        // MIGRATION: Check if old generic key has data but org-specific doesn't
+        const oldArchive = localStorage.getItem('diagflow_archive');
+        const orgArchive = localStorage.getItem(localArchiveKey);
+        if (oldArchive && !orgArchive) {
+          // Migrate old archive to org-specific key
+          localStorage.setItem(localArchiveKey, oldArchive);
+          console.log('Migrated archive from generic key to org-specific key');
+        }
+        
+        // Load from org-specific localStorage
+        const savedLocalArchive = localStorage.getItem(localArchiveKey);
+        if (savedLocalArchive) {
+          try {
+            loadedReports = JSON.parse(savedLocalArchive);
+            console.log('Loaded', loadedReports.length, 'reports from localStorage for org:', organization.name);
+          } catch (e) {
+            console.log('Error parsing localStorage archive:', e);
+          }
+        }
+        
+        // Also try to load from Supabase and merge
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/reports/archived/list?orgId=${organization.id}`);
+          const data = await response.json();
+          if (data.success && data.reports && data.reports.length > 0) {
+            // Transform Supabase format to frontend format
+            const supabaseReports = data.reports.map(r => ({
+              id: r.id,
+              date: r.updated_at || r.created_at,
+              vehicleInfo: {
+                year: r.vehicle_year,
+                make: r.vehicle_make,
+                model: r.vehicle_model,
+                vin: r.vehicle_vin,
+                roNumber: r.ro_number,
+                mileage: r.mileage
+              },
+              shopName: r.shop_name,
+              technicianName: r.technician_name,
+              completedSteps: r.completed_steps?.length || 0,
+              completedStepIds: r.completed_steps || [],
+              stepNotes: r.step_notes || {},
+              partsRequest: r.parts_request || [],
+              fromSupabase: true
+            }));
+            
+            // Merge: Supabase reports first, then local reports not in Supabase
+            const supabaseIds = new Set(supabaseReports.map(r => r.id));
+            const uniqueLocalReports = loadedReports.filter(r => !supabaseIds.has(r.id));
+            loadedReports = [...supabaseReports, ...uniqueLocalReports];
+            console.log('Merged with', supabaseReports.length, 'Supabase reports');
+          }
+        } catch (err) {
+          console.log('Supabase archive load failed (using localStorage only):', err);
+        }
+      } else {
+        // No org - load from generic localStorage (fallback/beta mode)
+        const savedArchive = localStorage.getItem('diagflow_archive');
+        if (savedArchive) {
+          try {
+            loadedReports = JSON.parse(savedArchive);
+          } catch (e) {
+            console.log('Error loading archive:', e);
+          }
+        }
+      }
+      
+      setArchivedReports(loadedReports);
+      console.log('Total archived reports loaded:', loadedReports.length);
+    };
+    
+    if (isAuthenticated) {
+      loadArchive();
+    }
+  }, [organization, isAuthenticated]);
 
   // Check authentication on mount
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('diagflow_token');
+      const savedOrg = localStorage.getItem('diagflow_org');
+      
       if (token) {
         try {
           const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
@@ -608,8 +689,13 @@ const DiagnosticApp = () => {
           const data = await response.json();
           if (data.valid) {
             setIsAuthenticated(true);
+            // Load saved org or use verify response
+            if (savedOrg) {
+              setOrganization(JSON.parse(savedOrg));
+            }
           } else {
             localStorage.removeItem('diagflow_token');
+            localStorage.removeItem('diagflow_org');
           }
         } catch (err) {
           console.log('Auth check failed:', err);
@@ -622,7 +708,46 @@ const DiagnosticApp = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('diagflow_token');
+    localStorage.removeItem('diagflow_org');
+    localStorage.removeItem('diagflow_shop_profile');
+    localStorage.removeItem('diagflow_shopName');
+    localStorage.removeItem('diagflow_technicianName');
     setIsAuthenticated(false);
+    setOrganization(null);
+    setShopName('');
+    setTechnicianName('');
+    setShopProfile({
+      shopName: '',
+      technicianName: '',
+      ownerEmail: '',
+      defaultRecipients: [],
+      alwaysCCOwner: false
+    });
+  };
+
+  // Handle login with organization data
+  const handleLogin = (token, org) => {
+    setIsAuthenticated(true);
+    if (org) {
+      setOrganization(org);
+      // Auto-populate shop name from org
+      if (org.name && !shopProfile.shopName) {
+        const updatedProfile = { ...shopProfile, shopName: org.name };
+        setShopProfile(updatedProfile);
+        localStorage.setItem('diagflow_shop_profile', JSON.stringify(updatedProfile));
+        setShopName(org.name);
+      }
+      // Auto-populate default recipients from org
+      if (org.advisorEmails && org.advisorEmails.length > 0) {
+        const updatedProfile = { 
+          ...shopProfile, 
+          shopName: org.name || shopProfile.shopName,
+          defaultRecipients: org.advisorEmails 
+        };
+        setShopProfile(updatedProfile);
+        localStorage.setItem('diagflow_shop_profile', JSON.stringify(updatedProfile));
+      }
+    }
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -650,7 +775,7 @@ const DiagnosticApp = () => {
       id: 2, 
       title: "Test Drive & Data Capture", 
       category: "Pre-Diagnostic",
-      bestPractice: "Duplicate customer concern if possible. Record data during test drive - freeze frame data, Mode 6 data, and live parameters. Note exact conditions when problem occurs (temperature, speed, load). Always capture Trims at idle, light throttle, and loaded - this can tell a story. Use the Fuel Trim Capture table below to record your readings."
+      bestPractice: "Duplicate customer concern if possible. Record data during test drive - freeze frame data, Mode 6 data, and live parameters. Note exact conditions when problem occurs (temperature, speed, load). Use your phone to video/audio record unusual sounds or behaviors."
     },
     { 
       id: 3, 
@@ -1032,6 +1157,11 @@ const DiagnosticApp = () => {
     setStepNotes({});
     setStepImages({});
     setPartsRequest([]);
+    setFuelTrims({
+      idle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
+      lightThrottle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
+      loaded: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' }
+    });
     setSelectedStep(null);
     setSelectedScopeWorkflow(null);
     setCurrentView('vehicle-info');
@@ -1039,13 +1169,13 @@ const DiagnosticApp = () => {
     return true;
   };
 
-  // Archive current job
-  const archiveCurrentJob = () => {
+  // Archive current job (saves to localStorage and Supabase if org)
+  const archiveCurrentJob = async () => {
     const report = {
       id: Date.now(),
       date: new Date().toISOString(),
       vehicleInfo,
-      shopName,
+      shopName: organization?.name || shopName,
       technicianName,
       completedSteps: completedSteps.length,
       completedStepIds: [...completedSteps],
@@ -1058,13 +1188,45 @@ const DiagnosticApp = () => {
         imageCount: (stepImages[step.id] || []).length,
         images: stepImages[step.id] || []
       })),
+      fuelTrims: {...fuelTrims}, // Pre-repair fuel trim data (Step 2)
+      postRepairTrims: {...postRepairTrims}, // Post-repair fuel trim data (Step 13)
       partsRequest: [...partsRequest],
-      stepNotes: {...stepNotes}
+      stepNotes: {...stepNotes},
+      orgId: organization?.id || null
     };
     
-    const newArchive = [report, ...archivedReports].slice(0, 50); // Keep last 50
+    // Save to org-specific localStorage key
+    const newArchive = [report, ...archivedReports].slice(0, 50);
     setArchivedReports(newArchive);
-    localStorage.setItem('diagflow_archive', JSON.stringify(newArchive));
+    const archiveKey = organization?.id ? `diagflow_archive_${organization.id}` : 'diagflow_archive';
+    localStorage.setItem(archiveKey, JSON.stringify(newArchive));
+    
+    // Also save to Supabase if we have an org
+    if (organization?.id) {
+      try {
+        await fetch(`${API_BASE_URL}/api/reports/save`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reportData: {
+              id: null,
+              shopName,
+              technicianName,
+              vehicleInfo,
+              completedSteps: [...completedSteps],
+              stepNotes,
+              stepImages,
+              partsRequest,
+              status: 'archived'
+            },
+            orgId: organization.id
+          })
+        });
+        console.log('Report archived to Supabase');
+      } catch (err) {
+        console.log('Supabase archive failed:', err);
+      }
+    }
     
     return report;
   };
@@ -1082,6 +1244,17 @@ const DiagnosticApp = () => {
     setCompletedSteps(report.completedStepIds || []);
     setStepNotes(report.stepNotes || {});
     setPartsRequest(report.partsRequest || []);
+    
+    // Restore fuel trims if available
+    if (report.fuelTrims) {
+      setFuelTrims(report.fuelTrims);
+    } else {
+      setFuelTrims({
+        idle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
+        lightThrottle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
+        loaded: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' }
+      });
+    }
     
     // Restore images if available
     if (report.steps) {
@@ -1166,10 +1339,21 @@ const DiagnosticApp = () => {
   const canGetHelp = hasVehicleInfo && completedSteps.length >= 5;
   
   // Check if all steps complete for AI Analysis
-  const canGetAI = completedSteps.length === 15;
+  const canGetAI = completedSteps.length === 11;
 
   const saveStepNote = (stepId, note) => {
     setStepNotes(prev => ({ ...prev, [stepId]: note }));
+  };
+
+  // Update fuel trim values
+  const updateFuelTrim = (condition, bank, value) => {
+    setFuelTrims(prev => ({
+      ...prev,
+      [condition]: {
+        ...prev[condition],
+        [bank]: value
+      }
+    }));
   };
 
   const handleImageUpload = (stepId, event) => {
@@ -1279,8 +1463,8 @@ const DiagnosticApp = () => {
         shopName: shopName,
         diagnosticProgress: {
           completedSteps: completedSteps.length,
-          totalSteps: 15,
-          percentage: Math.round((completedSteps.length / 15) * 100),
+          totalSteps: 13,
+          percentage: Math.round((completedSteps.length / 13) * 100),
           stepsWithNotes: diagnosticSummary
         },
         timestamp: new Date().toISOString()
@@ -1321,7 +1505,7 @@ const DiagnosticApp = () => {
 
   const generatePDFReport = async () => {
     const reportData = {
-      shopName,
+      shopName: organization?.name || shopName,
       technicianName,
       vehicleInfo,
       completedSteps: completedSteps.length,
@@ -1334,6 +1518,8 @@ const DiagnosticApp = () => {
         notes: stepNotes[step.id] || '',
         images: stepImages[step.id] || []
       })),
+      fuelTrims: fuelTrims, // Pre-repair fuel trim capture data (Step 2)
+      postRepairTrims: postRepairTrims, // Post-repair fuel trim data (Step 13)
       partsRequest: partsRequest.filter(p => p.partName), // Only include parts with names
       generatedDate: new Date().toISOString()
     };
@@ -1387,8 +1573,9 @@ const DiagnosticApp = () => {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          recipients: uniqueRecipients, // Send array of recipients
-          reportData: reportData
+          recipients: uniqueRecipients,
+          reportData: reportData,
+          orgId: organization?.id || null
         })
       });
       
@@ -1454,7 +1641,7 @@ const DiagnosticApp = () => {
 
   // Login screen if not authenticated
   if (!isAuthenticated) {
-    return <LoginScreen onLogin={() => setIsAuthenticated(true)} />;
+    return <LoginScreen onLogin={handleLogin} />;
   }
 
   return (
@@ -1466,52 +1653,12 @@ const DiagnosticApp = () => {
               <Menu className="w-6 h-6" />
             </button>
             <div className="flex flex-col">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" className="h-14 w-auto">
-                <defs>
-                  <linearGradient id="techGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style={{stopColor:'#00d4ff', stopOpacity:1}} />
-                    <stop offset="100%" style={{stopColor:'#0066ff', stopOpacity:1}} />
-                  </linearGradient>
-                  <filter id="glow">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                    <feMerge>
-                      <feMergeNode in="coloredBlur"/>
-                      <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                  </filter>
-                </defs>
-                <g transform="translate(50, 75)">
-                  <circle cx="75" cy="75" r="65" fill="none" stroke="url(#techGradient)" strokeWidth="3" opacity="0.3"/>
-                  <circle cx="75" cy="75" r="55" fill="none" stroke="url(#techGradient)" strokeWidth="2.5" opacity="0.5"/>
-                  <circle cx="75" cy="75" r="45" fill="none" stroke="url(#techGradient)" strokeWidth="2"/>
-                  <circle cx="75" cy="75" r="8" fill="url(#techGradient)" filter="url(#glow)"/>
-                  <path d="M 20 75 L 50 75" stroke="url(#techGradient)" strokeWidth="3" strokeLinecap="round"/>
-                  <path d="M 100 75 L 130 75" stroke="url(#techGradient)" strokeWidth="3" strokeLinecap="round"/>
-                  <circle cx="50" cy="75" r="5" fill="#00d4ff"/>
-                  <circle cx="100" cy="75" r="5" fill="#00d4ff"/>
-                  <path d="M 75 20 L 75 30" stroke="url(#techGradient)" strokeWidth="2.5" strokeLinecap="round"/>
-                  <circle cx="75" cy="30" r="4" fill="#00d4ff"/>
-                  <path d="M 75 120 L 75 130" stroke="url(#techGradient)" strokeWidth="2.5" strokeLinecap="round"/>
-                  <circle cx="75" cy="120" r="4" fill="#00d4ff"/>
-                  <path d="M 30 45 L 40 45 L 45 35 L 50 55 L 55 40 L 60 45 L 70 45" 
-                        stroke="#00d4ff" strokeWidth="2" fill="none" opacity="0.7" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M 95 60 L 100 55 L 95 50" stroke="#00d4ff" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                </g>
-                <g transform="translate(210, 150)">
-                  <text fontFamily="'Arial Black', 'Arial Bold', sans-serif" fontSize="72" fontWeight="900" fill="url(#techGradient)" letterSpacing="-2">
-                    DIAG
-                  </text>
-                  <text x="220" fontFamily="'Arial', sans-serif" fontSize="72" fontWeight="300" fill="#1f2937" letterSpacing="0">
-                    FLOW
-                  </text>
-                </g>
-                <text x="212" y="195" fontFamily="'Arial', sans-serif" fontSize="16" fill="#00d4ff" letterSpacing="4" opacity="0.8">
-                  NEVER MISS A STEP
-                </text>
-                <line x1="210" y1="205" x2="480" y2="205" stroke="url(#techGradient)" strokeWidth="1" opacity="0.5"/>
-                <circle cx="210" cy="205" r="2" fill="#00d4ff"/>
-                <circle cx="480" cy="205" r="2" fill="#00d4ff"/>
-              </svg>
+              <img src="/Diagflow-Orange.png" alt="DiagFlow" className="h-10 w-auto" />
+              {organization && (
+                <div className="text-xs text-blue-600 font-medium">
+                  {organization.name}
+                </div>
+              )}
               {hasVehicleInfo && (
                 <div className="text-xs text-gray-600">
                   {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}
@@ -1592,7 +1739,12 @@ const DiagnosticApp = () => {
                 <button
                   key={item.view}
                   onClick={() => { 
-                    setCurrentView(item.view); 
+                    // Guard: if tapping Workflow with no vehicle entered, go to vehicle-info first
+                    if (item.view === 'workflow' && !hasVehicleInfo) {
+                      setCurrentView('vehicle-info');
+                    } else {
+                      setCurrentView(item.view);
+                    }
                     setSelectedStep(null);
                     setSelectedScopeWorkflow(null);
                     setMenuOpen(false); 
@@ -2117,7 +2269,7 @@ const DiagnosticApp = () => {
                 <div className="text-purple-800">
                   🚗 {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}<br/>
                   📋 RO# {vehicleInfo.roNumber} • VIN: {vehicleInfo.vin || 'N/A'}<br/>
-                  ✅ All 15 diagnostic steps completed
+                  ✅ All 13 diagnostic steps completed
                 </div>
               </div>
 
@@ -2154,8 +2306,6 @@ const DiagnosticApp = () => {
                       // Simulate AI analysis (replace with real API call later)
                       setTimeout(() => {
                         const notes = Object.entries(stepNotes).map(([id, note]) => `Step ${id}: ${note}`).join('\n');
-                        const trimData = Object.entries(fuelTrims).some(([k,v]) => Object.values(v).some(x => x)) ? 
-                          `\nFuel Trims:\n  Idle: STFT B1=${fuelTrims.idle.stftB1||'—'} LTFT B1=${fuelTrims.idle.ltftB1||'—'} STFT B2=${fuelTrims.idle.stftB2||'—'} LTFT B2=${fuelTrims.idle.ltftB2||'—'}\n  Light Throttle: STFT B1=${fuelTrims.lightThrottle.stftB1||'—'} LTFT B1=${fuelTrims.lightThrottle.ltftB1||'—'} STFT B2=${fuelTrims.lightThrottle.stftB2||'—'} LTFT B2=${fuelTrims.lightThrottle.ltftB2||'—'}\n  Loaded: STFT B1=${fuelTrims.loaded.stftB1||'—'} LTFT B1=${fuelTrims.loaded.ltftB1||'—'} STFT B2=${fuelTrims.loaded.stftB2||'—'} LTFT B2=${fuelTrims.loaded.ltftB2||'—'}` : '';
                         setAiAnalysis(`🔍 AI DIAGNOSTIC ANALYSIS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -2454,6 +2604,151 @@ Review your documented findings against the known common issues for this vehicle
               </div>
             )}
 
+            {/* Fuel Trim Capture Table - Step 2 Only */}
+            {selectedStep.id === 2 && (
+              <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-green-600" />
+                  Fuel Trim Capture (Drivability)
+                </h3>
+                <p className="text-xs text-gray-600 mb-3">Record fuel trims at different conditions. This data helps identify air/fuel issues.</p>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="bg-green-100">
+                        <th className="p-2 text-left font-semibold border border-green-200">Condition</th>
+                        <th className="p-2 text-center font-semibold border border-green-200">STFT B1</th>
+                        <th className="p-2 text-center font-semibold border border-green-200">LTFT B1</th>
+                        <th className="p-2 text-center font-semibold border border-green-200">STFT B2</th>
+                        <th className="p-2 text-center font-semibold border border-green-200">LTFT B2</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="p-2 font-medium border border-green-200 bg-white">Idle</td>
+                        <td className="p-1 border border-green-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={fuelTrims.idle.stftB1}
+                            onChange={(e) => updateFuelTrim('idle', 'stftB1', e.target.value)}
+                          />
+                        </td>
+                        <td className="p-1 border border-green-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={fuelTrims.idle.ltftB1}
+                            onChange={(e) => updateFuelTrim('idle', 'ltftB1', e.target.value)}
+                          />
+                        </td>
+                        <td className="p-1 border border-green-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={fuelTrims.idle.stftB2}
+                            onChange={(e) => updateFuelTrim('idle', 'stftB2', e.target.value)}
+                          />
+                        </td>
+                        <td className="p-1 border border-green-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={fuelTrims.idle.ltftB2}
+                            onChange={(e) => updateFuelTrim('idle', 'ltftB2', e.target.value)}
+                          />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="p-2 font-medium border border-green-200 bg-white">Light Throttle</td>
+                        <td className="p-1 border border-green-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={fuelTrims.lightThrottle.stftB1}
+                            onChange={(e) => updateFuelTrim('lightThrottle', 'stftB1', e.target.value)}
+                          />
+                        </td>
+                        <td className="p-1 border border-green-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={fuelTrims.lightThrottle.ltftB1}
+                            onChange={(e) => updateFuelTrim('lightThrottle', 'ltftB1', e.target.value)}
+                          />
+                        </td>
+                        <td className="p-1 border border-green-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={fuelTrims.lightThrottle.stftB2}
+                            onChange={(e) => updateFuelTrim('lightThrottle', 'stftB2', e.target.value)}
+                          />
+                        </td>
+                        <td className="p-1 border border-green-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={fuelTrims.lightThrottle.ltftB2}
+                            onChange={(e) => updateFuelTrim('lightThrottle', 'ltftB2', e.target.value)}
+                          />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="p-2 font-medium border border-green-200 bg-white">Loaded</td>
+                        <td className="p-1 border border-green-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={fuelTrims.loaded.stftB1}
+                            onChange={(e) => updateFuelTrim('loaded', 'stftB1', e.target.value)}
+                          />
+                        </td>
+                        <td className="p-1 border border-green-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={fuelTrims.loaded.ltftB1}
+                            onChange={(e) => updateFuelTrim('loaded', 'ltftB1', e.target.value)}
+                          />
+                        </td>
+                        <td className="p-1 border border-green-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={fuelTrims.loaded.stftB2}
+                            onChange={(e) => updateFuelTrim('loaded', 'stftB2', e.target.value)}
+                          />
+                        </td>
+                        <td className="p-1 border border-green-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={fuelTrims.loaded.ltftB2}
+                            onChange={(e) => updateFuelTrim('loaded', 'ltftB2', e.target.value)}
+                          />
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Normal range: ±5%. Values outside ±10% indicate problems. B2 only applies to V6/V8.</p>
+              </div>
+            )}
+
             {selectedStep.id === 9 && (
               <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
                 <h3 className="font-bold text-sm mb-2 flex items-center gap-2">
@@ -2472,93 +2767,159 @@ Review your documented findings against the known common issues for this vehicle
               </div>
             )}
 
-            {selectedStep.id === 2 && (
+            {/* Post-Repair Fuel Trim Validation - Step 13 */}
+            {selectedStep.id === 13 && (
               <div className="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-500">
                 <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-orange-600" />
-                  Fuel Trim Capture
+                  Post-Repair Fuel Trim Validation
                 </h3>
-                <p className="text-xs text-gray-600 mb-3">Record trims at each condition — the pattern tells the story.</p>
+                <p className="text-xs text-gray-600 mb-3">Record trims AFTER repair to verify fix. Compare to pre-repair values from Step 2.</p>
+                
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
+                  <table className="w-full text-sm border-collapse">
                     <thead>
-                      <tr className="border-b-2 border-orange-200">
-                        <th className="text-left py-2 px-1 text-orange-700 font-semibold">Condition</th>
-                        <th className="text-center py-2 px-1 text-orange-700 font-semibold">STFT B1</th>
-                        <th className="text-center py-2 px-1 text-orange-700 font-semibold">LTFT B1</th>
-                        <th className="text-center py-2 px-1 text-orange-700 font-semibold">STFT B2</th>
-                        <th className="text-center py-2 px-1 text-orange-700 font-semibold">LTFT B2</th>
+                      <tr className="bg-orange-100">
+                        <th className="p-2 text-left font-semibold border border-orange-200">Condition</th>
+                        <th className="p-2 text-center font-semibold border border-orange-200">STFT B1</th>
+                        <th className="p-2 text-center font-semibold border border-orange-200">LTFT B1</th>
+                        <th className="p-2 text-center font-semibold border border-orange-200">STFT B2</th>
+                        <th className="p-2 text-center font-semibold border border-orange-200">LTFT B2</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {[
-                        { key: 'idle', label: 'Idle' },
-                        { key: 'lightThrottle', label: 'Light Throttle' },
-                        { key: 'loaded', label: 'Loaded' }
-                      ].map(row => (
-                        <tr key={row.key} className="border-b border-orange-100">
-                          <td className="py-2 px-1 font-medium text-gray-700">{row.label}</td>
-                          {['stftB1', 'ltftB1', 'stftB2', 'ltftB2'].map(field => (
-                            <td key={field} className="py-1 px-1">
-                              <input
-                                type="text"
-                                placeholder="—%"
-                                className="w-full text-center border border-orange-200 rounded px-1 py-1 text-xs bg-white"
-                                value={fuelTrims[row.key][field]}
-                                onChange={(e) => updateFuelTrim(row.key, field, e.target.value)}
-                              />
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {selectedStep.id === 13 && (
-              <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
-                <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-green-600" />
-                  Post-Repair Fuel Trims
-                </h3>
-                <p className="text-xs text-gray-600 mb-3">Compare these to your Step 2 readings. Trims in range = confirmed fix.</p>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b-2 border-green-200">
-                        <th className="text-left py-2 px-1 text-green-700 font-semibold">Condition</th>
-                        <th className="text-center py-2 px-1 text-green-700 font-semibold">STFT B1</th>
-                        <th className="text-center py-2 px-1 text-green-700 font-semibold">LTFT B1</th>
-                        <th className="text-center py-2 px-1 text-green-700 font-semibold">STFT B2</th>
-                        <th className="text-center py-2 px-1 text-green-700 font-semibold">LTFT B2</th>
+                      <tr>
+                        <td className="p-2 font-medium border border-orange-200 bg-white">Idle</td>
+                        <td className="p-1 border border-orange-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={postRepairTrims.idle.stftB1}
+                            onChange={(e) => setPostRepairTrims(prev => ({...prev, idle: {...prev.idle, stftB1: e.target.value}}))}
+                          />
+                        </td>
+                        <td className="p-1 border border-orange-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={postRepairTrims.idle.ltftB1}
+                            onChange={(e) => setPostRepairTrims(prev => ({...prev, idle: {...prev.idle, ltftB1: e.target.value}}))}
+                          />
+                        </td>
+                        <td className="p-1 border border-orange-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={postRepairTrims.idle.stftB2}
+                            onChange={(e) => setPostRepairTrims(prev => ({...prev, idle: {...prev.idle, stftB2: e.target.value}}))}
+                          />
+                        </td>
+                        <td className="p-1 border border-orange-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={postRepairTrims.idle.ltftB2}
+                            onChange={(e) => setPostRepairTrims(prev => ({...prev, idle: {...prev.idle, ltftB2: e.target.value}}))}
+                          />
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        { key: 'idle', label: 'Idle' },
-                        { key: 'lightThrottle', label: 'Light Throttle' },
-                        { key: 'loaded', label: 'Loaded' }
-                      ].map(row => (
-                        <tr key={row.key} className="border-b border-green-100">
-                          <td className="py-2 px-1 font-medium text-gray-700">{row.label}</td>
-                          {['stftB1', 'ltftB1', 'stftB2', 'ltftB2'].map(field => (
-                            <td key={field} className="py-1 px-1">
-                              <input
-                                type="text"
-                                placeholder="—%"
-                                className="w-full text-center border border-green-200 rounded px-1 py-1 text-xs bg-white"
-                                value={postRepairTrims[row.key][field]}
-                                onChange={(e) => updatePostRepairTrim(row.key, field, e.target.value)}
-                              />
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
+                      <tr>
+                        <td className="p-2 font-medium border border-orange-200 bg-white">Light Throttle</td>
+                        <td className="p-1 border border-orange-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={postRepairTrims.lightThrottle.stftB1}
+                            onChange={(e) => setPostRepairTrims(prev => ({...prev, lightThrottle: {...prev.lightThrottle, stftB1: e.target.value}}))}
+                          />
+                        </td>
+                        <td className="p-1 border border-orange-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={postRepairTrims.lightThrottle.ltftB1}
+                            onChange={(e) => setPostRepairTrims(prev => ({...prev, lightThrottle: {...prev.lightThrottle, ltftB1: e.target.value}}))}
+                          />
+                        </td>
+                        <td className="p-1 border border-orange-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={postRepairTrims.lightThrottle.stftB2}
+                            onChange={(e) => setPostRepairTrims(prev => ({...prev, lightThrottle: {...prev.lightThrottle, stftB2: e.target.value}}))}
+                          />
+                        </td>
+                        <td className="p-1 border border-orange-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={postRepairTrims.lightThrottle.ltftB2}
+                            onChange={(e) => setPostRepairTrims(prev => ({...prev, lightThrottle: {...prev.lightThrottle, ltftB2: e.target.value}}))}
+                          />
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="p-2 font-medium border border-orange-200 bg-white">Loaded</td>
+                        <td className="p-1 border border-orange-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={postRepairTrims.loaded.stftB1}
+                            onChange={(e) => setPostRepairTrims(prev => ({...prev, loaded: {...prev.loaded, stftB1: e.target.value}}))}
+                          />
+                        </td>
+                        <td className="p-1 border border-orange-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={postRepairTrims.loaded.ltftB1}
+                            onChange={(e) => setPostRepairTrims(prev => ({...prev, loaded: {...prev.loaded, ltftB1: e.target.value}}))}
+                          />
+                        </td>
+                        <td className="p-1 border border-orange-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={postRepairTrims.loaded.stftB2}
+                            onChange={(e) => setPostRepairTrims(prev => ({...prev, loaded: {...prev.loaded, stftB2: e.target.value}}))}
+                          />
+                        </td>
+                        <td className="p-1 border border-orange-200">
+                          <input 
+                            type="text" 
+                            placeholder="%" 
+                            className="w-full p-1 text-center border rounded text-sm"
+                            value={postRepairTrims.loaded.ltftB2}
+                            onChange={(e) => setPostRepairTrims(prev => ({...prev, loaded: {...prev.loaded, ltftB2: e.target.value}}))}
+                          />
+                        </td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
+                <p className="text-xs text-gray-500 mt-2">✓ Good: ±5% | ⚠ Marginal: ±10% | ✗ Problem: Beyond ±10%. If trims are still off, repair may not be complete.</p>
+                
+                {/* Show comparison to pre-repair if data exists */}
+                {(fuelTrims.idle.stftB1 || fuelTrims.idle.ltftB1) && (
+                  <div className="mt-3 p-3 bg-white rounded border border-orange-200">
+                    <h4 className="font-semibold text-sm mb-2">📊 Pre-Repair Comparison (from Step 2)</h4>
+                    <div className="text-xs text-gray-600 grid grid-cols-2 gap-2">
+                      <div>Idle B1: STFT {fuelTrims.idle.stftB1 || '-'}% / LTFT {fuelTrims.idle.ltftB1 || '-'}%</div>
+                      <div>Idle B2: STFT {fuelTrims.idle.stftB2 || '-'}% / LTFT {fuelTrims.idle.ltftB2 || '-'}%</div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -2882,7 +3243,7 @@ Review your documented findings against the known common issues for this vehicle
                 <div className="text-xs text-gray-600">Photos Added</div>
               </div>
               <div className="bg-white p-4 rounded-lg shadow-md text-center">
-                <div className="text-2xl font-bold text-purple-600">{Math.round((completedSteps.length / 15) * 100)}%</div>
+                <div className="text-2xl font-bold text-purple-600">{Math.round((completedSteps.length / 13) * 100)}%</div>
                 <div className="text-xs text-gray-600">Progress</div>
               </div>
             </div>
@@ -2897,9 +3258,9 @@ Review your documented findings against the known common issues for this vehicle
         ) : currentView === 'workflow' ? (
           <div className="space-y-4">
             <div className="bg-white p-4 rounded-lg shadow-md">
-              <h2 className="text-xl font-bold">15-Step Diagnostic Process</h2>
+              <h2 className="text-xl font-bold">13-Step Diagnostic Process</h2>
               <div className="mt-3 w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${(completedSteps.length / 15) * 100}%` }} />
+                <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${(completedSteps.length / 13) * 100}%` }} />
               </div>
               <p className="text-xs text-gray-600 mt-2">{completedSteps.length} of 13 steps completed</p>
             </div>
@@ -3240,7 +3601,11 @@ Review your documented findings against the known common issues for this vehicle
               <button 
                 key={item.view} 
                 onClick={() => { 
-                  setCurrentView(item.view); 
+                  if (item.view === 'workflow' && !hasVehicleInfo) {
+                    setCurrentView('vehicle-info');
+                  } else {
+                    setCurrentView(item.view);
+                  }
                   setSelectedStep(null);
                   setSelectedScopeWorkflow(null);
                 }} 
