@@ -2312,42 +2312,35 @@ const DiagnosticApp = () => {
                   </ul>
                   
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       setIsAiLoading(true);
-                      // Simulate AI analysis (replace with real API call later)
-                      setTimeout(() => {
-                        const notes = Object.entries(stepNotes).map(([id, note]) => `Step ${id}: ${note}`).join('\n');
-                        setAiAnalysis(`🔍 AI DIAGNOSTIC ANALYSIS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📋 VEHICLE: ${vehicleInfo.year} ${vehicleInfo.make} ${vehicleInfo.model}
-📊 MILEAGE: ${vehicleInfo.mileage || 'Not recorded'}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🧪 FINDINGS FROM YOUR DIAGNOSTIC:
-
-${notes || 'No notes recorded in diagnostic steps.'}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💡 AI INSIGHTS:
-
-Based on your completed diagnostic workflow, here are the key observations:
-
-1. All 13 steps were completed systematically
-2. Documentation quality: ${Object.keys(stepNotes).length} steps have notes
-3. Photo documentation: ${Object.values(stepImages).filter(arr => arr.length > 0).length} steps have photos
-
-🎯 RECOMMENDATION:
-Review your documented findings against the known common issues for this vehicle. Your systematic approach following the "Never Miss A Step" methodology provides a solid foundation for accurate diagnosis.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-⚠️ NOTE: This is a preview of AI analysis. Full AI integration with Claude API coming soon for deeper diagnostic insights.
-`);
-                        setIsAiLoading(false);
-                      }, 2000);
+                      try {
+                        const reportData = {
+                          vehicleInfo,
+                          steps: diagnosticSteps.map(s => ({
+                            id: s.id,
+                            title: s.title,
+                            completed: completedSteps.includes(s.id),
+                            notes: stepNotes[s.id] || '',
+                            images: stepImages[s.id] || []
+                          })),
+                          partsRequest: partsRequest || []
+                        };
+                        const response = await fetch('/api/ai-analysis', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ reportData })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                          setAiAnalysis(data.analysis);
+                        } else {
+                          setAiAnalysis('AI analysis failed: ' + (data.error || 'Unknown error. Please try again.'));
+                        }
+                      } catch (err) {
+                        setAiAnalysis('AI analysis failed: ' + err.message);
+                      }
+                      setIsAiLoading(false);
                     }}
                     className="mt-6 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 flex items-center gap-2 mx-auto"
                   >
