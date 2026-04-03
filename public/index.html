@@ -1255,6 +1255,17 @@ const DiagnosticApp = () => {
         loaded: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' }
       });
     }
+
+    // Restore post-repair trims if available
+    if (report.postRepairTrims) {
+      setPostRepairTrims(report.postRepairTrims);
+    } else {
+      setPostRepairTrims({
+        idle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
+        lightThrottle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
+        loaded: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' }
+      });
+    }
     
     // Restore images if available
     if (report.steps) {
@@ -1339,7 +1350,7 @@ const DiagnosticApp = () => {
   const canGetHelp = hasVehicleInfo && completedSteps.length >= 5;
   
   // Check if all steps complete for AI Analysis
-  const canGetAI = completedSteps.length === 11;
+  const canGetAI = completedSteps.length >= 11;
 
   const saveStepNote = (stepId, note) => {
     setStepNotes(prev => ({ ...prev, [stepId]: note }));
@@ -3116,7 +3127,7 @@ Review your documented findings against the known common issues for this vehicle
             <div className="pb-4">
               <button 
                 onClick={() => {
-                  setCompletedSteps(prev => [...prev, selectedStep.id]);
+                  setCompletedSteps(prev => prev.includes(selectedStep.id) ? prev : [...prev, selectedStep.id]);
                   setTimeout(() => {
                     setSelectedStep(null);
                     setCurrentView('workflow');
