@@ -66,6 +66,7 @@
             const [showForwardModal, setShowForwardModal] = useState(false);
             const [showCalendar, setShowCalendar] = useState(false);
             const [showNotes, setShowNotes] = useState(false);
+            const [showTimeModal, setShowTimeModal] = useState(false);
             const [selectedTask, setSelectedTask] = useState(null);
             const [noteText, setNoteText] = useState('');
             const [taskImages, setTaskImages] = useState([]);
@@ -361,13 +362,22 @@
                 setSelectedTask(null);
             };
 
+            const setTaskTime = async (newTime) => {
+                if (!selectedTask) return;
+                const updatedTask = { ...selectedTask, time: newTime };
+                setTasks(tasks.map(t => t.id === selectedTask.id ? updatedTask : t));
+                setSelectedTask(updatedTask);
+                await saveTask(updatedTask);
+                setShowTimeModal(false);
+            };
+
             const deleteTask = async (taskId) => {
                 // Optimistic update
                 setTasks(tasks.filter(t => t.id !== taskId));
-                
+
                 // Delete from Supabase
                 await removeTask(taskId);
-                
+
                 setShowActionModal(false);
                 setSelectedTask(null);
             };
@@ -734,6 +744,10 @@
                                         <span className="text-2xl">📝</span>
                                         <span>Add / Edit Notes</span>
                                     </button>
+                                    <button onClick={() => setShowTimeModal(true)} className="w-full p-4 text-left flex items-center gap-3 hover:bg-gray-50 rounded-lg">
+                                        <span className="text-2xl">⏰</span>
+                                        <span>{selectedTask.time ? `Change Time (${formatTime(selectedTask.time)})` : 'Set Time'}</span>
+                                    </button>
                                     <button onClick={() => setShowForwardModal(true)} className="w-full p-4 text-left flex items-center gap-3 hover:bg-gray-50 rounded-lg">
                                         <span className="text-2xl">📅</span>
                                         <span>Forward to Another Day</span>
@@ -785,6 +799,31 @@
                                 <div className="p-4 border-t flex gap-3">
                                     <button onClick={() => setShowNotes(false)} className="flex-1 py-3 border rounded-lg text-gray-600">Cancel</button>
                                     <button onClick={saveNotes} className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-medium">Save</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Time Modal */}
+                    {showTimeModal && selectedTask && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowTimeModal(false)}>
+                            <div className="bg-white w-full max-w-sm rounded-2xl" onClick={e => e.stopPropagation()}>
+                                <div className="p-4 border-b">
+                                    <h3 className="font-bold text-lg">⏰ Set Time</h3>
+                                    <p className="text-sm text-gray-500">{selectedTask.title}</p>
+                                    {selectedTask.time && <p className="text-xs text-blue-600 mt-1">Current: {formatTime(selectedTask.time)}</p>}
+                                </div>
+                                <div className="p-2 max-h-[50vh] overflow-y-auto">
+                                    {timeOptions.map(opt => (
+                                        <button
+                                            key={opt.value}
+                                            onClick={() => setTaskTime(opt.value)}
+                                            className={`w-full p-3 text-left rounded-lg flex justify-between items-center ${selectedTask.time === opt.value ? 'bg-blue-50 text-blue-700 font-medium' : 'hover:bg-gray-50'}`}
+                                        >
+                                            <span>{opt.label}</span>
+                                            {selectedTask.time === opt.value && <span>✓</span>}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                         </div>
