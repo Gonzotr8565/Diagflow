@@ -559,6 +559,7 @@ const DiagnosticApp = () => {
   const [archivedReports, setArchivedReports] = useState([]);
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [currentReportId, setCurrentReportId] = useState(null); // tracks restored report's ID for update-on-archive
   const [submitEmail, setSubmitEmail] = useState('');
   const [additionalEmails, setAdditionalEmails] = useState('');
   const [showEmailSettings, setShowEmailSettings] = useState(false);
@@ -1165,14 +1166,18 @@ const DiagnosticApp = () => {
     setSelectedStep(null);
     setSelectedScopeWorkflow(null);
     setCurrentView('vehicle-info');
-    
+    setCurrentReportId(null);
+
     return true;
   };
 
   // Archive current job (saves to localStorage and Supabase if org)
   const archiveCurrentJob = async () => {
+    // Reuse existing ID if this is a restored report, otherwise check by RO number, else new
+    const existingByRO = archivedReports.find(r => r.vehicleInfo?.roNumber && r.vehicleInfo.roNumber === vehicleInfo.roNumber);
+    const resolvedId = currentReportId || existingByRO?.id || Date.now();
     const report = {
-      id: Date.now(),
+      id: resolvedId,
       date: new Date().toISOString(),
       vehicleInfo,
       shopName: organization?.name || shopName,
@@ -1195,9 +1200,11 @@ const DiagnosticApp = () => {
       orgId: organization?.id || null
     };
     
-    // Save to org-specific localStorage key
-    const newArchive = [report, ...archivedReports].slice(0, 50);
+    // Save to org-specific localStorage key - replace existing entry with same ID, otherwise prepend
+    const filteredReports = archivedReports.filter(r => r.id !== resolvedId);
+    const newArchive = [report, ...filteredReports].slice(0, 50);
     setArchivedReports(newArchive);
+    setCurrentReportId(resolvedId); // keep ID in sync after save
     const archiveKey = organization?.id ? `diagflow_archive_${organization.id}` : 'diagflow_archive';
     localStorage.setItem(archiveKey, JSON.stringify(newArchive));
     
@@ -1209,7 +1216,7 @@ const DiagnosticApp = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             reportData: {
-              id: null,
+              id: resolvedId,
               shopName,
               technicianName,
               vehicleInfo,
@@ -1239,6 +1246,7 @@ const DiagnosticApp = () => {
     }
     
     // Restore all data
+    setCurrentReportId(report.id || null); // track original ID so re-archive updates instead of inserting new
     setVehicleInfo(report.vehicleInfo || { year: '', make: '', model: '', vin: '', roNumber: '', mileage: '' });
     setHasVehicleInfo(true);
     setCompletedSteps(report.completedStepIds || []);
