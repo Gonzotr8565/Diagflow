@@ -707,6 +707,54 @@ const DiagnosticApp = () => {
     checkAuth();
   }, []);
 
+  // Auto-save draft to localStorage whenever job data changes
+  useEffect(() => {
+    if (!hasVehicleInfo) return; // nothing to save yet
+    const draftKey = `diagflow_draft_${organization?.id || 'generic'}`;
+    const draft = {
+      vehicleInfo,
+      completedSteps,
+      stepNotes,
+      partsRequest,
+      fuelTrims,
+      postRepairTrims,
+      currentReportId,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem(draftKey, JSON.stringify(draft));
+  }, [hasVehicleInfo, vehicleInfo, completedSteps, stepNotes, partsRequest, fuelTrims, postRepairTrims]);
+
+  // On login/org change, check for a saved draft and offer to restore
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const draftKey = `diagflow_draft_${organization?.id || 'generic'}`;
+    const saved = localStorage.getItem(draftKey);
+    if (!saved) return;
+    try {
+      const draft = JSON.parse(saved);
+      if (!draft.vehicleInfo?.roNumber) return;
+      const savedAt = new Date(draft.savedAt).toLocaleString();
+      const restore = window.confirm(
+        `Resume in-progress job?\n\n${draft.vehicleInfo.year} ${draft.vehicleInfo.make} ${draft.vehicleInfo.model} — RO# ${draft.vehicleInfo.roNumber}\n${draft.completedSteps?.length || 0} steps completed\nLast saved: ${savedAt}\n\nOK to resume, Cancel to discard.`
+      );
+      if (restore) {
+        setVehicleInfo(draft.vehicleInfo);
+        setHasVehicleInfo(true);
+        setCompletedSteps(draft.completedSteps || []);
+        setStepNotes(draft.stepNotes || {});
+        setPartsRequest(draft.partsRequest || []);
+        if (draft.fuelTrims) setFuelTrims(draft.fuelTrims);
+        if (draft.postRepairTrims) setPostRepairTrims(draft.postRepairTrims);
+        if (draft.currentReportId) setCurrentReportId(draft.currentReportId);
+        setCurrentView('workflow');
+      } else {
+        localStorage.removeItem(draftKey);
+      }
+    } catch (e) {
+      localStorage.removeItem(draftKey);
+    }
+  }, [isAuthenticated, organization]);
+
   const handleLogout = () => {
     localStorage.removeItem('diagflow_token');
     localStorage.removeItem('diagflow_org');
@@ -1167,6 +1215,7 @@ const DiagnosticApp = () => {
     setSelectedScopeWorkflow(null);
     setCurrentView('vehicle-info');
     setCurrentReportId(null);
+    localStorage.removeItem(`diagflow_draft_${organization?.id || 'generic'}`);
 
     return true;
   };
@@ -1234,7 +1283,10 @@ const DiagnosticApp = () => {
         console.log('Supabase archive failed:', err);
       }
     }
-    
+
+    // Clear draft after successful archive
+    localStorage.removeItem(`diagflow_draft_${organization?.id || 'generic'}`);
+
     return report;
   };
 
