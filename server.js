@@ -30,6 +30,60 @@ console.log('Supabase connected');
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 const FALLBACK_PASSWORD = process.env.BETA_PASSWORD || 'diagflow2024';
 
+// =============================================
+// CARMD CONFIGURATION
+// =============================================
+const CARMD_AUTH_KEY = process.env.CARMD_AUTH_KEY || null;
+const CARMD_PARTNER_TOKEN = process.env.CARMD_PARTNER_TOKEN || null;
+
+// Fetch confirmed fixes from CarMD for a single DTC
+async function getCarMDFixes(vin, mileage, dtc) {
+  if (!CARMD_AUTH_KEY || !CARMD_PARTNER_TOKEN || !vin || vin.length !== 17) return null;
+  try {
+    const headers = {
+      'authorization': `Basic ${CARMD_AUTH_KEY}`,
+      'partner-token': CARMD_PARTNER_TOKEN,
+      'content-type': 'application/json'
+    };
+    const base = `https://api.carmd.com/v3.0`;
+    const params = `vin=${encodeURIComponent(vin)}&mileage=${mileage || 0}&dtc=${encodeURIComponent(dtc.toLowerCase())}`;
+
+    const [repairRes, diagRes] = await Promise.all([
+      fetch(`${base}/repair?${params}`, { headers }),
+      fetch(`${base}/diag?${params}`, { headers })
+    ]);
+
+    const repair = await repairRes.json();
+    const diag = await diagRes.json();
+
+    return {
+      dtc: dtc.toUpperCase(),
+      definition: diag.data?.[0]?.layman_definition || diag.data?.[0]?.tech_definition || null,
+      urgency_desc: diag.data?.[0]?.urgency_desc || null,
+      effect: diag.data?.[0]?.effect_on_vehicle || null,
+      fixes: (repair.data || []).map(f => ({
+        desc: f.desc,
+        urgency: f.urgency_desc,
+        hours: f.repair?.hours,
+        part_cost: f.repair?.part_cost,
+        labor_cost: f.repair?.labor_cost,
+        total_cost: f.repair?.total_cost,
+        parts: (f.parts || []).map(p => p.desc).filter(Boolean)
+      }))
+    };
+  } catch (err) {
+    console.log('CarMD lookup failed for', dtc, ':', err.message);
+    return null;
+  }
+}
+
+// Extract DTC codes from technician notes (P, B, C, U codes)
+function extractDTCs(notes) {
+  if (!notes) return [];
+  const matches = notes.match(/[PBCU][0-9]{4}/gi) || [];
+  return [...new Set(matches.map(d => d.toUpperCase()))];
+}
+
 // Anthropic AI Configuration
 let anthropic = null;
 if (process.env.ANTHROPIC_API_KEY) {
@@ -838,17 +892,50 @@ app.post('/api/ai-analysis', async (req, res) => {
     const stepsWithNotes = steps.filter(s => s.notes && s.notes.trim());
     const stepsWithImages = steps.filter(s => s.images && s.images.length > 0);
     
-    const diagnosticSummary = stepsWithNotes.map(s => 
+    const diagnosticSummary = stepsWithNotes.map(s =>
       'Step ' + s.id + ' (' + s.title + '): ' + s.notes
     ).join('\n\n');
 
-    const partsListText = partsRequest.length > 0 
+    const partsListText = partsRequest.length > 0
       ? partsRequest.map(p => '- ' + (p.partName || p.name) + (p.partNumber ? ' (P/N: ' + p.partNumber + ')' : '') + (p.inStock ? ' [In Stock]' : ' [Needs Order]')).join('\n')
       : 'No parts requested yet.';
 
+    // Extract DTCs from all step notes and query CarMD for confirmed fixes
+    const allNotes = stepsWithNotes.map(s => s.notes).join(' ');
+    const dtcs = extractDTCs(allNotes);
+    let carmdSection = '';
+    if (dtcs.length > 0 && v.vin && v.vin.length === 17) {
+      console.log('Querying CarMD for DTCs:', dtcs.join(', '));
+      const carmdResults = await Promise.all(
+        dtcs.slice(0, 5).map(dtc => getCarMDFixes(v.vin, v.mileage, dtc))
+      );
+      const validResults = carmdResults.filter(Boolean);
+      if (validResults.length > 0) {
+        carmdSection = '\n\n**CARMD CONFIRMED FIX DATABASE:**\n' +
+          validResults.map(r => {
+            let txt = `DTC ${r.dtc}: ${r.definition || 'See tech definition'}`;
+            if (r.urgency_desc) txt += `\n  Urgency: ${r.urgency_desc}`;
+            if (r.effect) txt += `\n  Vehicle Effect: ${r.effect}`;
+            if (r.fixes.length > 0) {
+              txt += '\n  Confirmed Fixes (most probable first):';
+              r.fixes.forEach((f, i) => {
+                txt += `\n  ${i + 1}. ${f.desc}`;
+                if (f.hours) txt += ` | Est. ${f.hours}hrs labor`;
+                if (f.total_cost) txt += ` | ~$${f.total_cost.toFixed(0)} total`;
+                if (f.parts.length > 0) txt += ` | Parts: ${f.parts.join(', ')}`;
+              });
+            } else {
+              txt += '\n  No confirmed fix data available for this DTC on this vehicle.';
+            }
+            return txt;
+          }).join('\n\n');
+        console.log('CarMD data injected for', validResults.length, 'DTCs');
+      }
+    }
+
     const systemPrompt = 'You are an expert ASE Master Certified automotive diagnostic technician with 45+ years of experience. You specialize in systematic diagnosis using the "Never Miss A Step" 15-step methodology.\n\nYour role is to analyze diagnostic findings from other technicians and provide:\n1. Confirmation or questions about the diagnosis path\n2. Potential root causes they may have missed\n3. Common failures for this specific vehicle/symptom\n4. Recommended next steps or additional tests\n5. Any safety concerns or critical issues\n\nBe direct and technical - you are talking to fellow technicians. Use proper terminology. Reference TSBs or common issues when relevant. If the notes are sparse, ask clarifying questions about what tests were performed.\n\nFormat your response clearly with sections. Be helpful but also challenge assumptions if the diagnostic path seems incomplete.';
 
-    const userMessage = 'Please analyze this diagnostic case:\n\n**VEHICLE INFORMATION:**\n- Year/Make/Model: ' + (v.year || 'Unknown') + ' ' + (v.make || 'Unknown') + ' ' + (v.model || 'Unknown') + '\n- VIN: ' + (v.vin || 'Not provided') + '\n- Mileage: ' + (v.mileage || 'Not recorded') + '\n- RO#: ' + (v.roNumber || 'N/A') + '\n\n**DIAGNOSTIC PROGRESS:**\n- Steps Completed: ' + completedSteps.length + ' of ' + steps.length + '\n- Steps with Documentation: ' + stepsWithNotes.length + '\n- Steps with Photos: ' + stepsWithImages.length + '\n\n**TECHNICIAN FINDINGS:**\n' + (diagnosticSummary || 'No notes recorded in diagnostic steps.') + '\n\n**PARTS IDENTIFIED:**\n' + partsListText + '\n\n---\n\nBased on this information, please provide your analysis. If the documentation is sparse, ask what specific tests or observations the tech has made. If there is enough info, provide your diagnostic insights and recommendations.';
+    const userMessage = 'Please analyze this diagnostic case:\n\n**VEHICLE INFORMATION:**\n- Year/Make/Model: ' + (v.year || 'Unknown') + ' ' + (v.make || 'Unknown') + ' ' + (v.model || 'Unknown') + '\n- VIN: ' + (v.vin || 'Not provided') + '\n- Mileage: ' + (v.mileage || 'Not recorded') + '\n- RO#: ' + (v.roNumber || 'N/A') + '\n\n**DIAGNOSTIC PROGRESS:**\n- Steps Completed: ' + completedSteps.length + ' of ' + steps.length + '\n- Steps with Documentation: ' + stepsWithNotes.length + '\n- Steps with Photos: ' + stepsWithImages.length + '\n\n**TECHNICIAN FINDINGS:**\n' + (diagnosticSummary || 'No notes recorded in diagnostic steps.') + '\n\n**PARTS IDENTIFIED:**\n' + partsListText + carmdSection + '\n\n---\n\nBased on this information, please provide your analysis. If CarMD confirmed fix data is present above, reference it in your recommendations and indicate how well the tech\'s findings align with the most common confirmed fixes for this vehicle. If the documentation is sparse, ask what specific tests or observations the tech has made.';
 
     console.log('AI Analysis requested for:', v.year + ' ' + v.make + ' ' + v.model);
 
