@@ -1260,12 +1260,15 @@ const DiagnosticApp = () => {
     // Also save to Supabase if we have an org
     if (organization?.id) {
       try {
-        await fetch(`${API_BASE_URL}/api/reports/save`, {
+        // Only pass the ID if it came from Supabase (a string UUID), not a local Date.now() number
+        const supabaseId = (currentReportId && typeof currentReportId === 'string') ? currentReportId
+                         : (existingByRO?.fromSupabase ? existingByRO.id : null);
+        const res = await fetch(`${API_BASE_URL}/api/reports/save`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             reportData: {
-              id: resolvedId,
+              id: supabaseId,
               shopName,
               technicianName,
               vehicleInfo,
@@ -1278,6 +1281,17 @@ const DiagnosticApp = () => {
             orgId: organization.id
           })
         });
+        const saved = await res.json();
+        // Store the Supabase UUID so future re-archives update instead of insert
+        if (saved.success && saved.report?.id) {
+          setCurrentReportId(saved.report.id);
+          // Also update the local archive entry with the real Supabase ID
+          const updatedReport = { ...report, id: saved.report.id, fromSupabase: true };
+          const refiltered = archivedReports.filter(r => r.id !== resolvedId && r.id !== saved.report.id);
+          const finalArchive = [updatedReport, ...refiltered].slice(0, 50);
+          setArchivedReports(finalArchive);
+          localStorage.setItem(archiveKey, JSON.stringify(finalArchive));
+        }
         console.log('Report archived to Supabase');
       } catch (err) {
         console.log('Supabase archive failed:', err);
