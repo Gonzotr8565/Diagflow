@@ -813,7 +813,7 @@ const DiagnosticApp = () => {
     email: ''
   });
 
-  const SAMPLE_WAVEFORMS_URL = 'https://diagflow-production.up.railway.app/samples';
+  const SAMPLE_WAVEFORMS_URL = 'https://diagflow.org/scope/';
 
   const diagnosticSteps = [
     { 
@@ -1820,12 +1820,17 @@ const DiagnosticApp = () => {
                 { icon: Home, label: 'Home', view: 'home' },
                 { icon: BookOpen, label: 'Workflow', view: 'workflow' },
                 { icon: TrendingUp, label: 'Scope & Pinpoint', view: 'scope' },
-                { icon: GraduationCap, label: 'How To Use', view: 'howto' },
+                { icon: GraduationCap, label: 'How To Use', view: 'howto', externalUrl: 'https://diagflow.org/the-13-steps/' },
                 { icon: Settings, label: 'Settings', view: 'settings' }
               ].map(item => (
                 <button
                   key={item.view}
-                  onClick={() => { 
+                  onClick={() => {
+                    if (item.externalUrl) {
+                      window.open(item.externalUrl, '_blank');
+                      setMenuOpen(false);
+                      return;
+                    }
                     // Guard: if tapping Workflow with no vehicle entered, go to vehicle-info first
                     if (item.view === 'workflow' && !hasVehicleInfo) {
                       setCurrentView('vehicle-info');
@@ -1834,7 +1839,7 @@ const DiagnosticApp = () => {
                     }
                     setSelectedStep(null);
                     setSelectedScopeWorkflow(null);
-                    setMenuOpen(false); 
+                    setMenuOpen(false);
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${currentView === item.view ? 'bg-blue-50' : ''}`}
                 >
