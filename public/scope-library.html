@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scope Library — DiagFlow</title>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0a15; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+    /* NAV */
+    .nav { background: #10101e; border-bottom: 1px solid #1e293b; padding: 1rem; display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { font-size: 1.3rem; font-weight: 900; text-decoration: none; }
+    .nav-brand span:first-child { color: #f97316; }
+    .nav-brand span:last-child { color: #fff; }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { color: #94a3b8; text-decoration: none; font-size: 0.9rem; }
+    .nav-links a:hover { color: #fff; }
+    .nav-links a.active { color: #f97316; }
+
+    /* HEADER */
+    .header { text-align: center; padding: 3rem 1rem 2rem; }
+    .header h1 { font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem; }
+    .header p { color: #94a3b8; font-size: 1rem; max-width: 600px; margin: 0 auto; }
+
+    /* CATEGORY TABS */
+    .tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; padding: 0 1rem 2rem; max-width: 900px; margin: 0 auto; }
+    .tab { background: #1a1a2e; color: #94a3b8; border: 1px solid #2d2d44; border-radius: 8px; padding: 0.6rem 1.2rem; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s; }
+    .tab:hover { border-color: #f97316; color: #fff; }
+    .tab.active { background: #f97316; color: #fff; border-color: #f97316; }
+
+    /* ENTRIES GRID */
+    .entries { max-width: 1100px; margin: 0 auto; padding: 0 1rem 3rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+    .entry-card { background: #1a1a2e; border-radius: 16px; overflow: hidden; border: 1px solid #2d2d44; transition: border-color 0.2s; }
+    .entry-card:hover { border-color: #f97316; }
+    .entry-image { width: 100%; height: 220px; object-fit: cover; background: #10101e; display: block; }
+    .entry-image.placeholder { display: flex; align-items: center; justify-content: center; color: #475569; font-size: 0.9rem; }
+    .entry-body { padding: 1.5rem; }
+    .entry-title { color: #fff; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .entry-ymm { color: #f97316; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.75rem; }
+    .entry-desc { color: #94a3b8; font-size: 0.85rem; line-height: 1.6; }
+    .entry-meta { margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #2d2d44; display: flex; justify-content: space-between; align-items: center; }
+    .entry-contributor { color: #64748b; font-size: 0.75rem; }
+    .entry-category-badge { background: #f97316; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 0.25rem 0.6rem; border-radius: 4px; text-transform: uppercase; }
+
+    /* EMPTY STATE */
+    .empty { text-align: center; padding: 4rem 1rem; }
+    .empty h3 { color: #fff; font-size: 1.3rem; margin-bottom: 0.5rem; }
+    .empty p { color: #64748b; font-size: 0.9rem; }
+    .empty a { color: #f97316; text-decoration: none; font-weight: 600; }
+
+    /* LOADING */
+    .loading { text-align: center; padding: 3rem; color: #64748b; }
+
+    /* SUBMIT BUTTON */
+    .submit-bar { text-align: center; padding: 2rem 1rem 0; }
+    .submit-btn { display: inline-block; background: #ea580c; color: #fff; text-decoration: none; font-size: 1rem; font-weight: 700; padding: 0.8rem 2rem; border-radius: 8px; }
+    .submit-btn:hover { background: #c2410c; }
+
+    /* LIGHTBOX */
+    .lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; cursor: pointer; }
+    .lightbox.active { display: flex; }
+    .lightbox img { max-width: 95%; max-height: 95%; object-fit: contain; border-radius: 8px; }
+
+    /* BACK LINK */
+    .back-link { display: inline-block; color: #f97316; text-decoration: none; font-size: 0.85rem; font-weight: 600; margin-bottom: 1rem; }
+    .back-link:hover { color: #fff; }
+
+    @media (max-width: 600px) {
+      .entries { grid-template-columns: 1fr; }
+      .nav-links { gap: 0.75rem; }
+      .header h1 { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="https://diagflow.org" class="nav-brand"><span>Diag</span><span>Flow</span></a>
+    <div class="nav-links">
+      <a href="https://diagflow.org">Home</a>
+      <a href="https://diagflow.org/scope" class="active">Scope Library</a>
+      <a href="https://diagflow.org/get-the-app">Get the App</a>
+    </div>
+  </nav>
+
+  <div class="header">
+    <a href="https://diagflow.org/scope" class="back-link">← Back to Scope & Pinpoint</a>
+    <h1>Scope Library</h1>
+    <p>Real-world scope captures, Pico PSDATA files, and diagnostic stories from the field. Community-built, expert-reviewed.</p>
+  </div>
+
+  <div class="submit-bar">
+    <a href="mailto:gonzotr@gmail.com?subject=Scope%20Library%20Submission" class="submit-btn">Submit a Capture →</a>
+  </div>
+
+  <div style="padding: 1.5rem 0;"></div>
+
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-category="all">All</div>
+    <div class="tab" data-category="baseline">📊 Baseline</div>
+    <div class="tab" data-category="cam-crank">⚙ Cam & Crank</div>
+    <div class="tab" data-category="incylinder">🔩 In Cylinder</div>
+    <div class="tab" data-category="can-comm">💬 CAN Bus</div>
+    <div class="tab" data-category="electrical-draw">⚡ Electrical</div>
+    <div class="tab" data-category="amp-probe">⚡ Amp Analysis</div>
+    <div class="tab" data-category="misc">📦 Misc</div>
+  </div>
+
+  <div id="content">
+    <div class="loading">Loading scope library...</div>
+  </div>
+
+  <div class="lightbox" id="lightbox" onclick="this.classList.remove('active')">
+    <img id="lightbox-img" src="" alt="Scope capture">
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://qafmmnwjgzlssogsipua.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhZm1tbndqZ3psc3NvZ3NpcHVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MTA0MDgsImV4cCI6MjA4MzI4NjQwOH0.67M7Ea2lDXK4bYRsPuZ0fagb4RtHAn5A2cAyBWV8TcQ';
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const CATEGORY_LABELS = {
+      'baseline': '📊 Baseline',
+      'cam-crank': '⚙ Cam & Crank',
+      'incylinder': '🔩 In Cylinder',
+      'can-comm': '💬 CAN Bus',
+      'electrical-draw': '⚡ Electrical',
+      'amp-probe': '⚡ Amp Analysis',
+      'misc': '📦 Misc'
+    };
+
+    let allEntries = [];
+    let currentCategory = 'all';
+
+    // Load entries
+    async function loadEntries() {
+      const { data, error } = await supabase
+        .from('scope_library')
+        .select('*')
+        .eq('approved', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        document.getElementById('content').innerHTML = '<div class="empty"><h3>Could not load entries</h3><p>' + error.message + '</p></div>';
+        return;
+      }
+
+      allEntries = data || [];
+      renderEntries();
+    }
+
+    function renderEntries() {
+      const filtered = currentCategory === 'all' 
+        ? allEntries 
+        : allEntries.filter(e => e.category === currentCategory);
+
+      const content = document.getElementById('content');
+
+      if (filtered.length === 0) {
+        content.innerHTML = `
+          <div class="empty">
+            <h3>No entries yet${currentCategory !== 'all' ? ' in this category' : ''}</h3>
+            <p>Be the first to contribute! <a href="mailto:gonzotr@gmail.com?subject=Scope%20Library%20Submission">Submit a scope capture →</a></p>
+          </div>
+        `;
+        return;
+      }
+
+      content.innerHTML = '<div class="entries">' + filtered.map(entry => {
+        const ymm = [entry.year, entry.make, entry.model].filter(Boolean).join(' ');
+        const imgHtml = entry.image_url 
+          ? `<img class="entry-image" src="${entry.image_url}" alt="${entry.title}" onclick="openLightbox('${entry.image_url}')" style="cursor:pointer">`
+          : `<div class="entry-image placeholder">No image</div>`;
+        
+        return `
+          <div class="entry-card">
+            ${imgHtml}
+            <div class="entry-body">
+              <div class="entry-title">${entry.title}</div>
+              ${ymm ? `<div class="entry-ymm">${ymm}</div>` : ''}
+              ${entry.description ? `<div class="entry-desc">${entry.description}</div>` : ''}
+              <div class="entry-meta">
+                <span class="entry-contributor">${entry.contributor_name ? 'By ' + entry.contributor_name : ''}${entry.contributor_shop ? ' — ' + entry.contributor_shop : ''}</span>
+                <span class="entry-category-badge">${CATEGORY_LABELS[entry.category] || entry.category}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('') + '</div>';
+    }
+
+    function openLightbox(url) {
+      document.getElementById('lightbox-img').src = url;
+      document.getElementById('lightbox').classList.add('active');
+    }
+
+    // Tab clicks
+    document.getElementById('tabs').addEventListener('click', (e) => {
+      if (e.target.classList.contains('tab')) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+        currentCategory = e.target.dataset.category;
+        renderEntries();
+      }
+    });
+
+    // URL param support: ?category=baseline
+    const urlCat = new URLSearchParams(window.location.search).get('category');
+    if (urlCat && CATEGORY_LABELS[urlCat]) {
+      currentCategory = urlCat;
+      document.querySelectorAll('.tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.category === urlCat);
+      });
+    }
+
+    loadEntries();
+  </script>
+</body>
+</html>
