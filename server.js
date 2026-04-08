@@ -275,18 +275,25 @@ app.get('/api/reports/active', async (req, res) => {
 app.get('/api/reports/archived/list', async (req, res) => {
   try {
     const orgId = req.query.orgId;
-    
+    const limit = parseInt(req.query.limit) || 100;
+    const search = req.query.search || '';
+
     let query = supabase
       .from('reports')
       .select('*')
       .eq('status', 'archived')
-      .order('updated_at', { ascending: false });
-    
-    // Filter by org if provided
+      .order('updated_at', { ascending: false })
+      .limit(limit);
+
     if (orgId) {
       query = query.eq('org_id', orgId);
     }
-    
+
+    // Server-side search by RO number or last 8 of VIN
+    if (search) {
+      query = query.or(`ro_number.ilike.%${search}%,vehicle_vin.ilike.%${search}%,vehicle_make.ilike.%${search}%,vehicle_model.ilike.%${search}%`);
+    }
+
     const { data, error } = await query;
     
     if (error) throw error;
