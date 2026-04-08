@@ -2265,11 +2265,15 @@ const DiagnosticApp = () => {
               ) : (
                 <div className="space-y-3">
                   {archivedReports.map(report => (
-                    <div key={report.id} className="bg-gray-50 p-3 rounded-lg border hover:border-blue-300 transition-colors">
+                    <div key={report.id} className={`bg-gray-50 p-3 rounded-lg border hover:border-blue-300 transition-colors ${report.fromSupabase ? 'border-l-4 border-l-blue-400' : 'border-l-4 border-l-gray-300'}`}>
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <div className="font-semibold text-gray-800">
+                          <div className="font-semibold text-gray-800 flex items-center gap-2">
                             {report.vehicleInfo?.year} {report.vehicleInfo?.make} {report.vehicleInfo?.model}
+                            {report.fromSupabase
+                              ? <span title="Saved to cloud" className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">☁️ Cloud</span>
+                              : <span title="Local only — not synced to cloud" className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full font-medium">📱 Local</span>
+                            }
                           </div>
                           <div className="text-sm text-gray-600">
                             RO# {report.vehicleInfo?.roNumber || 'N/A'} • {new Date(report.date).toLocaleDateString()}
@@ -2283,7 +2287,10 @@ const DiagnosticApp = () => {
                         </div>
                         <button
                           onClick={() => {
-                            if (window.confirm('Delete this archived report?')) {
+                            const msg = report.fromSupabase
+                              ? 'Delete this report from cloud and local? This cannot be undone.'
+                              : 'Delete this local report? (Not in cloud — will be permanently lost)';
+                            if (window.confirm(msg)) {
                               deleteArchivedReport(report.id);
                             }
                           }}
