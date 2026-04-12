@@ -562,6 +562,7 @@ const DiagnosticApp = () => {
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiIncludeImages, setAiIncludeImages] = useState(false);
+  const [aiPdfFile, setAiPdfFile] = useState(null); // { name, base64 }
   const [currentReportId, setCurrentReportId] = useState(null); // tracks restored report's ID for update-on-archive
   const [submitEmail, setSubmitEmail] = useState('');
   const [additionalEmails, setAdditionalEmails] = useState('');
@@ -2461,6 +2462,41 @@ const DiagnosticApp = () => {
                     );
                   })()}
 
+                  {/* PDF Reference Upload */}
+                  <div className="mt-4 border border-dashed border-purple-300 rounded-lg p-3 max-w-sm mx-auto">
+                    <div className="text-xs text-gray-500 mb-2 text-center font-medium">📄 Attach Reference Document (optional)</div>
+                    <div className="text-xs text-gray-400 mb-2 text-center">TSB, case study, wiring diagram — Claude will read it as context</div>
+                    {aiPdfFile ? (
+                      <div className="flex items-center justify-between bg-purple-50 rounded px-2 py-1">
+                        <span className="text-xs text-purple-700 truncate">📄 {aiPdfFile.name}</span>
+                        <button onClick={() => setAiPdfFile(null)} className="text-red-400 hover:text-red-600 ml-2 text-xs">✕</button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center gap-2 cursor-pointer text-purple-600 hover:text-purple-700 text-sm">
+                        <input
+                          type="file"
+                          accept=".pdf"
+                          className="hidden"
+                          onChange={e => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            if (file.size > 10 * 1024 * 1024) {
+                              alert('PDF too large — please use files under 10MB');
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onload = ev => {
+                              const base64 = ev.target.result.split(',')[1];
+                              setAiPdfFile({ name: file.name, base64 });
+                            };
+                            reader.readAsDataURL(file);
+                          }}
+                        />
+                        ＋ Upload PDF
+                      </label>
+                    )}
+                  </div>
+
                   <button
                     onClick={async () => {
                       setIsAiLoading(true);
@@ -2468,6 +2504,7 @@ const DiagnosticApp = () => {
                         const reportData = {
                           vehicleInfo,
                           includeImages: aiIncludeImages,
+                          pdfReference: aiPdfFile || null,
                           steps: diagnosticSteps.map(s => ({
                             id: s.id,
                             title: s.title,

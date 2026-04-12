@@ -6,6 +6,7 @@ const path = require('path');
 const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
+const pdfParse = require('pdf-parse');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -865,9 +866,28 @@ app.post('/api/ai-analysis', async (req, res) => {
     // const allNotes = stepsWithNotes.map(s => s.notes).join(' ');
     // const dtcs = extractDTCs(allNotes);
 
+    // Extract text from uploaded PDF reference document if provided
+    let pdfSection = '';
+    if (reportData.pdfReference?.base64) {
+      try {
+        const pdfBuffer = Buffer.from(reportData.pdfReference.base64, 'base64');
+        const parsed = await pdfParse(pdfBuffer);
+        const pdfText = parsed.text?.trim();
+        if (pdfText) {
+          // Limit to ~8000 chars to avoid token overload
+          const truncated = pdfText.length > 8000 ? pdfText.slice(0, 8000) + '\n...[document truncated]' : pdfText;
+          pdfSection = `\n\n**REFERENCE DOCUMENT (${reportData.pdfReference.name}):**\n${truncated}`;
+          console.log('PDF reference extracted:', reportData.pdfReference.name, '— chars:', pdfText.length);
+        }
+      } catch (err) {
+        console.log('PDF parse failed:', err.message);
+        pdfSection = `\n\n**REFERENCE DOCUMENT:** (Tech attached "${reportData.pdfReference?.name}" but it could not be read — may be a scanned/image-only PDF)`;
+      }
+    }
+
     const systemPrompt = 'You are an expert ASE Master Certified automotive diagnostic technician with 45+ years of experience. You specialize in systematic diagnosis using the "Never Miss A Step" 15-step methodology.\n\nYour role is to analyze diagnostic findings from other technicians and provide:\n1. Confirmation or questions about the diagnosis path\n2. Potential root causes they may have missed\n3. Common failures for this specific vehicle/symptom\n4. Recommended next steps or additional tests\n5. Any safety concerns or critical issues\n\nBe direct and technical - you are talking to fellow technicians. Use proper terminology. Reference TSBs or common issues when relevant. If the notes are sparse, ask clarifying questions about what tests were performed.\n\nFormat your response clearly with sections. Be helpful but also challenge assumptions if the diagnostic path seems incomplete.';
 
-    const textMessage = 'Please analyze this diagnostic case:\n\n**VEHICLE INFORMATION:**\n- Year/Make/Model: ' + (v.year || 'Unknown') + ' ' + (v.make || 'Unknown') + ' ' + (v.model || 'Unknown') + '\n- VIN: ' + (v.vin || 'Not provided') + '\n- Mileage: ' + (v.mileage || 'Not recorded') + '\n- RO#: ' + (v.roNumber || 'N/A') + '\n\n**DIAGNOSTIC PROGRESS:**\n- Steps Completed: ' + completedSteps.length + ' of ' + steps.length + '\n- Steps with Documentation: ' + stepsWithNotes.length + '\n- Steps with Photos: ' + stepsWithImages.length + '\n\n**TECHNICIAN FINDINGS:**\n' + (diagnosticSummary || 'No notes recorded in diagnostic steps.') + '\n\n**PARTS IDENTIFIED:**\n' + partsListText + '\n\n---\n\nBased on this information, please provide your analysis. If the documentation is sparse, ask what specific tests or observations the tech has made. If there is enough info, provide your diagnostic insights and recommendations.';
+    const textMessage = 'Please analyze this diagnostic case:\n\n**VEHICLE INFORMATION:**\n- Year/Make/Model: ' + (v.year || 'Unknown') + ' ' + (v.make || 'Unknown') + ' ' + (v.model || 'Unknown') + '\n- VIN: ' + (v.vin || 'Not provided') + '\n- Mileage: ' + (v.mileage || 'Not recorded') + '\n- RO#: ' + (v.roNumber || 'N/A') + '\n\n**DIAGNOSTIC PROGRESS:**\n- Steps Completed: ' + completedSteps.length + ' of ' + steps.length + '\n- Steps with Documentation: ' + stepsWithNotes.length + '\n- Steps with Photos: ' + stepsWithImages.length + '\n\n**TECHNICIAN FINDINGS:**\n' + (diagnosticSummary || 'No notes recorded in diagnostic steps.') + '\n\n**PARTS IDENTIFIED:**\n' + partsListText + pdfSection + '\n\n---\n\nBased on this information, please provide your analysis.' + (pdfSection ? ' Reference the attached document where relevant to the diagnosis.' : '') + ' If the documentation is sparse, ask what specific tests or observations the tech has made. If there is enough info, provide your diagnostic insights and recommendations.';
 
     // Build message content — add images as vision blocks if tech opted in
     let messageContent;
