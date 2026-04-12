@@ -561,6 +561,7 @@ const DiagnosticApp = () => {
   const [archivedReports, setArchivedReports] = useState([]);
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiIncludeImages, setAiIncludeImages] = useState(false);
   const [currentReportId, setCurrentReportId] = useState(null); // tracks restored report's ID for update-on-archive
   const [submitEmail, setSubmitEmail] = useState('');
   const [additionalEmails, setAdditionalEmails] = useState('');
@@ -2442,18 +2443,37 @@ const DiagnosticApp = () => {
                     <li>• Confidence level in diagnosis</li>
                   </ul>
                   
+                  {(() => {
+                    const totalImages = Object.values(stepImages).reduce((sum, imgs) => sum + (imgs?.length || 0), 0);
+                    return totalImages > 0 && (
+                      <label className="flex items-center justify-center gap-2 mt-5 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={aiIncludeImages}
+                          onChange={e => setAiIncludeImages(e.target.checked)}
+                          className="w-4 h-4 accent-purple-600"
+                        />
+                        <span className="text-sm text-gray-700">
+                          Include photos in AI query
+                          <span className="ml-1 text-xs text-purple-600 font-medium">({totalImages} photo{totalImages !== 1 ? 's' : ''})</span>
+                        </span>
+                      </label>
+                    );
+                  })()}
+
                   <button
                     onClick={async () => {
                       setIsAiLoading(true);
                       try {
                         const reportData = {
                           vehicleInfo,
+                          includeImages: aiIncludeImages,
                           steps: diagnosticSteps.map(s => ({
                             id: s.id,
                             title: s.title,
                             completed: completedSteps.includes(s.id),
                             notes: stepNotes[s.id] || '',
-                            images: stepImages[s.id] || []
+                            images: aiIncludeImages ? (stepImages[s.id] || []) : []
                           })),
                           partsRequest: partsRequest || []
                         };
@@ -2473,7 +2493,7 @@ const DiagnosticApp = () => {
                       }
                       setIsAiLoading(false);
                     }}
-                    className="mt-6 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 flex items-center gap-2 mx-auto"
+                    className="mt-4 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 flex items-center gap-2 mx-auto"
                   >
                     <Sparkles className="w-5 h-5" />
                     Generate AI Analysis

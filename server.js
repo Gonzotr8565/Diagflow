@@ -867,7 +867,29 @@ app.post('/api/ai-analysis', async (req, res) => {
 
     const systemPrompt = 'You are an expert ASE Master Certified automotive diagnostic technician with 45+ years of experience. You specialize in systematic diagnosis using the "Never Miss A Step" 15-step methodology.\n\nYour role is to analyze diagnostic findings from other technicians and provide:\n1. Confirmation or questions about the diagnosis path\n2. Potential root causes they may have missed\n3. Common failures for this specific vehicle/symptom\n4. Recommended next steps or additional tests\n5. Any safety concerns or critical issues\n\nBe direct and technical - you are talking to fellow technicians. Use proper terminology. Reference TSBs or common issues when relevant. If the notes are sparse, ask clarifying questions about what tests were performed.\n\nFormat your response clearly with sections. Be helpful but also challenge assumptions if the diagnostic path seems incomplete.';
 
-    const userMessage = 'Please analyze this diagnostic case:\n\n**VEHICLE INFORMATION:**\n- Year/Make/Model: ' + (v.year || 'Unknown') + ' ' + (v.make || 'Unknown') + ' ' + (v.model || 'Unknown') + '\n- VIN: ' + (v.vin || 'Not provided') + '\n- Mileage: ' + (v.mileage || 'Not recorded') + '\n- RO#: ' + (v.roNumber || 'N/A') + '\n\n**DIAGNOSTIC PROGRESS:**\n- Steps Completed: ' + completedSteps.length + ' of ' + steps.length + '\n- Steps with Documentation: ' + stepsWithNotes.length + '\n- Steps with Photos: ' + stepsWithImages.length + '\n\n**TECHNICIAN FINDINGS:**\n' + (diagnosticSummary || 'No notes recorded in diagnostic steps.') + '\n\n**PARTS IDENTIFIED:**\n' + partsListText + '\n\n---\n\nBased on this information, please provide your analysis. If the documentation is sparse, ask what specific tests or observations the tech has made. If there is enough info, provide your diagnostic insights and recommendations.';
+    const textMessage = 'Please analyze this diagnostic case:\n\n**VEHICLE INFORMATION:**\n- Year/Make/Model: ' + (v.year || 'Unknown') + ' ' + (v.make || 'Unknown') + ' ' + (v.model || 'Unknown') + '\n- VIN: ' + (v.vin || 'Not provided') + '\n- Mileage: ' + (v.mileage || 'Not recorded') + '\n- RO#: ' + (v.roNumber || 'N/A') + '\n\n**DIAGNOSTIC PROGRESS:**\n- Steps Completed: ' + completedSteps.length + ' of ' + steps.length + '\n- Steps with Documentation: ' + stepsWithNotes.length + '\n- Steps with Photos: ' + stepsWithImages.length + '\n\n**TECHNICIAN FINDINGS:**\n' + (diagnosticSummary || 'No notes recorded in diagnostic steps.') + '\n\n**PARTS IDENTIFIED:**\n' + partsListText + '\n\n---\n\nBased on this information, please provide your analysis. If the documentation is sparse, ask what specific tests or observations the tech has made. If there is enough info, provide your diagnostic insights and recommendations.';
+
+    // Build message content — add images as vision blocks if tech opted in
+    let messageContent;
+    if (reportData.includeImages && stepsWithImages.length > 0) {
+      messageContent = [{ type: 'text', text: textMessage }];
+      for (const step of stepsWithImages) {
+        messageContent.push({ type: 'text', text: `\n📷 Photos from Step ${step.id} (${step.title}):` });
+        for (const img of step.images) {
+          // Images are stored as data URLs: "data:image/jpeg;base64,/9j/..."
+          const matches = img.match(/^data:(.+);base64,(.+)$/);
+          if (matches) {
+            messageContent.push({
+              type: 'image',
+              source: { type: 'base64', media_type: matches[1], data: matches[2] }
+            });
+          }
+        }
+      }
+      console.log('AI Analysis with images:', stepsWithImages.reduce((n, s) => n + s.images.length, 0), 'photos included');
+    } else {
+      messageContent = textMessage;
+    }
 
     console.log('AI Analysis requested for:', v.year + ' ' + v.make + ' ' + v.model);
 
@@ -875,7 +897,7 @@ app.post('/api/ai-analysis', async (req, res) => {
       model: 'claude-sonnet-4-20250514',
       max_tokens: 2000,
       messages: [
-        { role: 'user', content: userMessage }
+        { role: 'user', content: messageContent }
       ],
       system: systemPrompt
     });
