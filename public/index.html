@@ -644,7 +644,15 @@ const DiagnosticApp = () => {
               completedSteps: r.completed_steps?.length || 0,
               completedStepIds: r.completed_steps || [],
               stepNotes: r.step_notes || {},
+              stepImages: r.step_images || {},
+              steps: r.step_notes ? Object.keys(r.step_notes).map(id => ({
+                id: parseInt(id),
+                notes: r.step_notes[id],
+                images: (r.step_images || {})[id] || []
+              })) : [],
               partsRequest: r.parts_request || [],
+              fuelTrims: r.fuel_trims || null,
+              postRepairTrims: r.post_repair_trims || null,
               fromSupabase: true
             }));
             
@@ -1344,7 +1352,10 @@ const DiagnosticApp = () => {
     }
     
     // Restore images if available
-    if (report.steps) {
+    // Restore images — prefer stepImages directly, fall back to building from steps array
+    if (report.stepImages && Object.keys(report.stepImages).length > 0) {
+      setStepImages(report.stepImages);
+    } else if (report.steps) {
       const restoredImages = {};
       report.steps.forEach(step => {
         if (step.images && step.images.length > 0) {
