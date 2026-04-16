@@ -834,6 +834,252 @@ app.post('/api/submit-report', async (req, res) => {
 });
 
 // =============================================
+// MF4 CAN BUS LOG PARSER ENDPOINT
+// =============================================
+function parseMF4(buffer) {
+  const buf = Buffer.from(buffer);
+
+  // Verify MDF4 file signature
+  const fileId = buf.toString('ascii', 0, 4);
+  if (fileId !== 'MDF ' && fileId !== 'UnFi') {
+    throw new Error('Not a valid MF4/MDF4 file');
+  }
+
+  function readBlock(offset) {
+    if (offset === 0 || offset >= buf.length - 24) return null;
+    const id = buf.toString('ascii', offset, offset + 4);
+    const length = Number(buf.readBigUInt64LE(offset + 8));
+    const linkCount = Number(buf.readBigUInt64LE(offset + 16));
+    const links = [];
+    for (let i = 0; i < linkCount; i++) {
+      links.push(Number(buf.readBigUInt64LE(offset + 24 + i * 8)));
+    }
+    return { id, offset, length, linkCount, links, dataOffset: offset + 24 + linkCount * 8 };
+  }
+
+  function readTX(offset) {
+    if (!offset) return '';
+    const block = readBlock(offset);
+    if (!block || (block.id !== '##TX' && block.id !== '##MD')) return '';
+    let text = buf.toString('utf8', block.dataOffset, offset + block.length);
+    const nullIdx = text.indexOf('\0');
+    return nullIdx >= 0 ? text.slice(0, nullIdx) : text.trim();
+  }
+
+  function extractBits(recordStart, byteOff, bitOff, bitCount) {
+    const startByte = recordStart + 1 + byteOff;
+    if (startByte + Math.ceil((bitOff + bitCount) / 8) > buf.length) return 0;
+    const bytesNeeded = Math.ceil((bitOff + bitCount) / 8);
+    let val = BigInt(0);
+    for (let i = 0; i < bytesNeeded && i < 8; i++) {
+      val |= BigInt(buf.readUInt8(startByte + i)) << BigInt(i * 8);
+    }
+    val >>= BigInt(bitOff);
+    return Number(val & ((BigInt(1) << BigInt(bitCount)) - BigInt(1)));
+  }
+
+  // Parse HD block at offset 64
+  const hd = readBlock(64);
+  if (!hd || hd.id !== '##HD') throw new Error('Missing HD block');
+
+  const dgOffset = hd.links[0];
+  if (!dgOffset) throw new Error('No data groups in file');
+  const dg = readBlock(dgOffset);
+  if (!dg || dg.id !== '##DG') throw new Error('Invalid DG block');
+
+  // Parse channel groups to find CAN_DataFrame CG
+  const dtOffset = dg.links[2];
+  const dt = readBlock(dtOffset);
+  if (!dt) throw new Error('No data block');
+
+  let canCgDataBytes = 0;
+  let canRecordId = 0;
+  let vlsdRecordId = 0;
+  let linRecordId = 0;
+  let linCgDataBytes = 0;
+
+  // Discover channel group layout and find CAN ID/DLC bit positions
+  let canIdByteOff = 8, canIdBitOff = 3, canIdBits = 29;
+  let ideBitOff = 0;
+  let dlcByteOff = 13, dlcBitOff = 4, dlcBits = 4;
+
+  let cgOffset = dg.links[1];
+  while (cgOffset) {
+    const cg = readBlock(cgOffset);
+    if (!cg || cg.id !== '##CG') break;
+    const cgBody = cg.dataOffset;
+    const recId = Number(buf.readBigUInt64LE(cgBody));
+    const flags = buf.readUInt16LE(cgBody + 16);
+    const dataBytes = buf.readUInt32LE(cgBody + 24);
+    const acqName = readTX(cg.links[2]);
+
+    if (flags & 1) {
+      // VLSD CG
+      vlsdRecordId = recId;
+    } else if (acqName.includes('CAN') || acqName.includes('can')) {
+      canRecordId = recId;
+      canCgDataBytes = dataBytes;
+
+      // Parse CN sub-channels for exact bit positions
+      let cnOffset = cg.links[1];
+      while (cnOffset) {
+        const cn = readBlock(cnOffset);
+        if (!cn || cn.id !== '##CN') break;
+        const compLink = cn.links[1];
+        if (compLink) {
+          let subCn = readBlock(compLink);
+          while (subCn && subCn.id === '##CN') {
+            const sb = subCn.dataOffset;
+            const sName = readTX(subCn.links[2]);
+            if (sName.includes('.ID') && !sName.includes('.IDE')) {
+              canIdByteOff = buf.readUInt32LE(sb + 4);
+              canIdBitOff = buf.readUInt8(sb + 3);
+              canIdBits = buf.readUInt32LE(sb + 8);
+            } else if (sName.includes('.IDE')) {
+              ideBitOff = buf.readUInt8(sb + 3);
+            } else if (sName.includes('.DLC')) {
+              dlcByteOff = buf.readUInt32LE(sb + 4);
+              dlcBitOff = buf.readUInt8(sb + 3);
+              dlcBits = buf.readUInt32LE(sb + 8);
+            }
+            subCn = subCn.links[0] ? readBlock(subCn.links[0]) : null;
+          }
+        }
+        cnOffset = cn.links[0];
+      }
+    } else if (acqName.includes('LIN') || acqName.includes('lin')) {
+      linRecordId = recId;
+      linCgDataBytes = dataBytes;
+    }
+    cgOffset = cg.links[0];
+  }
+
+  if (!canRecordId) throw new Error('No CAN data group found in MF4 file');
+
+  // Parse data records
+  const dataStart = dt.dataOffset;
+  let pos = dataStart;
+  const canFrames = [];
+  const maxFrames = 500000; // safety limit
+
+  while (pos < buf.length - 1 && canFrames.length < maxFrames) {
+    const recId = buf.readUInt8(pos);
+    if (recId === canRecordId) {
+      const ts = buf.readDoubleLE(pos + 1);
+      const canId = extractBits(pos, canIdByteOff, canIdBitOff, canIdBits);
+      const ide = extractBits(pos, canIdByteOff, ideBitOff, 1);
+      const dlc = extractBits(pos, dlcByteOff, dlcBitOff, dlcBits);
+      canFrames.push({ ts: ts / 1e6, canId, ide, dlc, data: '' });
+      pos += 1 + canCgDataBytes;
+    } else if (recId === vlsdRecordId) {
+      const len = buf.readUInt32LE(pos + 1);
+      const dataBytes = buf.slice(pos + 5, pos + 5 + Math.min(len, 64));
+      // Attach to most recent CAN frame
+      if (canFrames.length > 0 && !canFrames[canFrames.length - 1].data) {
+        canFrames[canFrames.length - 1].data = dataBytes.toString('hex');
+      }
+      pos += 5 + len;
+    } else if (recId === linRecordId && linCgDataBytes > 0) {
+      pos += 1 + linCgDataBytes;
+    } else {
+      pos++;
+    }
+  }
+
+  // Build summary
+  const idCounts = {};
+  canFrames.forEach(f => {
+    const key = '0x' + f.canId.toString(16).toUpperCase().padStart(3, '0');
+    idCounts[key] = (idCounts[key] || 0) + 1;
+  });
+  const uniqueIds = Object.keys(idCounts).sort();
+  const timeSpan = canFrames.length > 1
+    ? ((canFrames[canFrames.length - 1].ts - canFrames[0].ts) / 1000).toFixed(2)
+    : '0';
+
+  // Decode OBD2 PIDs from 0x7E8/0x7E9-0x7EF responses
+  const obd2Decoded = [];
+  const obd2PidNames = {
+    0x04: 'Calc Engine Load', 0x05: 'Coolant Temp', 0x06: 'STFT Bank 1',
+    0x07: 'LTFT Bank 1', 0x08: 'STFT Bank 2', 0x09: 'LTFT Bank 2',
+    0x0A: 'Fuel Pressure', 0x0B: 'Intake MAP', 0x0C: 'Engine RPM',
+    0x0D: 'Vehicle Speed', 0x0E: 'Timing Advance', 0x0F: 'Intake Air Temp',
+    0x10: 'MAF Rate', 0x11: 'Throttle Position', 0x1C: 'OBD Standard',
+    0x1F: 'Run Time', 0x21: 'Distance w/ MIL', 0x2F: 'Fuel Tank Level',
+    0x31: 'Distance Since Clear', 0x33: 'Baro Pressure', 0x42: 'Control Module Voltage',
+    0x46: 'Ambient Air Temp', 0x49: 'Accel Pedal D', 0x4A: 'Accel Pedal E',
+    0x51: 'Fuel Type', 0x5C: 'Oil Temp', 0x62: 'Actual Engine Torque',
+  };
+
+  for (const f of canFrames) {
+    if (f.canId >= 0x7E8 && f.canId <= 0x7EF && f.data.length >= 8) {
+      const bytes = Buffer.from(f.data, 'hex');
+      const pci = bytes[0];
+      if (bytes[1] === 0x41) { // Mode 01 response
+        const pid = bytes[2];
+        const pidName = obd2PidNames[pid] || `PID 0x${pid.toString(16).toUpperCase()}`;
+        let value = '';
+        // Decode common PIDs
+        if (pid === 0x05 || pid === 0x0F || pid === 0x46) value = (bytes[3] - 40) + ' °C';
+        else if (pid === 0x04 || pid === 0x11) value = (bytes[3] / 2.55).toFixed(1) + ' %';
+        else if (pid === 0x06 || pid === 0x07 || pid === 0x08 || pid === 0x09) value = ((bytes[3] - 128) * 100 / 128).toFixed(1) + ' %';
+        else if (pid === 0x0B || pid === 0x33) value = bytes[3] + ' kPa';
+        else if (pid === 0x0C) value = ((bytes[3] * 256 + bytes[4]) / 4).toFixed(0) + ' RPM';
+        else if (pid === 0x0D) value = bytes[3] + ' km/h';
+        else if (pid === 0x0E) value = (bytes[3] / 2 - 64).toFixed(1) + ' deg';
+        else if (pid === 0x10) value = ((bytes[3] * 256 + bytes[4]) / 100).toFixed(2) + ' g/s';
+        else if (pid === 0x2F) value = (bytes[3] / 2.55).toFixed(1) + ' %';
+        else if (pid === 0x42) value = ((bytes[3] * 256 + bytes[4]) / 1000).toFixed(2) + ' V';
+        else if (pid === 0x5C) value = (bytes[3] - 40) + ' °C';
+        else value = '0x' + bytes.slice(3, 3 + (pci & 0x0F) - 2).toString('hex');
+
+        obd2Decoded.push({ ts: f.ts.toFixed(1), pid: '0x' + pid.toString(16).toUpperCase().padStart(2, '0'), name: pidName, value });
+      }
+    }
+  }
+
+  return {
+    totalMessages: canFrames.length,
+    uniqueIds: uniqueIds.length,
+    timeSpanSeconds: timeSpan,
+    idCounts,
+    topIds: uniqueIds.sort((a, b) => idCounts[b] - idCounts[a]).slice(0, 30),
+    sampleMessages: canFrames.slice(0, 20).map(f => ({
+      timestamp: f.ts.toFixed(3),
+      id: '0x' + f.canId.toString(16).toUpperCase().padStart(3, '0'),
+      extended: f.ide === 1,
+      dlc: f.dlc,
+      data: f.data
+    })),
+    obd2Decoded: obd2Decoded.slice(0, 500), // first 500 decoded values
+    obd2Summary: (() => {
+      // Summarize OBD2 data: latest value per PID
+      const latest = {};
+      obd2Decoded.forEach(d => { latest[d.pid] = d; });
+      return Object.values(latest);
+    })()
+  };
+}
+
+app.post('/api/parse-mf4', (req, res) => {
+  try {
+    const { fileBase64 } = req.body;
+    if (!fileBase64) return res.status(400).json({ success: false, error: 'No file data provided' });
+
+    const buffer = Buffer.from(fileBase64, 'base64');
+    console.log('Parsing MF4 file:', (buffer.length / 1024).toFixed(1), 'KB');
+
+    const result = parseMF4(buffer);
+    console.log('MF4 parsed:', result.totalMessages, 'CAN messages,', result.uniqueIds, 'unique IDs,', result.obd2Decoded.length, 'OBD2 values decoded');
+
+    res.json({ success: true, ...result });
+  } catch (error) {
+    console.error('MF4 parse error:', error.message);
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+// =============================================
 // AI DIAGNOSTIC ANALYSIS ENDPOINT
 // =============================================
 app.post('/api/ai-analysis', async (req, res) => {
@@ -898,7 +1144,21 @@ app.post('/api/ai-analysis', async (req, res) => {
           if (s.topIds && s.topIds.length > 0) {
             logText += `\n  Top IDs by frequency: ${s.topIds.map(id => id + ' (' + (s.idCounts?.[id] || 0) + ')').join(', ')}`;
           }
-          // Include raw data sample (first ~8000 chars) for AI to analyze
+          // Include OBD2 decoded values if available (from MF4 parsing)
+          if (s.obd2Summary && s.obd2Summary.length > 0) {
+            logText += `\n  OBD2 Decoded Values:`;
+            s.obd2Summary.forEach(d => {
+              logText += `\n    ${d.name} (${d.pid}): ${d.value}`;
+            });
+          }
+          if (s.obd2Decoded && s.obd2Decoded.length > 0) {
+            const decodedSample = s.obd2Decoded.slice(0, 200);
+            logText += `\n  OBD2 Time Series (${s.obd2Decoded.length} readings, showing first ${decodedSample.length}):`;
+            decodedSample.forEach(d => {
+              logText += `\n    ${d.ts}ms ${d.name}: ${d.value}`;
+            });
+          }
+          // Include raw data sample (first ~8000 chars) for text-based logs
           if (log.rawText) {
             const rawSample = log.rawText.length > 8000 ? log.rawText.slice(0, 8000) + '\n...[log truncated]' : log.rawText;
             logText += `\n  Raw CAN data:\n${rawSample}`;
