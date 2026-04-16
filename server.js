@@ -885,9 +885,34 @@ app.post('/api/ai-analysis', async (req, res) => {
       }
     }
 
-    const systemPrompt = 'You are an expert ASE Master Certified automotive diagnostic technician with 45+ years of experience. You specialize in systematic diagnosis using the "Never Miss A Step" 15-step methodology.\n\nYour role is to analyze diagnostic findings from other technicians and provide:\n1. Confirmation or questions about the diagnosis path\n2. Potential root causes they may have missed\n3. Common failures for this specific vehicle/symptom\n4. Recommended next steps or additional tests\n5. Any safety concerns or critical issues\n\nBe direct and technical - you are talking to fellow technicians. Use proper terminology. Reference TSBs or common issues when relevant. If the notes are sparse, ask clarifying questions about what tests were performed.\n\nFormat your response clearly with sections. Be helpful but also challenge assumptions if the diagnostic path seems incomplete.';
+    // Build CAN bus data section if tech included CAN logs
+    let canSection = '';
+    const stepsWithCanLogs = steps.filter(s => s.canLogs && s.canLogs.length > 0);
+    if (reportData.includeCanLogs && stepsWithCanLogs.length > 0) {
+      const canParts = [];
+      for (const step of stepsWithCanLogs) {
+        for (const log of step.canLogs) {
+          const s = log.summary || {};
+          let logText = `\nCAN Log "${log.name}" (Step ${step.id} — ${step.title}):`;
+          logText += `\n  Total Messages: ${s.totalMessages || 0}, Unique CAN IDs: ${s.uniqueIds || 0}, Duration: ${s.timeSpanSeconds || 0}s`;
+          if (s.topIds && s.topIds.length > 0) {
+            logText += `\n  Top IDs by frequency: ${s.topIds.map(id => id + ' (' + (s.idCounts?.[id] || 0) + ')').join(', ')}`;
+          }
+          // Include raw data sample (first ~8000 chars) for AI to analyze
+          if (log.rawText) {
+            const rawSample = log.rawText.length > 8000 ? log.rawText.slice(0, 8000) + '\n...[log truncated]' : log.rawText;
+            logText += `\n  Raw CAN data:\n${rawSample}`;
+          }
+          canParts.push(logText);
+        }
+      }
+      canSection = '\n\n**CAN BUS DATA:**' + canParts.join('\n');
+      console.log('CAN bus data included:', stepsWithCanLogs.reduce((n, s) => n + s.canLogs.length, 0), 'log files');
+    }
 
-    const textMessage = 'Please analyze this diagnostic case:\n\n**VEHICLE INFORMATION:**\n- Year/Make/Model: ' + (v.year || 'Unknown') + ' ' + (v.make || 'Unknown') + ' ' + (v.model || 'Unknown') + '\n- VIN: ' + (v.vin || 'Not provided') + '\n- Mileage: ' + (v.mileage || 'Not recorded') + '\n- RO#: ' + (v.roNumber || 'N/A') + '\n\n**DIAGNOSTIC PROGRESS:**\n- Steps Completed: ' + completedSteps.length + ' of ' + steps.length + '\n- Steps with Documentation: ' + stepsWithNotes.length + '\n- Steps with Photos: ' + stepsWithImages.length + '\n\n**TECHNICIAN FINDINGS:**\n' + (diagnosticSummary || 'No notes recorded in diagnostic steps.') + '\n\n**PARTS IDENTIFIED:**\n' + partsListText + pdfSection + '\n\n---\n\nBased on this information, please provide your analysis.' + (pdfSection ? ' Reference the attached document where relevant to the diagnosis.' : '') + ' If the documentation is sparse, ask what specific tests or observations the tech has made. If there is enough info, provide your diagnostic insights and recommendations.';
+    const systemPrompt = 'You are an expert ASE Master Certified automotive diagnostic technician with 45+ years of experience. You specialize in systematic diagnosis using the "Never Miss A Step" 15-step methodology.\n\nYour role is to analyze diagnostic findings from other technicians and provide:\n1. Confirmation or questions about the diagnosis path\n2. Potential root causes they may have missed\n3. Common failures for this specific vehicle/symptom\n4. Recommended next steps or additional tests\n5. Any safety concerns or critical issues\n\nBe direct and technical - you are talking to fellow technicians. Use proper terminology. Reference TSBs or common issues when relevant. If the notes are sparse, ask clarifying questions about what tests were performed.\n\nFormat your response clearly with sections. Be helpful but also challenge assumptions if the diagnostic path seems incomplete.' + (canSection ? '\n\nWhen CAN bus data is provided, analyze it for:\n- Modules that are NOT responding (missing expected CAN IDs for this vehicle)\n- Modules sending error frames or abnormal message rates\n- Communication bus issues (low message counts may indicate wiring/termination problems)\n- Correlate CAN bus findings with the reported symptoms and diagnostic steps\n- Identify any CAN IDs with unusual data patterns or timing gaps' : '');
+
+    const textMessage = 'Please analyze this diagnostic case:\n\n**VEHICLE INFORMATION:**\n- Year/Make/Model: ' + (v.year || 'Unknown') + ' ' + (v.make || 'Unknown') + ' ' + (v.model || 'Unknown') + '\n- VIN: ' + (v.vin || 'Not provided') + '\n- Mileage: ' + (v.mileage || 'Not recorded') + '\n- RO#: ' + (v.roNumber || 'N/A') + '\n\n**DIAGNOSTIC PROGRESS:**\n- Steps Completed: ' + completedSteps.length + ' of ' + steps.length + '\n- Steps with Documentation: ' + stepsWithNotes.length + '\n- Steps with Photos: ' + stepsWithImages.length + '\n\n**TECHNICIAN FINDINGS:**\n' + (diagnosticSummary || 'No notes recorded in diagnostic steps.') + '\n\n**PARTS IDENTIFIED:**\n' + partsListText + pdfSection + canSection + '\n\n---\n\nBased on this information, please provide your analysis.' + (pdfSection ? ' Reference the attached document where relevant to the diagnosis.' : '') + (canSection ? ' Analyze the CAN bus data for missing/non-responding modules, error frames, and communication issues. Identify which modules are present and which may be failing or offline.' : '') + ' If the documentation is sparse, ask what specific tests or observations the tech has made. If there is enough info, provide your diagnostic insights and recommendations.';
 
     // Build message content — add images as vision blocks if tech opted in
     let messageContent;
@@ -913,14 +938,31 @@ app.post('/api/ai-analysis', async (req, res) => {
 
     console.log('AI Analysis requested for:', v.year + ' ' + v.make + ' ' + v.model);
 
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      messages: [
-        { role: 'user', content: messageContent }
-      ],
-      system: systemPrompt
-    });
+    // Retry with exponential backoff for transient API errors (429, 529 overloaded)
+    let message;
+    const maxRetries = 3;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        message = await anthropic.messages.create({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          messages: [
+            { role: 'user', content: messageContent }
+          ],
+          system: systemPrompt
+        });
+        break; // success
+      } catch (apiError) {
+        const status = apiError.status || apiError.statusCode;
+        if ((status === 429 || status === 529) && attempt < maxRetries) {
+          const delay = attempt * 2000; // 2s, 4s
+          console.log(`AI API overloaded (${status}), retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`);
+          await new Promise(r => setTimeout(r, delay));
+        } else {
+          throw apiError;
+        }
+      }
+    }
 
     const analysisText = message.content[0].text;
     

@@ -557,12 +557,19 @@ const DiagnosticApp = () => {
   const [archiveSearch, setArchiveSearch] = useState('');
   const [archiveLoadLimit, setArchiveLoadLimit] = useState(100);
   const [showAIModal, setShowAIModal] = useState(false);
+  const [toast, setToast] = useState(null); // { message, type: 'error'|'success' }
+  const showToast = (message, type = 'error', duration = 6000) => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), duration);
+  };
   const [showVinScanner, setShowVinScanner] = useState(false);
   const [archivedReports, setArchivedReports] = useState([]);
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiIncludeImages, setAiIncludeImages] = useState(false);
   const [aiPdfFile, setAiPdfFile] = useState(null); // { name, base64 }
+  const [canLogFiles, setCanLogFiles] = useState({}); // { [stepId]: [{ id, name, rawText, summary }] }
+  const [aiIncludeCanLogs, setAiIncludeCanLogs] = useState(false);
   const [currentReportId, setCurrentReportId] = useState(null); // tracks restored report's ID for update-on-archive
   const [submitEmail, setSubmitEmail] = useState('');
   const [additionalEmails, setAdditionalEmails] = useState('');
@@ -727,14 +734,23 @@ const DiagnosticApp = () => {
       vehicleInfo,
       completedSteps,
       stepNotes,
+      stepImages,
+      canLogFiles,
       partsRequest,
       fuelTrims,
       postRepairTrims,
       currentReportId,
       savedAt: new Date().toISOString()
     };
-    localStorage.setItem(draftKey, JSON.stringify(draft));
-  }, [hasVehicleInfo, vehicleInfo, completedSteps, stepNotes, partsRequest, fuelTrims, postRepairTrims]);
+    try {
+      localStorage.setItem(draftKey, JSON.stringify(draft));
+    } catch (e) {
+      // localStorage full (likely due to images/CAN data) — save draft without bulky data
+      console.warn('Draft save with images failed, saving without images:', e.message);
+      const { stepImages: _, canLogFiles: _c, ...draftNoImages } = draft;
+      localStorage.setItem(draftKey, JSON.stringify(draftNoImages));
+    }
+  }, [hasVehicleInfo, vehicleInfo, completedSteps, stepNotes, stepImages, canLogFiles, partsRequest, fuelTrims, postRepairTrims]);
 
   // On login/org change, check for a saved draft and offer to restore
   useEffect(() => {
@@ -754,6 +770,8 @@ const DiagnosticApp = () => {
         setHasVehicleInfo(true);
         setCompletedSteps(draft.completedSteps || []);
         setStepNotes(draft.stepNotes || {});
+        if (draft.stepImages) setStepImages(draft.stepImages);
+        if (draft.canLogFiles) setCanLogFiles(draft.canLogFiles);
         setPartsRequest(draft.partsRequest || []);
         if (draft.fuelTrims) setFuelTrims(draft.fuelTrims);
         if (draft.postRepairTrims) setPostRepairTrims(draft.postRepairTrims);
@@ -1258,6 +1276,7 @@ const DiagnosticApp = () => {
       postRepairTrims: {...postRepairTrims}, // Post-repair fuel trim data (Step 13)
       partsRequest: [...partsRequest],
       stepNotes: {...stepNotes},
+      canLogFiles: {...canLogFiles}, // CAN bus log data
       orgId: organization?.id || null
     };
     
@@ -1306,7 +1325,8 @@ const DiagnosticApp = () => {
         }
         console.log('Report archived to Supabase');
       } catch (err) {
-        console.log('Supabase archive failed:', err);
+        console.error('Supabase archive failed:', err);
+        showToast('Cloud save failed — report saved locally only. ' + (err.message || ''), 'error');
       }
     }
 
@@ -1353,6 +1373,13 @@ const DiagnosticApp = () => {
       });
     }
     
+    // Restore CAN log files if available
+    if (report.canLogFiles && Object.keys(report.canLogFiles).length > 0) {
+      setCanLogFiles(report.canLogFiles);
+    } else {
+      setCanLogFiles({});
+    }
+
     // Restore images if available
     // Restore images — prefer stepImages directly, fall back to building from steps array
     if (report.stepImages && Object.keys(report.stepImages).length > 0) {
@@ -1456,22 +1483,48 @@ const DiagnosticApp = () => {
     }));
   };
 
+  // Compress image using canvas — caps at maxDim px and outputs as JPEG
+  const compressImage = (file, maxDim = 1200, quality = 0.7) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round(height * (maxDim / width));
+              width = maxDim;
+            } else {
+              width = Math.round(width * (maxDim / height));
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressed);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleImageUpload = (stepId, event) => {
     const files = Array.from(event.target.files);
-    const imagePromises = files.map(file => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          resolve({
-            id: Date.now() + Math.random(),
-            url: e.target.result,
-            name: file.name,
-            description: '',
-            type: 'neutral'
-          });
-        };
-        reader.readAsDataURL(file);
-      });
+    const imagePromises = files.map(async (file) => {
+      const compressed = await compressImage(file);
+      return {
+        id: Date.now() + Math.random(),
+        url: compressed,
+        name: file.name,
+        description: '',
+        type: 'neutral'
+      };
     });
 
     Promise.all(imagePromises).then(newImages => {
@@ -1504,6 +1557,104 @@ const DiagnosticApp = () => {
     setStepImages(prev => ({
       ...prev,
       [stepId]: prev[stepId].filter(img => img.id !== imageId)
+    }));
+  };
+
+  // ---- CAN Bus Log parsing (CL2000 .TXT and common formats) ----
+  const parseCanLog = (text) => {
+    const lines = text.split(/\r?\n/).filter(l => l.trim() && !l.startsWith(';'));
+    const messages = [];
+    for (const line of lines) {
+      // Try semicolon-separated (CSS Electronics CL2000 default)
+      let parts = line.split(';');
+      if (parts.length < 4) {
+        // Try space/tab-separated
+        parts = line.trim().split(/[\s,]+/);
+      }
+      if (parts.length < 4) continue;
+
+      // Detect format: first field is usually timestamp (number), second is CAN ID
+      const timestamp = parseFloat(parts[0]);
+      if (isNaN(timestamp)) continue; // skip header or non-data lines
+
+      const canId = parts[1]?.trim();
+      if (!canId) continue;
+
+      // Find DLC and data — DLC is typically a single digit 0-8
+      let dlc = 0;
+      let dataBytes = [];
+      // Check if format has explicit DLC field
+      if (parts.length >= 5) {
+        // Try to find DLC: could be at index 2, 3, or 4 depending on format
+        for (let i = 2; i < Math.min(parts.length, 5); i++) {
+          const val = parseInt(parts[i], 10);
+          if (val >= 0 && val <= 8 && parts[i].trim().length <= 2) {
+            dlc = val;
+            dataBytes = parts.slice(i + 1, i + 1 + dlc).map(b => b.trim());
+            break;
+          }
+        }
+        if (dlc === 0 && parts.length > 4) {
+          // Fallback: assume data bytes start at index 2 or after known fields
+          dataBytes = parts.slice(2).filter(b => /^(0x)?[0-9a-fA-F]{1,2}$/.test(b.trim()));
+          dlc = dataBytes.length;
+        }
+      }
+
+      messages.push({
+        timestamp,
+        id: canId.toUpperCase().replace(/^0X/i, '0x'),
+        dlc,
+        data: dataBytes.join(' ')
+      });
+    }
+
+    // Build summary
+    const idCounts = {};
+    messages.forEach(m => { idCounts[m.id] = (idCounts[m.id] || 0) + 1; });
+    const uniqueIds = Object.keys(idCounts).sort();
+    const timeSpan = messages.length > 1
+      ? (messages[messages.length - 1].timestamp - messages[0].timestamp).toFixed(2)
+      : '0';
+
+    return {
+      totalMessages: messages.length,
+      uniqueIds: uniqueIds.length,
+      timeSpanSeconds: timeSpan,
+      idCounts,
+      topIds: uniqueIds.sort((a, b) => idCounts[b] - idCounts[a]).slice(0, 20),
+      sampleMessages: messages.slice(0, 10),
+      allMessages: messages
+    };
+  };
+
+  const handleCanLogUpload = (stepId, event) => {
+    const files = Array.from(event.target.files);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const rawText = ev.target.result;
+        const summary = parseCanLog(rawText);
+        const logEntry = {
+          id: Date.now() + Math.random(),
+          name: file.name,
+          rawText: rawText.slice(0, 500000), // cap at 500KB stored text
+          summary
+        };
+        setCanLogFiles(prev => ({
+          ...prev,
+          [stepId]: [...(prev[stepId] || []), logEntry]
+        }));
+      };
+      reader.readAsText(file);
+    });
+    event.target.value = ''; // reset input
+  };
+
+  const deleteCanLog = (stepId, logId) => {
+    setCanLogFiles(prev => ({
+      ...prev,
+      [stepId]: (prev[stepId] || []).filter(l => l.id !== logId)
     }));
   };
 
@@ -1746,6 +1897,14 @@ const DiagnosticApp = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {toast && (
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[9999] max-w-md w-full px-4 py-3 rounded-lg shadow-lg text-white text-sm font-medium flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}
+          onClick={() => setToast(null)} style={{cursor:'pointer'}}>
+          <span>{toast.type === 'error' ? '⚠️' : '✓'}</span>
+          <span className="flex-1">{toast.message}</span>
+          <span className="opacity-70 text-xs">tap to dismiss</span>
+        </div>
+      )}
       <div className="bg-white shadow-md sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -2462,6 +2621,24 @@ const DiagnosticApp = () => {
                     );
                   })()}
 
+                  {(() => {
+                    const totalCanLogs = Object.values(canLogFiles).reduce((sum, logs) => sum + (logs?.length || 0), 0);
+                    return totalCanLogs > 0 && (
+                      <label className="flex items-center justify-center gap-2 mt-3 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={aiIncludeCanLogs}
+                          onChange={e => setAiIncludeCanLogs(e.target.checked)}
+                          className="w-4 h-4 accent-cyan-600"
+                        />
+                        <span className="text-sm text-gray-700">
+                          Include CAN bus data in AI query
+                          <span className="ml-1 text-xs text-cyan-600 font-medium">({totalCanLogs} log{totalCanLogs !== 1 ? 's' : ''})</span>
+                        </span>
+                      </label>
+                    );
+                  })()}
+
                   {/* PDF Reference Upload */}
                   <div className="mt-4 border border-dashed border-purple-300 rounded-lg p-3 max-w-sm mx-auto">
                     <div className="text-xs text-gray-500 mb-2 text-center font-medium">📄 Attach Reference Document (optional)</div>
@@ -2504,13 +2681,19 @@ const DiagnosticApp = () => {
                         const reportData = {
                           vehicleInfo,
                           includeImages: aiIncludeImages,
+                          includeCanLogs: aiIncludeCanLogs,
                           pdfReference: aiPdfFile || null,
                           steps: diagnosticSteps.map(s => ({
                             id: s.id,
                             title: s.title,
                             completed: completedSteps.includes(s.id),
                             notes: stepNotes[s.id] || '',
-                            images: aiIncludeImages ? (stepImages[s.id] || []) : []
+                            images: aiIncludeImages ? (stepImages[s.id] || []) : [],
+                            canLogs: aiIncludeCanLogs ? (canLogFiles[s.id] || []).map(l => ({
+                              name: l.name,
+                              summary: l.summary,
+                              rawText: l.rawText.slice(0, 50000) // send up to 50KB of raw data per log
+                            })) : []
                           })),
                           partsRequest: partsRequest || []
                         };
@@ -2558,9 +2741,13 @@ const DiagnosticApp = () => {
                           h1 { color: #7c3aed; font-size: 18px; margin-bottom: 4px; }
                           .meta { color: #555; margin-bottom: 16px; font-size: 12px; }
                           .content { white-space: pre-wrap; border: 1px solid #ddd; padding: 16px; border-radius: 6px; }
-                          @media print { button { display: none; } }
+                          .close-bar { text-align: center; margin: 16px 0; }
+                          .close-btn { background: #7c3aed; color: white; border: none; padding: 10px 32px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+                          .close-btn:hover { background: #6d28d9; }
+                          @media print { .close-bar { display: none; } }
                         </style></head>
                         <body>
+                          <div class="close-bar"><button class="close-btn" onclick="window.close()">Close & Return to Diagflow</button></div>
                           <h1>AI Diagnostic Analysis</h1>
                           <div class="meta">
                             ${vehicleInfo.year} ${vehicleInfo.make} ${vehicleInfo.model} &nbsp;|&nbsp;
@@ -2569,11 +2756,15 @@ const DiagnosticApp = () => {
                             ${new Date().toLocaleDateString()}
                           </div>
                           <div class="content">${aiAnalysis.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+                          <div class="close-bar"><button class="close-btn" onclick="window.close()">Close & Return to Diagflow</button></div>
                         </body></html>
                       `);
                       win.document.close();
                       win.focus();
-                      setTimeout(() => win.print(), 500);
+                      setTimeout(() => {
+                        win.print();
+                        win.addEventListener('afterprint', () => win.close());
+                      }, 500);
                     }}
                     className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-50 flex items-center justify-center gap-1"
                   >
@@ -3234,6 +3425,88 @@ const DiagnosticApp = () => {
                           </button>
                         </div>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* CAN Bus Log Upload */}
+            <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-cyan-500">
+              <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
+                CAN Bus Data
+              </h3>
+              <p className="text-xs text-gray-600 mb-3">Upload CL2000 or compatible CAN bus log files (.txt, .csv, .asc) for AI analysis</p>
+
+              <input
+                type="file"
+                accept=".txt,.csv,.asc,.log"
+                multiple
+                onChange={(e) => handleCanLogUpload(selectedStep.id, e)}
+                className="hidden"
+                id={`can-upload-${selectedStep.id}`}
+              />
+              <label
+                htmlFor={`can-upload-${selectedStep.id}`}
+                className="block w-full bg-cyan-600 text-white py-2 px-4 rounded-lg font-semibold text-center cursor-pointer hover:bg-cyan-700"
+              >
+                Upload CAN Log (.txt / .csv / .asc)
+              </label>
+
+              {canLogFiles[selectedStep.id] && canLogFiles[selectedStep.id].length > 0 && (
+                <div className="mt-4 space-y-4">
+                  {canLogFiles[selectedStep.id].map(log => (
+                    <div key={log.id} className="border border-cyan-200 rounded-lg p-4 bg-cyan-50">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="font-semibold text-sm text-cyan-800">{log.name}</span>
+                        <button
+                          onClick={() => deleteCanLog(selectedStep.id, log.id)}
+                          className="text-red-500 text-xs hover:underline"
+                        >
+                          Remove
+                        </button>
+                      </div>
+
+                      {log.summary.totalMessages > 0 ? (
+                        <div>
+                          <div className="grid grid-cols-3 gap-2 mb-3">
+                            <div className="bg-white rounded p-2 text-center">
+                              <div className="text-lg font-bold text-cyan-700">{log.summary.totalMessages.toLocaleString()}</div>
+                              <div className="text-xs text-gray-500">Messages</div>
+                            </div>
+                            <div className="bg-white rounded p-2 text-center">
+                              <div className="text-lg font-bold text-cyan-700">{log.summary.uniqueIds}</div>
+                              <div className="text-xs text-gray-500">Unique IDs</div>
+                            </div>
+                            <div className="bg-white rounded p-2 text-center">
+                              <div className="text-lg font-bold text-cyan-700">{log.summary.timeSpanSeconds}s</div>
+                              <div className="text-xs text-gray-500">Duration</div>
+                            </div>
+                          </div>
+
+                          <div className="text-xs font-semibold text-gray-600 mb-1">Top CAN IDs by frequency:</div>
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {log.summary.topIds.map(canId => (
+                              <span key={canId} className="bg-white border border-cyan-200 rounded px-2 py-0.5 text-xs font-mono">
+                                {canId} <span className="text-gray-400">({log.summary.idCounts[canId]})</span>
+                              </span>
+                            ))}
+                          </div>
+
+                          {log.summary.sampleMessages.length > 0 && (
+                            <details className="text-xs">
+                              <summary className="cursor-pointer text-cyan-700 font-medium">Sample messages (first 10)</summary>
+                              <div className="mt-1 bg-gray-900 text-green-400 rounded p-2 overflow-x-auto font-mono">
+                                {log.summary.sampleMessages.map((m, i) => (
+                                  <div key={i}>{m.timestamp.toFixed(4)} | {m.id} | DLC:{m.dlc} | {m.data}</div>
+                                ))}
+                              </div>
+                            </details>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-amber-600">Could not parse CAN messages from this file. Ensure the file contains timestamped CAN data. The raw file will still be sent to AI for analysis.</p>
+                      )}
                     </div>
                   ))}
                 </div>
