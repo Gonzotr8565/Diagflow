@@ -1,0 +1,36 @@
+	Future AI Querry code. 
+
+// In the AI modal button click:
+const response = await fetch('/api/ai-analysis', {
+  method: 'POST',
+  body: JSON.stringify({
+    vehicleInfo,
+    steps: diagnosticSteps.map(s => ({
+      ...s,
+      completed: completedSteps.includes(s.id),
+      notes: stepNotes[s.id]
+    }))
+  })
+});
+
+
+Add a Tech or shop
+
+(
+  'Steves Tire and Auto',
+  'Steves Tire',
+  'DiagFlow <reports@diagflow.org>',
+  ARRAY['stevestireandauto4819@gmail.com'],
+  '225-50R19*'
+);
+
+(
+  'Haakan Light',
+  'Shotgun Diag',
+  'DiagFlow <reports@diagflow.org>',
+  ARRAY['"haakan@shotgundiagnostics.org" <haakan@shotgundiagnostics.org>'],
+  'UPDATE organizations 
+SET beta_password = 'HaakanLight2026'
+WHERE name = 'Haakan Light';
+'
+);

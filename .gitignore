@@ -1,0 +1,8 @@
+node_modules/
+.env
+*.log
+old/
+public/old/
+public/icons/
+diagflow-backend@1.0.0
+`.js
