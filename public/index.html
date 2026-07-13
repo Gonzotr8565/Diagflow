@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -166,7 +166,7 @@ const LoginScreen = ({ onLogin }) => {
         </form>
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          Version 49 Pro â€¢ Multi-Shop
+          Version 49 Pro • Multi-Shop
         </p>
       </div>
     </div>
@@ -178,14 +178,14 @@ const HowToUsePage = () => {
   const [activeSection, setActiveSection] = useState('overview');
 
   const sections = [
-    { id: 'overview', title: 'Overview', icon: 'ðŸ"‹' },
-    { id: 'getting-started', title: 'Getting Started', icon: 'ðŸš€' },
-    { id: 'diagnostic-workflow', title: '13-Step Workflow', icon: 'ðŸ"§' },
-    { id: 'scope-testing', title: 'Scope Testing', icon: 'ðŸ"Š' },
-    { id: 'photos-notes', title: 'Photos & Notes', icon: 'ðŸ"¸' },
-    { id: 'parts-request', title: 'Parts Request', icon: 'ðŸ"©' },
-    { id: 'reports', title: 'PDF Reports', icon: 'ðŸ"„' },
-    { id: 'tips', title: 'Pro Tips', icon: 'ðŸ'¡' },
+    { id: 'overview', title: 'Overview', icon: '📋' },
+    { id: 'getting-started', title: 'Getting Started', icon: '🚀' },
+    { id: 'diagnostic-workflow', title: '13-Step Workflow', icon: '🔧' },
+    { id: 'scope-testing', title: 'Scope Testing', icon: '📊' },
+    { id: 'photos-notes', title: 'Photos & Notes', icon: '📸' },
+    { id: 'parts-request', title: 'Parts Request', icon: '🔩' },
+    { id: 'reports', title: 'PDF Reports', icon: '📄' },
+    { id: 'tips', title: 'Pro Tips', icon: '💡' },
   ];
 
   const StepCard = ({ number, title, content }) => (
@@ -230,7 +230,7 @@ const HowToUsePage = () => {
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="text-center mb-6 p-6 rounded-xl text-white" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%)' }}>
-        <h1 className="text-2xl font-bold mb-2">ðŸ"- How to Use DiagFlow</h1>
+        <h1 className="text-2xl font-bold mb-2">📖 How to Use DiagFlow</h1>
         <p className="opacity-90">Your guide to mastering systematic diagnostics</p>
       </div>
 
@@ -268,15 +268,15 @@ const HowToUsePage = () => {
             <div className="bg-white p-5 rounded-lg border-l-4 border-blue-600 mt-4">
               <h3 className="font-bold text-blue-900 mb-3">Key Features</h3>
               <ul className="space-y-2 text-gray-700">
-                <li>âœ... <strong>13-Step Diagnostic Workflow</strong> â€" Structured approach to never miss critical steps</li>
-                <li>âœ... <strong>Scope Testing Module</strong> â€" Sample waveforms and testing procedures</li>
-                <li>âœ... <strong>Photo Documentation</strong> â€" Capture and attach images to each step</li>
-                <li>âœ... <strong>Notes Per Step</strong> â€" Document findings as you work</li>
-                <li>âœ... <strong>Parts Request</strong> â€" Build parts lists and submit directly to service advisors</li>
-                <li>âœ... <strong>PDF Report Generation</strong> â€" Professional reports for service advisors</li>
-                <li>âœ... <strong>Email Integration</strong> â€" Send reports directly to advisors</li>
-                <li>âœ... <strong>Progress Tracking</strong> â€" Visual progress through the diagnostic process</li>
-                <li>âœ... <strong>PWA Support</strong> â€" Install on your phone or tablet for shop floor use</li>
+                <li>✅ <strong>13-Step Diagnostic Workflow</strong> – Structured approach to never miss critical steps</li>
+                <li>✅ <strong>Scope Testing Module</strong> – Sample waveforms and testing procedures</li>
+                <li>✅ <strong>Photo Documentation</strong> – Capture and attach images to each step</li>
+                <li>✅ <strong>Notes Per Step</strong> – Document findings as you work</li>
+                <li>✅ <strong>Parts Request</strong> – Build parts lists and submit directly to service advisors</li>
+                <li>✅ <strong>PDF Report Generation</strong> – Professional reports for service advisors</li>
+                <li>✅ <strong>Email Integration</strong> – Send reports directly to advisors</li>
+                <li>✅ <strong>Progress Tracking</strong> – Visual progress through the diagnostic process</li>
+                <li>✅ <strong>PWA Support</strong> – Install on your phone or tablet for shop floor use</li>
               </ul>
             </div>
           </div>
@@ -343,7 +343,7 @@ const HowToUsePage = () => {
             </div>
 
             <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-400">
-              <strong>âš ï¸ Pro Tip:</strong> Always verify your scope settings match the reference. 
+              <strong>⚠️ Pro Tip:</strong> Always verify your scope settings match the reference. 
               Time base and voltage scale differences can make a good signal look bad.
             </div>
           </div>
@@ -360,28 +360,28 @@ const HowToUsePage = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="bg-white p-5 rounded-lg">
-                <h3 className="font-bold text-blue-900 mb-3">ðŸ"¸ Adding Photos</h3>
+                <h3 className="font-bold text-blue-900 mb-3">📸 Adding Photos</h3>
                 <ul className="space-y-2 text-gray-700 text-sm">
-                  <li>â€¢ Tap the camera icon on any step</li>
-                  <li>â€¢ Take a photo or select from gallery</li>
-                  <li>â€¢ Photos are attached to that specific step</li>
-                  <li>â€¢ All photos appear in your final report</li>
+                  <li>• Tap the camera icon on any step</li>
+                  <li>• Take a photo or select from gallery</li>
+                  <li>• Photos are attached to that specific step</li>
+                  <li>• All photos appear in your final report</li>
                 </ul>
               </div>
               
               <div className="bg-white p-5 rounded-lg">
-                <h3 className="font-bold text-blue-900 mb-3">ðŸ" Adding Notes</h3>
+                <h3 className="font-bold text-blue-900 mb-3">📝 Adding Notes</h3>
                 <ul className="space-y-2 text-gray-700 text-sm">
-                  <li>â€¢ Tap the notes field on any step</li>
-                  <li>â€¢ Type your findings and observations</li>
-                  <li>â€¢ Include measurements and readings</li>
-                  <li>â€¢ Notes carry through to the report</li>
+                  <li>• Tap the notes field on any step</li>
+                  <li>• Type your findings and observations</li>
+                  <li>• Include measurements and readings</li>
+                  <li>• Notes carry through to the report</li>
                 </ul>
               </div>
             </div>
 
             <div className="bg-green-50 p-4 rounded-lg border border-green-500">
-              <strong>âœ... Best Practice:</strong> Document what you find even if it's normal. 
+              <strong>✅ Best Practice:</strong> Document what you find even if it's normal. 
               "Verified battery voltage at 12.6V" is valuable information when reviewing a comeback.
             </div>
           </div>
@@ -390,11 +390,11 @@ const HowToUsePage = () => {
         {/* Parts Request - NEW SECTION */}
         {activeSection === 'parts-request' && (
           <div>
-            <h2 className="text-xl font-bold text-blue-900 mb-4">ðŸ"© Parts Request</h2>
+            <h2 className="text-xl font-bold text-blue-900 mb-4">🔩 Parts Request</h2>
             <p className="text-gray-700 mb-4">
               The Parts Request feature in Step 12 (Quality Repair & Parts) allows you to build a complete 
               parts list and submit it directly to your service advisor. No more handwritten notes 
-              or forgotten itemsâ€"everything is documented and sent professionally.
+              or forgotten items—everything is documented and sent professionally.
             </p>
             
             <div className="bg-white p-5 rounded-lg mb-4">
@@ -413,35 +413,35 @@ const HowToUsePage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="bg-white p-5 rounded-lg">
-                <h3 className="font-bold text-blue-900 mb-3">ðŸ"‹ Part Entry Fields</h3>
+                <h3 className="font-bold text-blue-900 mb-3">📋 Part Entry Fields</h3>
                 <ul className="space-y-2 text-gray-700 text-sm">
-                  <li>â€¢ <strong>Part Name/Description:</strong> What the part is</li>
-                  <li>â€¢ <strong>Part # or Type:</strong> OE, aftermarket, or specific part number</li>
-                  <li>â€¢ <strong>Quantity:</strong> How many needed</li>
-                  <li>â€¢ <strong>In Stock:</strong> Check if already in inventory</li>
+                  <li>• <strong>Part Name/Description:</strong> What the part is</li>
+                  <li>• <strong>Part # or Type:</strong> OE, aftermarket, or specific part number</li>
+                  <li>• <strong>Quantity:</strong> How many needed</li>
+                  <li>• <strong>In Stock:</strong> Check if already in inventory</li>
                 </ul>
               </div>
               
               <div className="bg-white p-5 rounded-lg">
-                <h3 className="font-bold text-blue-900 mb-3">ðŸ"¤ Submitting to SA</h3>
+                <h3 className="font-bold text-blue-900 mb-3">📤 Submitting to SA</h3>
                 <ul className="space-y-2 text-gray-700 text-sm">
-                  <li>â€¢ Review all parts in your list</li>
-                  <li>â€¢ Use "Remove" to delete incorrect entries</li>
-                  <li>â€¢ Click <strong>"Submit to Service Advisor"</strong></li>
-                  <li>â€¢ Parts list is included in your report</li>
-                  <li>â€¢ SA receives complete parts requirements</li>
+                  <li>• Review all parts in your list</li>
+                  <li>• Use "Remove" to delete incorrect entries</li>
+                  <li>• Click <strong>"Submit to Service Advisor"</strong></li>
+                  <li>• Parts list is included in your report</li>
+                  <li>• SA receives complete parts requirements</li>
                 </ul>
               </div>
             </div>
 
             <div className="bg-green-50 p-4 rounded-lg border border-green-500 mb-4">
-              <strong>âœ... Pro Tip:</strong> Always include part numbers when possible. This eliminates 
+              <strong>✅ Pro Tip:</strong> Always include part numbers when possible. This eliminates 
               confusion at the parts counter and speeds up the ordering process. Use the photo feature 
               to capture the part number label directly off the old part.
             </div>
 
             <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-400">
-              <strong>âš ï¸ Remember:</strong> Check "In Stock" for parts you know are on the shelf. 
+              <strong>⚠️ Remember:</strong> Check "In Stock" for parts you know are on the shelf. 
               This helps the SA know what needs to be ordered vs. what's ready to go.
             </div>
           </div>
@@ -459,13 +459,13 @@ const HowToUsePage = () => {
             <div className="bg-white p-5 rounded-lg mb-4">
               <h3 className="font-bold text-blue-900 mb-3">Report Contents</h3>
               <ul className="space-y-2 text-gray-700">
-                <li>â€¢ <strong>Vehicle Information:</strong> Year, Make, Model, VIN, Mileage</li>
-                <li>â€¢ <strong>RO Number:</strong> Repair order reference</li>
-                <li>â€¢ <strong>Diagnostic Steps:</strong> All 13 steps with completion status</li>
-                <li>â€¢ <strong>Notes:</strong> Your documentation from each step</li>
-                <li>â€¢ <strong>Photos:</strong> All attached images</li>
-                <li>â€¢ <strong>Parts Request:</strong> Complete parts list with quantities and stock status</li>
-                <li>â€¢ <strong>Technician Info:</strong> Your name and shop</li>
+                <li>• <strong>Vehicle Information:</strong> Year, Make, Model, VIN, Mileage</li>
+                <li>• <strong>RO Number:</strong> Repair order reference</li>
+                <li>• <strong>Diagnostic Steps:</strong> All 13 steps with completion status</li>
+                <li>• <strong>Notes:</strong> Your documentation from each step</li>
+                <li>• <strong>Photos:</strong> All attached images</li>
+                <li>• <strong>Parts Request:</strong> Complete parts list with quantities and stock status</li>
+                <li>• <strong>Technician Info:</strong> Your name and shop</li>
               </ul>
             </div>
 
@@ -487,13 +487,13 @@ const HowToUsePage = () => {
           <div>
             <h2 className="text-xl font-bold text-blue-900 mb-4">Pro Tips</h2>
             <div className="space-y-4">
-              <TipCard icon="ðŸŽ¯" title="Don't Skip Steps" content="Even if you 'know' what's wrong, work through the process. The step you skip is often the one that catches the intermittent or secondary issue." />
-              <TipCard icon="ðŸ"±" title="Install as PWA" content="Install DiagFlow on your phone or tablet for quick access on the shop floor. On iOS, tap Share â†' Add to Home Screen. On Android, tap the menu â†' Install App." />
-              <TipCard icon="ðŸ"·" title="Photo Everything" content="Before and after photos protect you from comebacks. A picture of a connector that was already corroded or a part that was already damaged is invaluable." />
-              <TipCard icon="ðŸ'¾" title="Archive Jobs" content="DiagFlow automatically offers to archive your work when starting a new job. You can restore archived jobs anytime from the Archive icon in the header." />
-              <TipCard icon="ðŸ"Š" title="Use Reference Waveforms" content="The scope testing module isn't just for trainingâ€"use the reference waveforms during actual diagnosis to quickly verify good signals." />
-              <TipCard icon="ðŸ"‹" title="Complete Reports Build Trust" content="Service advisors and customers trust thorough documentation. A complete DiagFlow report shows you did the work professionally." />
-              <TipCard icon="ðŸ"©" title="Parts Request Saves Time" content="Build your parts list in Step 12 as you identify what's needed. Include part numbersâ€"the SA gets everything in one submission instead of multiple trips to your bay." />
+              <TipCard icon="🎯" title="Don't Skip Steps" content="Even if you 'know' what's wrong, work through the process. The step you skip is often the one that catches the intermittent or secondary issue." />
+              <TipCard icon="📱" title="Install as PWA" content="Install DiagFlow on your phone or tablet for quick access on the shop floor. On iOS, tap Share → Add to Home Screen. On Android, tap the menu → Install App." />
+              <TipCard icon="📷" title="Photo Everything" content="Before and after photos protect you from comebacks. A picture of a connector that was already corroded or a part that was already damaged is invaluable." />
+              <TipCard icon="💾" title="Archive Jobs" content="DiagFlow automatically offers to archive your work when starting a new job. You can restore archived jobs anytime from the Archive icon in the header." />
+              <TipCard icon="📊" title="Use Reference Waveforms" content="The scope testing module isn't just for training—use the reference waveforms during actual diagnosis to quickly verify good signals." />
+              <TipCard icon="📋" title="Complete Reports Build Trust" content="Service advisors and customers trust thorough documentation. A complete DiagFlow report shows you did the work professionally." />
+              <TipCard icon="🔩" title="Parts Request Saves Time" content="Build your parts list in Step 12 as you identify what's needed. Include part numbers—the SA gets everything in one submission instead of multiple trips to your bay." />
             </div>
           </div>
         )}
@@ -502,7 +502,7 @@ const HowToUsePage = () => {
 
       {/* Footer */}
       <div className="text-center text-gray-500 text-sm py-4">
-        <p>DiagFlow V49 Pro â€¢ {organization?.name || 'DiagFlow Beta'} â€¢ "Never Miss A Step"</p>
+        <p>DiagFlow V49 Pro • {organization?.name || 'DiagFlow Beta'} • "Never Miss A Step"</p>
       </div>
     </div>
   );
@@ -514,6 +514,8 @@ const DiagnosticApp = () => {
   const [currentView, setCurrentView] = useState('vehicle-info');
   const [selectedStep, setSelectedStep] = useState(null);
   const [selectedScopeWorkflow, setSelectedScopeWorkflow] = useState(null);
+  const [selectedDiagWorkflow, setSelectedDiagWorkflow] = useState(null);
+  const [showDiagWorkflowPanel, setShowDiagWorkflowPanel] = useState(false);
   const [selectedDiagWorkflow, setSelectedDiagWorkflow] = useState(null);
   const [showDiagWorkflowPanel, setShowDiagWorkflowPanel] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -747,7 +749,7 @@ const DiagnosticApp = () => {
     try {
       localStorage.setItem(draftKey, JSON.stringify(draft));
     } catch (e) {
-      // localStorage full (likely due to images/CAN data) â€" save draft without bulky data
+      // localStorage full (likely due to images/CAN data) — save draft without bulky data
       console.warn('Draft save with images failed, saving without images:', e.message);
       const { stepImages: _, canLogFiles: _c, ...draftNoImages } = draft;
       localStorage.setItem(draftKey, JSON.stringify(draftNoImages));
@@ -765,7 +767,7 @@ const DiagnosticApp = () => {
       if (!draft.vehicleInfo?.roNumber) return;
       const savedAt = new Date(draft.savedAt).toLocaleString();
       const restore = window.confirm(
-        `Resume in-progress job?\n\n${draft.vehicleInfo.year} ${draft.vehicleInfo.make} ${draft.vehicleInfo.model} â€" RO# ${draft.vehicleInfo.roNumber}\n${draft.completedSteps?.length || 0} steps completed\nLast saved: ${savedAt}\n\nOK to resume, Cancel to discard.`
+        `Resume in-progress job?\n\n${draft.vehicleInfo.year} ${draft.vehicleInfo.make} ${draft.vehicleInfo.model} — RO# ${draft.vehicleInfo.roNumber}\n${draft.completedSteps?.length || 0} steps completed\nLast saved: ${savedAt}\n\nOK to resume, Cancel to discard.`
       );
       if (restore) {
         setVehicleInfo(draft.vehicleInfo);
@@ -898,7 +900,7 @@ const DiagnosticApp = () => {
       id: 9, 
       title: "Data Recording & Scope Work", 
       category: "Diagnosis",
-      bestPractice: "Use your scope to capture actual waveforms - don't just trust scan data. Save all scope captures with filename showing RO# and what was tested. Capture known-good and fault conditions. This is your evidence that proves the diagnosis. This can sometimes be done in the first diag charge, (RC, VE, etc. But know when to stop and sell more work.)\n\nðŸ'¡ AI TIP: Scope software like PicoScope saves native files (.psdata) that cannot be read by AI tools. To include your waveform in the AI Analysis, export or screenshot the capture as a PNG or JPG image (PicoScope: File â†' Export â†' Image, or just screenshot the waveform window), then upload it as a photo in this step. The AI can then read and analyze the actual waveform alongside your diagnostic notes."
+      bestPractice: "Use your scope to capture actual waveforms - don't just trust scan data. Save all scope captures with filename showing RO# and what was tested. Capture known-good and fault conditions. This is your evidence that proves the diagnosis. This can sometimes be done in the first diag charge, (RC, VE, etc. But know when to stop and sell more work.)\n\n💡 AI TIP: Scope software like PicoScope saves native files (.psdata) that cannot be read by AI tools. To include your waveform in the AI Analysis, export or screenshot the capture as a PNG or JPG image (PicoScope: File → Export → Image, or just screenshot the waveform window), then upload it as a photo in this step. The AI can then read and analyze the actual waveform alongside your diagnostic notes."
     },
     { 
       id: 10, 
@@ -948,13 +950,17 @@ const diagWorkflows = [
         title: 'Determine Network & Topology',
         description: 'Identify which network is affected and its physical layout',
         procedure: 'Use wiring diagrams to identify the network type (CAN-C, CAN-B, LIN, FlexRay, MOST, etc.) and topology. Map out which modules are on which network legs. Fill out a Network Identification Chart listing all modules and their associated DTCs.',
-        tips: 'Record ALL codes before clearing. Fill out the network identification chart to find commonality between DTCs. Determine which modules and network legs the DTCs are indicating â€" look for modules calling faults on multiple branches.'
+        tips: 'Record ALL codes before clearing. Fill out the network identification chart to find commonality between DTCs. Determine which modules and network legs the DTCs are indicating — look for modules calling faults on multiple branches.'
       },
       {
         id: 3,
-        title: 'Gather Network Waveforms â€" 3 Failure Layers',
+        title: 'Gather Network Waveforms — 3 Failure Layers',
         description: 'Scope the network and classify the failure type',
-        procedure: 'Connect lab scope to the network in multiple locations. Capture waveforms during all operations. Classify the failure into one of three layers:\n\n1. Physical Layer â€" anything you can TOUCH (wiring, connectors, terminating resistors, module hardware)\n2. Transport Layer â€" packet structure and function (frame timing, arbitration, acknowledgment)\n3. Software Layer â€" I/O logic and programming of data (module calibration, configuration, programming errors)',
+        procedure: 'Connect lab scope to the network in multiple locations. Capture waveforms during all operations. Classify the failure into one of three layers:
+
+1. Physical Layer — anything you can TOUCH (wiring, connectors, terminating resistors, module hardware)
+2. Transport Layer — packet structure and function (frame timing, arbitration, acknowledgment)
+3. Software Layer — I/O logic and programming of data (module calibration, configuration, programming errors)',
         tips: 'If using PicoScope, run in deep record or anti-PicoGap mode to catch intermittents. Leave scope connected to the troubled network during all operations including functional tests and test drives.'
       },
       {
@@ -962,13 +968,13 @@ const diagWorkflows = [
         title: 'Utilize Scan Tool Network Diagnostic Menus',
         description: 'Use all available scan tool network-specific functions',
         procedure: 'Access network diagnostic menus in your scan tool. Perform module-specific tests. Clear codes in each individual module if necessary. Perform functional tests and test drives, re-checking for codes after each operation.',
-        tips: 'Clear in each individual module if necessary â€" global clear may not reach all modules. Check for codes that return immediately vs. codes that require a drive cycle.'
+        tips: 'Clear in each individual module if necessary — global clear may not reach all modules. Check for codes that return immediately vs. codes that require a drive cycle.'
       },
       {
         id: 5,
         title: 'Network Logical Diagnostic Approach',
         description: 'Systematic fault isolation using DTC analysis',
-        procedure: 'Use a spreadsheet to record all DTCs and determine which modules and network legs are indicated. Find the commonality â€" which modules are calling faults on multiple network branches. Use this to isolate where to start physical testing. Combine scanner data, network identification chart, schematics, and lab scope.',
+        procedure: 'Use a spreadsheet to record all DTCs and determine which modules and network legs are indicated. Find the commonality — which modules are calling faults on multiple network branches. Use this to isolate where to start physical testing. Combine scanner data, network identification chart, schematics, and lab scope.',
         tips: 'The goal is to find the commonality of DTCs and isolate where to start physical testing. A well-executed DTC sort can quickly and productively identify your target area and prevent misdiagnosis.'
       }
     ]
@@ -985,7 +991,7 @@ const diagWorkflows = [
   },
   {
     id: 'trims',
-    title: 'Fuel Trims â€" Rich/Lean',
+    title: 'Fuel Trims — Rich/Lean',
     color: 'bg-green-600',
     description: 'Diagnosing rich and lean fuel trim conditions',
     icon: 'TrendingUp',
@@ -1005,7 +1011,7 @@ const diagWorkflows = [
   },
   {
     id: 'electrical',
-    title: 'Electrical â€" Voltage / Short / Basics',
+    title: 'Electrical — Voltage / Short / Basics',
     color: 'bg-yellow-600',
     description: 'Electrical fault diagnosis including voltage drop, shorts, and fundamentals',
     icon: 'Zap',
@@ -1017,7 +1023,57 @@ const diagWorkflows = [
 
 
 
-    const scopeWorkflows = [
+  const diagWorkflows = [
+    {
+      id: 'network',
+      title: 'Network Diagnostics',
+      color: 'bg-blue-700',
+      description: 'CAN/LIN/FlexRay communication fault diagnosis',
+      steps: [
+        {
+          id: 1,
+          title: 'Determine Complaint & Communication Status',
+          description: 'Gather initial information and confirm tool communication',
+          procedure: 'Determine complaint, codes, operation, and warning lights. Confirm scan tool communication with all modules. Try OEM and global scan tools. If no-comm at OBD: check pin tension/condition on OBD2 connector, try hard-wiring further into the network, consider gateway issues.',
+          tips: 'Before replacing any module, bench test first. Check software levels, powers, grounds, and comm lines. Check all inputs/outputs for excessive amperage draw.'
+        },
+        {
+          id: 2,
+          title: 'Determine Network & Topology',
+          description: 'Identify which network is affected and its physical layout',
+          procedure: 'Use wiring diagrams to identify the network type (CAN-C, CAN-B, LIN, FlexRay, etc.) and topology. Map out which modules are on which network legs. Fill out a Network Identification Chart listing all modules and their associated DTCs.',
+          tips: 'Record ALL codes before clearing. Look for modules calling faults on multiple branches.'
+        },
+        {
+          id: 3,
+          title: 'Gather Network Waveforms - 3 Failure Layers',
+          description: 'Scope the network and classify the failure type',
+          procedure: 'Connect lab scope to the network in multiple locations. Capture waveforms during all operations. Classify failure into:\n\n1. Physical Layer - anything you can TOUCH (wiring, connectors, terminating resistors)\n2. Transport Layer - packet structure and function (frame timing, arbitration, acknowledgment)\n3. Software Layer - I/O logic and programming (module calibration, configuration, programming errors)',
+          tips: 'If using PicoScope, run in deep record or anti-PicoGap mode to catch intermittents. Leave scope connected during all operations including test drives.'
+        },
+        {
+          id: 4,
+          title: 'Utilize Scan Tool Network Diagnostic Menus',
+          description: 'Use all available scan tool network-specific functions',
+          procedure: 'Access network diagnostic menus. Perform module-specific tests. Clear codes in each individual module if necessary. Perform functional tests and test drives, re-checking for codes after each operation.',
+          tips: 'Clear in each individual module if necessary - global clear may not reach all modules.'
+        },
+        {
+          id: 5,
+          title: 'Network Logical Diagnostic Approach',
+          description: 'Systematic fault isolation using DTC analysis',
+          procedure: 'Record all DTCs and determine which modules and network legs are indicated. Find the commonality - which modules are calling faults on multiple network branches. Use this to isolate where to start physical testing.',
+          tips: 'A well-executed DTC sort can quickly identify your target area and prevent misdiagnosis.'
+        }
+      ]
+    },
+    { id: 'misfire', title: 'Misfire Diagnostics', color: 'bg-red-600', description: 'Systematic approach to engine misfire diagnosis', steps: [{ id: 1, title: 'Coming Soon', description: 'Misfire workflow under development', procedure: 'Check back for updates.', tips: '' }] },
+    { id: 'trims', title: 'Fuel Trims - Rich/Lean', color: 'bg-green-600', description: 'Diagnosing rich and lean fuel trim conditions', steps: [{ id: 1, title: 'Coming Soon', description: 'Fuel trim workflow under development', procedure: 'Check back for updates.', tips: '' }] },
+    { id: 'diesel', title: 'Diesel / EGR / Exhaust Aftercare', color: 'bg-gray-700', description: 'Diesel-specific diagnostics including codes, EGR, and DPF/SCR systems', steps: [{ id: 1, title: 'Coming Soon', description: 'Diesel workflow under development', procedure: 'Check back for updates.', tips: '' }] },
+    { id: 'electrical', title: 'Electrical - Voltage / Short / Basics', color: 'bg-yellow-600', description: 'Electrical fault diagnosis including voltage drop, shorts, and fundamentals', steps: [{ id: 1, title: 'Coming Soon', description: 'Electrical workflow under development', procedure: 'Check back for updates.', tips: '' }] }
+  ];
+
+  const scopeWorkflows = [
     {
       id: 'baseline',
       title: 'Baseline Testing',
@@ -1418,7 +1474,7 @@ const diagWorkflows = [
         console.log('Report archived to Supabase');
       } catch (err) {
         console.error('Supabase archive failed:', err);
-        showToast('Cloud save failed â€" report saved locally only. ' + (err.message || ''), 'error');
+        showToast('Cloud save failed — report saved locally only. ' + (err.message || ''), 'error');
       }
     }
 
@@ -1473,7 +1529,7 @@ const diagWorkflows = [
     }
 
     // Restore images if available
-    // Restore images â€" prefer stepImages directly, fall back to building from steps array
+    // Restore images — prefer stepImages directly, fall back to building from steps array
     if (report.stepImages && Object.keys(report.stepImages).length > 0) {
       setStepImages(report.stepImages);
     } else if (report.steps) {
@@ -1575,7 +1631,7 @@ const diagWorkflows = [
     }));
   };
 
-  // Compress image using canvas â€" caps at maxDim px and outputs as JPEG
+  // Compress image using canvas — caps at maxDim px and outputs as JPEG
   const compressImage = (file, maxDim = 1200, quality = 0.7) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -1672,7 +1728,7 @@ const diagWorkflows = [
       const canId = parts[1]?.trim();
       if (!canId) continue;
 
-      // Find DLC and data â€" DLC is typically a single digit 0-8
+      // Find DLC and data — DLC is typically a single digit 0-8
       let dlc = 0;
       let dataBytes = [];
       // Check if format has explicit DLC field
@@ -1727,7 +1783,7 @@ const diagWorkflows = [
       const reader = new FileReader();
       reader.onload = async ev => {
         if (isMF4) {
-          // MF4 binary â€" send to server for parsing
+          // MF4 binary — send to server for parsing
           try {
             const base64 = ev.target.result.split(',')[1];
             const resp = await fetch('/api/parse-mf4', {
@@ -1987,7 +2043,7 @@ const diagWorkflows = [
       await archiveCurrentJob();
       
       // Show success message with archive confirmation
-      const shouldStartNew = confirm(`âœ... Report successfully sent to:\n${uniqueRecipients.join('\n')}\n\nðŸ"¦ Job archived automatically!\n\nWould you like to start a new job?`);
+      const shouldStartNew = confirm(`✅ Report successfully sent to:\n${uniqueRecipients.join('\n')}\n\n📦 Job archived automatically!\n\nWould you like to start a new job?`);
       
       setIsSubmitting(false);
       setShowSubmitModal(false);
@@ -2040,7 +2096,7 @@ const diagWorkflows = [
       {toast && (
         <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[9999] max-w-md w-full px-4 py-3 rounded-lg shadow-lg text-white text-sm font-medium flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}
           onClick={() => setToast(null)} style={{cursor:'pointer'}}>
-          <span>{toast.type === 'error' ? 'âš ï¸' : 'âœ"'}</span>
+          <span>{toast.type === 'error' ? '⚠️' : '✓'}</span>
           <span className="flex-1">{toast.message}</span>
           <span className="opacity-70 text-xs">tap to dismiss</span>
         </div>
@@ -2108,7 +2164,7 @@ const diagWorkflows = [
             )}
             
             
-              {/* â"€â"€ Diagnostic Workflow Panel â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€ */}
+              {/* ── Diagnostic Workflow Panel ─────────────────────────── */}
               {showDiagWorkflowPanel && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end justify-center modal-overlay" onClick={(e) => { if(e.target === e.currentTarget) { setShowDiagWorkflowPanel(false); setSelectedDiagWorkflow(null); }}}>
                   <div className="bg-white w-full max-w-lg rounded-t-2xl max-h-[90vh] overflow-y-auto">
@@ -2120,7 +2176,7 @@ const diagWorkflows = [
                       ) : (
                         <span className="font-bold text-gray-800">Diagnostic Workflows</span>
                       )}
-                      <button onClick={() => { setShowDiagWorkflowPanel(false); setSelectedDiagWorkflow(null); }} className="text-gray-500 hover:text-gray-800 text-xl font-bold px-2">âœ|</button>
+                      <button onClick={() => { setShowDiagWorkflowPanel(false); setSelectedDiagWorkflow(null); }} className="text-gray-500 hover:text-gray-800 text-xl font-bold px-2">✕</button>
                     </div>
 
                     {!selectedDiagWorkflow ? (
@@ -2182,7 +2238,7 @@ const diagWorkflows = [
                       ) : (
                         <span className="font-bold text-gray-800">Diagnostic Workflows</span>
                       )}
-                      <button onClick={() => { setShowDiagWorkflowPanel(false); setSelectedDiagWorkflow(null); }} className="text-gray-500 hover:text-gray-800 text-xl font-bold px-2">&#x2715;</button>
+                      <button onClick={() => { setShowDiagWorkflowPanel(false); setSelectedDiagWorkflow(null); }} className="text-gray-500 hover:text-gray-800 text-xl font-bold px-2">X</button>
                     </div>
                     {!selectedDiagWorkflow ? (
                       <div className="p-4 space-y-3">
@@ -2336,7 +2392,7 @@ const diagWorkflows = [
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Expert Help</h2>
                 <button onClick={() => setShowHelpModal(false)} className="text-gray-400 hover:text-gray-600">
-                  âœ|
+                  ✕
                 </button>
               </div>
               
@@ -2344,9 +2400,9 @@ const diagWorkflows = [
               <div className="bg-gray-50 p-3 rounded-lg mb-4 text-sm">
                 <div className="font-semibold text-gray-800 mb-2">Current Job:</div>
                 <div className="text-gray-600">
-                  <div>ðŸš- {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}</div>
-                  <div>ðŸ"‹ RO# {vehicleInfo.roNumber || 'N/A'}</div>
-                  <div>âœ... {completedSteps.length} of 13 steps completed ({Math.round((completedSteps.length / 13) * 100)}%)</div>
+                  <div>🚗 {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}</div>
+                  <div>📋 RO# {vehicleInfo.roNumber || 'N/A'}</div>
+                  <div>✅ {completedSteps.length} of 13 steps completed ({Math.round((completedSteps.length / 13) * 100)}%)</div>
                 </div>
               </div>
 
@@ -2408,7 +2464,7 @@ const diagWorkflows = [
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Submit Report to SA</h2>
                 <button onClick={() => setShowSubmitModal(false)} className="text-gray-400 hover:text-gray-600">
-                  âœ|
+                  ✕
                 </button>
               </div>
               
@@ -2419,24 +2475,24 @@ const diagWorkflows = [
               <div className="bg-blue-50 p-4 rounded-lg mb-4 border border-blue-200">
                 <h3 className="font-semibold text-sm mb-2 text-blue-900">Report Includes:</h3>
                 <ul className="text-xs text-blue-800 space-y-1">
-                  <li>â€¢ Vehicle Information</li>
-                  <li>â€¢ Completed Steps ({completedSteps.length} of {diagnosticSteps.length})</li>
-                  <li>â€¢ All Notes and Observations</li>
-                  <li>â€¢ Photo Documentation ({Object.values(stepImages).reduce((sum, imgs) => sum + imgs.length, 0)} photos)</li>
-                  <li>â€¢ Timestamp and Technician Info</li>
+                  <li>• Vehicle Information</li>
+                  <li>• Completed Steps ({completedSteps.length} of {diagnosticSteps.length})</li>
+                  <li>• All Notes and Observations</li>
+                  <li>• Photo Documentation ({Object.values(stepImages).reduce((sum, imgs) => sum + imgs.length, 0)} photos)</li>
+                  <li>• Timestamp and Technician Info</li>
                 </ul>
               </div>
 
               {/* Default Recipients Display */}
               {(shopProfile.defaultRecipients.length > 0 || (shopProfile.alwaysCCOwner && shopProfile.ownerEmail)) && (
                 <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                  <h3 className="font-semibold text-sm mb-2 text-green-900">ðŸ"§ Will be sent to:</h3>
+                  <h3 className="font-semibold text-sm mb-2 text-green-900">📧 Will be sent to:</h3>
                   <ul className="text-xs text-green-800 space-y-1">
                     {shopProfile.defaultRecipients.map((email, index) => (
-                      <li key={index}>âœ" {email}</li>
+                      <li key={index}>✓ {email}</li>
                     ))}
                     {shopProfile.alwaysCCOwner && shopProfile.ownerEmail && (
-                      <li>âœ" {shopProfile.ownerEmail} (Owner - CC)</li>
+                      <li>✓ {shopProfile.ownerEmail} (Owner - CC)</li>
                     )}
                   </ul>
                   <p className="text-xs text-gray-600 mt-2">
@@ -2509,7 +2565,7 @@ const diagWorkflows = [
 
               {!shopProfile.defaultRecipients.length && !shopProfile.ownerEmail && (
                 <p className="text-xs text-orange-600 mt-4 text-center">
-                  ðŸ'¡ Set up default recipients in Settings to speed up report submission
+                  💡 Set up default recipients in Settings to speed up report submission
                 </p>
               )}
 
@@ -2529,7 +2585,7 @@ const diagWorkflows = [
               <div className="p-4 bg-gray-100 border-b flex items-center justify-between">
                 <h3 className="font-bold text-lg">{expandedImage.title}</h3>
                 <button onClick={() => setExpandedImage(null)} className="text-gray-600 hover:text-gray-900">
-                  âœ|
+                  ✕
                 </button>
               </div>
               <img 
@@ -2553,7 +2609,7 @@ const diagWorkflows = [
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Request Expert Support</h2>
                 <button onClick={() => setShowSupportModal(false)} className="text-gray-400 hover:text-gray-600">
-                  âœ|
+                  ✕
                 </button>
               </div>
               
@@ -2597,7 +2653,7 @@ const diagWorkflows = [
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs font-medium mb-1">ðŸ"ž Phone Number</label>
+                    <label className="block text-xs font-medium mb-1">📞 Phone Number</label>
                     <input
                       type="tel"
                       className="w-full px-3 py-2 border rounded text-sm"
@@ -2607,7 +2663,7 @@ const diagWorkflows = [
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium mb-1">ðŸ"§ Your Email</label>
+                    <label className="block text-xs font-medium mb-1">📧 Your Email</label>
                     <input
                       type="email"
                       className="w-full px-3 py-2 border rounded text-sm"
@@ -2694,7 +2750,7 @@ const diagWorkflows = [
                   <h2 className="text-lg font-bold">Archived Reports</h2>
                   <span className="text-xs text-gray-400">({archivedReports.length} loaded)</span>
                 </div>
-                <button onClick={() => { setShowArchiveModal(false); setArchiveSearch(''); }} className="text-gray-400 hover:text-gray-600">âœ|</button>
+                <button onClick={() => { setShowArchiveModal(false); setArchiveSearch(''); }} className="text-gray-400 hover:text-gray-600">✕</button>
               </div>
               <input
                 type="text"
@@ -2732,17 +2788,17 @@ const diagWorkflows = [
                           <div className="font-semibold text-gray-800 flex items-center gap-2">
                             {report.vehicleInfo?.year} {report.vehicleInfo?.make} {report.vehicleInfo?.model}
                             {report.fromSupabase
-                              ? <span title="Saved to cloud" className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">â˜ï¸ Cloud</span>
-                              : <span title="Local only â€" not synced to cloud" className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full font-medium">ðŸ"± Local</span>
+                              ? <span title="Saved to cloud" className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">☁️ Cloud</span>
+                              : <span title="Local only — not synced to cloud" className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full font-medium">📱 Local</span>
                             }
                           </div>
                           <div className="text-sm text-gray-600">
-                            RO# {report.vehicleInfo?.roNumber || 'N/A'} â€¢ {new Date(report.date).toLocaleDateString()}
+                            RO# {report.vehicleInfo?.roNumber || 'N/A'} • {new Date(report.date).toLocaleDateString()}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
-                            {report.completedSteps} of {report.totalSteps} steps â€¢ {report.technicianName || 'No tech'}
+                            {report.completedSteps} of {report.totalSteps} steps • {report.technicianName || 'No tech'}
                             {report.partsRequest?.length > 0 && (
-                              <span className="ml-2 text-green-600">â€¢ ðŸ"§ {report.partsRequest.length} parts</span>
+                              <span className="ml-2 text-green-600">• 🔧 {report.partsRequest.length} parts</span>
                             )}
                           </div>
                           {report.vehicleInfo?.vin && (
@@ -2753,14 +2809,14 @@ const diagWorkflows = [
                           onClick={() => {
                             const msg = report.fromSupabase
                               ? 'Delete this report from cloud and local? This cannot be undone.'
-                              : 'Delete this local report? (Not in cloud â€" will be permanently lost)';
+                              : 'Delete this local report? (Not in cloud — will be permanently lost)';
                             if (window.confirm(msg)) {
                               deleteArchivedReport(report.id);
                             }
                           }}
                           className="text-red-400 hover:text-red-600 text-sm ml-2 flex-shrink-0"
                         >
-                          âœ|
+                          ✕
                         </button>
                       </div>
 
@@ -2769,7 +2825,7 @@ const diagWorkflows = [
                         <div className="mt-2 pt-2 border-t text-xs text-gray-600">
                           <strong>Notes:</strong>
                           {report.steps.filter(s => s.notes).slice(0, 2).map(s => (
-                            <div key={s.id} className="truncate">â€¢ Step {s.id}: {s.notes}</div>
+                            <div key={s.id} className="truncate">• Step {s.id}: {s.notes}</div>
                           ))}
                           {report.steps.filter(s => s.notes).length > 2 && (
                             <div className="text-gray-400">+ {report.steps.filter(s => s.notes).length - 2} more...</div>
@@ -2783,12 +2839,12 @@ const diagWorkflows = [
                           onClick={() => restoreArchivedReport(report)}
                           className="flex-1 bg-blue-600 text-white py-1.5 px-3 rounded text-sm font-semibold hover:bg-blue-700 flex items-center justify-center gap-1"
                         >
-                          â†©ï¸ Restore Job
+                          ↩️ Restore Job
                         </button>
                       </div>
                     </div>
                   ))}
-                  {/* Load more â€" only show if not searching and loaded count might have more */}
+                  {/* Load more — only show if not searching and loaded count might have more */}
                   {!q && archivedReports.length >= archiveLoadLimit && (
                     <button
                       onClick={() => setArchiveLoadLimit(prev => prev + 100)}
@@ -2824,7 +2880,7 @@ const diagWorkflows = [
                 <h2 className="text-lg font-bold">AI Diagnostic Analysis</h2>
               </div>
               <button onClick={() => setShowAIModal(false)} className="text-white/80 hover:text-white">
-                âœ|
+                ✕
               </button>
             </div>
             
@@ -2833,9 +2889,9 @@ const diagWorkflows = [
               <div className="bg-purple-50 p-4 rounded-lg mb-4">
                 <div className="font-semibold text-purple-900 mb-2">Analyzing:</div>
                 <div className="text-purple-800">
-                  ðŸš- {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}<br/>
-                  ðŸ"‹ RO# {vehicleInfo.roNumber} â€¢ VIN: {vehicleInfo.vin || 'N/A'}<br/>
-                  âœ... All 13 diagnostic steps completed
+                  🚗 {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}<br/>
+                  📋 RO# {vehicleInfo.roNumber} • VIN: {vehicleInfo.vin || 'N/A'}<br/>
+                  ✅ All 13 diagnostic steps completed
                 </div>
               </div>
 
@@ -2860,10 +2916,10 @@ const diagWorkflows = [
                     Our AI will analyze your complete diagnostic workflow and provide insights on:
                   </p>
                   <ul className="text-left text-sm text-gray-600 max-w-sm mx-auto space-y-1">
-                    <li>â€¢ Potential root causes based on your findings</li>
-                    <li>â€¢ Suggested next steps or additional tests</li>
-                    <li>â€¢ Common issues for this vehicle</li>
-                    <li>â€¢ Confidence level in diagnosis</li>
+                    <li>• Potential root causes based on your findings</li>
+                    <li>• Suggested next steps or additional tests</li>
+                    <li>• Common issues for this vehicle</li>
+                    <li>• Confidence level in diagnosis</li>
                   </ul>
                   
                   {(() => {
@@ -2904,12 +2960,12 @@ const diagWorkflows = [
 
                   {/* PDF Reference Upload */}
                   <div className="mt-4 border border-dashed border-purple-300 rounded-lg p-3 max-w-sm mx-auto">
-                    <div className="text-xs text-gray-500 mb-2 text-center font-medium">ðŸ"„ Attach Reference Document (optional)</div>
-                    <div className="text-xs text-gray-400 mb-2 text-center">TSB, case study, wiring diagram â€" Claude will read it as context</div>
+                    <div className="text-xs text-gray-500 mb-2 text-center font-medium">📄 Attach Reference Document (optional)</div>
+                    <div className="text-xs text-gray-400 mb-2 text-center">TSB, case study, wiring diagram — Claude will read it as context</div>
                     {aiPdfFile ? (
                       <div className="flex items-center justify-between bg-purple-50 rounded px-2 py-1">
-                        <span className="text-xs text-purple-700 truncate">ðŸ"„ {aiPdfFile.name}</span>
-                        <button onClick={() => setAiPdfFile(null)} className="text-red-400 hover:text-red-600 ml-2 text-xs">âœ|</button>
+                        <span className="text-xs text-purple-700 truncate">📄 {aiPdfFile.name}</span>
+                        <button onClick={() => setAiPdfFile(null)} className="text-red-400 hover:text-red-600 ml-2 text-xs">✕</button>
                       </div>
                     ) : (
                       <label className="flex items-center justify-center gap-2 cursor-pointer text-purple-600 hover:text-purple-700 text-sm">
@@ -2921,7 +2977,7 @@ const diagWorkflows = [
                             const file = e.target.files[0];
                             if (!file) return;
                             if (file.size > 10 * 1024 * 1024) {
-                              alert('PDF too large â€" please use files under 10MB');
+                              alert('PDF too large — please use files under 10MB');
                               return;
                             }
                             const reader = new FileReader();
@@ -2932,7 +2988,7 @@ const diagWorkflows = [
                             reader.readAsDataURL(file);
                           }}
                         />
-                        ï¼‹ Upload PDF
+                        ＋ Upload PDF
                       </label>
                     )}
                   </div>
@@ -3031,7 +3087,7 @@ const diagWorkflows = [
                     }}
                     className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-50 flex items-center justify-center gap-1"
                   >
-                    ðŸ-¨ï¸ Print / PDF
+                    🖨️ Print / PDF
                   </button>
                 </>
               )}
@@ -3056,7 +3112,7 @@ const diagWorkflows = [
                 <h2 className="text-lg font-bold">VIN Scanner</h2>
               </div>
               <button onClick={() => setShowVinScanner(false)} className="text-white/80 hover:text-white">
-                âœ|
+                ✕
               </button>
             </div>
             
@@ -3128,7 +3184,7 @@ const diagWorkflows = [
                   }}
                   className="flex-1 bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700"
                 >
-                  âœ" Use This VIN
+                  ✓ Use This VIN
                 </button>
                 <button
                   onClick={() => setShowVinScanner(false)}
@@ -3141,7 +3197,7 @@ const diagWorkflows = [
               {/* Tip */}
               <div className="mt-4 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
                 <p className="text-xs text-yellow-800">
-                  <strong>ðŸ'¡ Tip:</strong> The VIN is typically located on the dashboard near the windshield, 
+                  <strong>💡 Tip:</strong> The VIN is typically located on the dashboard near the windshield, 
                   driver's door jamb, or under the hood. Make sure lighting is good for a clear photo.
                 </p>
               </div>
@@ -3441,7 +3497,7 @@ const diagWorkflows = [
                     </tbody>
                   </table>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">Normal range: Â±5%. Values outside Â±10% indicate problems. B2 only applies to V6/V8.</p>
+                <p className="text-xs text-gray-500 mt-2">Normal range: ±5%. Values outside ±10% indicate problems. B2 only applies to V6/V8.</p>
               </div>
             )}
 
@@ -3604,12 +3660,12 @@ const diagWorkflows = [
                     </tbody>
                   </table>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">âœ" Good: Â±5% | âš  Marginal: Â±10% | âœ- Problem: Beyond Â±10%. If trims are still off, repair may not be complete.</p>
+                <p className="text-xs text-gray-500 mt-2">✓ Good: ±5% | ⚠ Marginal: ±10% | ✗ Problem: Beyond ±10%. If trims are still off, repair may not be complete.</p>
                 
                 {/* Show comparison to pre-repair if data exists */}
                 {(fuelTrims.idle.stftB1 || fuelTrims.idle.ltftB1) && (
                   <div className="mt-3 p-3 bg-white rounded border border-orange-200">
-                    <h4 className="font-semibold text-sm mb-2">ðŸ"Š Pre-Repair Comparison (from Step 2)</h4>
+                    <h4 className="font-semibold text-sm mb-2">📊 Pre-Repair Comparison (from Step 2)</h4>
                     <div className="text-xs text-gray-600 grid grid-cols-2 gap-2">
                       <div>Idle B1: STFT {fuelTrims.idle.stftB1 || '-'}% / LTFT {fuelTrims.idle.ltftB1 || '-'}%</div>
                       <div>Idle B2: STFT {fuelTrims.idle.stftB2 || '-'}% / LTFT {fuelTrims.idle.ltftB2 || '-'}%</div>
@@ -3650,7 +3706,7 @@ const diagWorkflows = [
                 htmlFor={`image-upload-${selectedStep.id}`}
                 className="block w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold text-center cursor-pointer hover:bg-blue-700"
               >
-                ðŸ"Ž Add Files (Images: JPG, PNG | Documents: PDF)
+                📎 Add Files (Images: JPG, PNG | Documents: PDF)
               </label>
 
               {stepImages[selectedStep.id] && stepImages[selectedStep.id].length > 0 && (
@@ -3822,7 +3878,7 @@ const diagWorkflows = [
             {selectedStep.id === 12 && (
               <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
                 <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
-                  ðŸ"§ Parts Request
+                  🔧 Parts Request
                 </h3>
                 <p className="text-xs text-gray-600 mb-4">
                   Add all parts needed to complete the repair. This will be included in your Service Advisor report.
@@ -3906,9 +3962,9 @@ const diagWorkflows = [
                   <div className="mt-3 p-3 bg-green-50 rounded-lg text-sm">
                     <strong className="text-green-800">Summary:</strong>
                     <span className="text-green-700 ml-2">
-                      {partsRequest.filter(p => !p.laborItem).length} part{partsRequest.filter(p => !p.laborItem).length !== 1 ? 's' : ''} â€¢ 
-                      {partsRequest.filter(p => p.laborItem).length} labor item{partsRequest.filter(p => p.laborItem).length !== 1 ? 's' : ''} â€¢ 
-                      {partsRequest.filter(p => p.inStock && !p.laborItem).length} in stock â€¢ 
+                      {partsRequest.filter(p => !p.laborItem).length} part{partsRequest.filter(p => !p.laborItem).length !== 1 ? 's' : ''} • 
+                      {partsRequest.filter(p => p.laborItem).length} labor item{partsRequest.filter(p => p.laborItem).length !== 1 ? 's' : ''} • 
+                      {partsRequest.filter(p => p.inStock && !p.laborItem).length} in stock • 
                       {partsRequest.filter(p => !p.inStock && !p.laborItem).length} to order
                     </span>
                   </div>
@@ -4093,7 +4149,7 @@ const diagWorkflows = [
                         )}
                         {stepImages[step.id] && stepImages[step.id].length > 0 && (
                           <p className="text-xs text-gray-500 mt-1">
-                            ðŸ"· {stepImages[step.id].length} photo{stepImages[step.id].length !== 1 ? 's' : ''}
+                            📷 {stepImages[step.id].length} photo{stepImages[step.id].length !== 1 ? 's' : ''}
                           </p>
                         )}
                       </div>
@@ -4164,7 +4220,7 @@ const diagWorkflows = [
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    ðŸ¢ Shop Name
+                    🏢 Shop Name
                   </label>
                   <input
                     type="text"
@@ -4178,14 +4234,14 @@ const diagWorkflows = [
                   />
                   {shopName && (
                     <p className="text-sm text-green-600 mt-2">
-                      âœ" Shop name saved
+                      ✓ Shop name saved
                     </p>
                   )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    ðŸ'¤ Technician Name
+                    👤 Technician Name
                   </label>
                   <input
                     type="text"
@@ -4199,14 +4255,14 @@ const diagWorkflows = [
                   />
                   {technicianName && (
                     <p className="text-sm text-green-600 mt-2">
-                      âœ" Technician name saved
+                      ✓ Technician name saved
                     </p>
                   )}
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    ðŸ"§ Service Advisor Email
+                    📧 Service Advisor Email
                   </label>
                   <input
                     type="email"
@@ -4221,7 +4277,7 @@ const diagWorkflows = [
                   />
                   {advisorEmail && (
                     <p className="text-sm text-green-600 mt-2">
-                      âœ" Email saved: {advisorEmail}
+                      ✓ Email saved: {advisorEmail}
                     </p>
                   )}
                   <p className="text-xs text-gray-500 mt-2">
@@ -4234,7 +4290,7 @@ const diagWorkflows = [
             {/* Email Routing Settings */}
             <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
               <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-                ðŸ"§ Email Routing Settings
+                📧 Email Routing Settings
               </h3>
               <p className="text-sm text-gray-600 mb-4">
                 Configure default email recipients for all diagnostic reports
@@ -4330,10 +4386,10 @@ const diagWorkflows = [
                   <strong className="text-green-800">Active Recipients:</strong>
                   <ul className="mt-2 space-y-1">
                     {shopProfile.defaultRecipients.map((email, index) => (
-                      <li key={index} className="text-green-700">âœ" {email}</li>
+                      <li key={index} className="text-green-700">✓ {email}</li>
                     ))}
                     {shopProfile.alwaysCCOwner && shopProfile.ownerEmail && (
-                      <li className="text-green-700">âœ" {shopProfile.ownerEmail} (Owner - Auto CC)</li>
+                      <li className="text-green-700">✓ {shopProfile.ownerEmail} (Owner - Auto CC)</li>
                     )}
                   </ul>
                   <p className="text-xs text-gray-600 mt-2">
@@ -4427,8 +4483,7 @@ const diagWorkflows = [
 
 
         ReactDOM.render(<DiagnosticApp />, document.getElementById('root'));
-        console.log("âœ... DiagFlow V49 Pro Loaded!");
+        console.log("✅ DiagFlow V49 Pro Loaded!");
     </script>
 </body>
 </html>
-
