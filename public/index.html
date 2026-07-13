@@ -948,7 +948,7 @@ const diagWorkflows = [
         title: 'Determine Network & Topology',
         description: 'Identify which network is affected and its physical layout',
         procedure: 'Use wiring diagrams to identify the network type (CAN-C, CAN-B, LIN, FlexRay, MOST, etc.) and topology. Map out which modules are on which network legs. Fill out a Network Identification Chart listing all modules and their associated DTCs.',
-        tips: 'Record ALL codes before clearing. Fill out the network identification chart to find commonality between DTCs. Determine which modules and network legs the DTCs are indicating — look for modules calling faults on multiple branches.'
+        tips: 'Record ALL codes before clearing. Fill out the network identification chart to find commonality between DTCs. Determine which modules and network legs the DTCs are indicating — look for modules calling faults on multiple branches. Remember, broken modules may not tell on themselves. Codes in other modules will. Seems backwards, but its not.'
       },
       {
         id: 3,
@@ -1327,7 +1327,7 @@ const diagWorkflows = [
     setStepImages({});
     setPartsRequest([]);
     setFuelTrims({
-      idle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
+      idle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: ' Remember, broken modules may not tell on themselves. Codes in other modules will. Seems backwards, but its not.' },
       lightThrottle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
       loaded: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' }
     });
