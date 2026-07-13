@@ -954,11 +954,7 @@ const diagWorkflows = [
         id: 3,
         title: 'Gather Network Waveforms — 3 Failure Layers',
         description: 'Scope the network and classify the failure type',
-        procedure: 'Connect lab scope to the network in multiple locations. Capture waveforms during all operations. Classify the failure into one of three layers:
-
-1. Physical Layer — anything you can TOUCH (wiring, connectors, terminating resistors, module hardware)
-2. Transport Layer — packet structure and function (frame timing, arbitration, acknowledgment)
-3. Software Layer — I/O logic and programming of data (module calibration, configuration, programming errors)',
+        procedure: 'Connect lab scope to the network in multiple locations. Capture waveforms during all operations. Classify the failure into one of three layers:\n\n1. Physical Layer — anything you can TOUCH (wiring, connectors, terminating resistors, module hardware)\n2. Transport Layer — packet structure and function (frame timing, arbitration, acknowledgment)\n3. Software Layer — I/O logic and programming of data (module calibration, configuration, programming errors)',
         tips: 'If using PicoScope, run in deep record or anti-PicoGap mode to catch intermittents. Leave scope connected to the troubled network during all operations including functional tests and test drives.'
       },
       {
