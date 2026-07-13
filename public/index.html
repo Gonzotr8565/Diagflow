@@ -2192,12 +2192,14 @@ const diagWorkflows = [
                 { icon: Home, label: 'Home', view: 'home' },
                 { icon: BookOpen, label: 'Workflow', view: 'workflow' },
                 { icon: TrendingUp, label: 'Scope & Pinpoint', view: 'scope' },
+                { icon: BookOpen, label: 'Diagnostic Workflows', view: 'diagworkflow' },
                 { icon: GraduationCap, label: 'How To Use', view: 'howto', externalUrl: 'https://diagflow.org/the-13-steps/' },
                 { icon: Settings, label: 'Settings', view: 'settings' }
               ].map(item => (
                 <button
                   key={item.view}
                   onClick={() => {
+                    if (item.view === 'diagworkflow') { setShowDiagWorkflowPanel(true); setSelectedDiagWorkflow(null); setMenuOpen(false); return; }
                     if (item.externalUrl) {
                       window.open(item.externalUrl, '_blank');
                       setMenuOpen(false);
