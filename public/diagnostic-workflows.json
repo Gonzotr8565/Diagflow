@@ -1,0 +1,95 @@
+{
+  "version": "1.0",
+  "description": "DiagFlow Diagnostic Workflow Reference - available to technicians during diagnosis",
+  "workflows": [
+    {
+      "id": "network",
+      "title": "Network Diagnostics",
+      "description": "CAN/LIN/FlexRay communication fault diagnosis",
+      "steps": [
+        {
+          "id": 1,
+          "title": "Determine Complaint & Communication Status",
+          "procedure": "Determine complaint, codes, operation, and warning lights. Confirm scan tool communication with all modules. Try OEM and global scan tools. If no-comm at OBD: check pin tension/condition on OBD2 connector, and 60 Ohms test, try hard-wiring further into the network, consider gateway issues. (See Topology)",
+          "tips": "Before replacing any module, bench test first. Check software levels, powers, grounds, and comm lines. Check all inputs/outputs for excessive amperage draw."
+        },
+        {
+          "id": 2,
+          "title": "Determine Network & Topology",
+          "procedure": "Use wiring diagrams to identify the network type (CAN-C, CAN-B, LIN, FlexRay, etc.) and topology. Map out which modules are on which network legs. Fill out a Network Identification Chart listing all modules and their associated DTCs.",
+          "tips": "Record ALL codes before clearing. Look for modules calling faults on multiple branches. Remember, broken modules may not tell on themselves. Codes in other modules will. Seems backwards, but its not."
+        },
+        {
+          "id": 3,
+          "title": "Gather Network Waveforms - 3 Failure Layers",
+          "procedure": "Connect lab scope to the network in multiple locations. Capture waveforms during all operations. Classify failure into: 1. Physical Layer - anything you can TOUCH (wiring, connectors, terminating resistors) 2. Transport Layer - packet structure and function (frame timing, arbitration, acknowledgment) 3. Software Layer - I/O logic and programming (module calibration, configuration, programming errors)",
+          "tips": "If using PicoScope, run in deep record or anti-PicoGap mode to catch intermittents. Leave scope connected during all operations including test drives."
+        },
+        {
+          "id": 4,
+          "title": "Utilize Scan Tool Network Diagnostic Menus",
+          "procedure": "Access network diagnostic menus. Perform module-specific tests. Clear codes in each individual module if necessary. Perform functional tests and test drives, re-checking for codes after each operation.",
+          "tips": "Clear in each individual module if necessary - global clear may not reach all modules."
+        },
+        {
+          "id": 5,
+          "title": "Network Logical Diagnostic Approach",
+          "procedure": "Record all DTCs and determine which modules and network legs are indicated. Find the commonality - which modules are calling faults on multiple network branches. Use this to isolate where to start physical testing.",
+          "tips": "A well-executed DTC sort can quickly identify your target area and prevent misdiagnosis."
+        }
+      ]
+    },
+    {
+      "id": "misfire",
+      "title": "Misfire Diagnostics",
+      "description": "Systematic approach to engine misfire diagnosis",
+      "steps": [
+        {
+          "id": 1,
+          "title": "Coming Soon",
+          "procedure": "Misfire workflow under development.",
+          "tips": ""
+        }
+      ]
+    },
+    {
+      "id": "trims",
+      "title": "Fuel Trims - Rich/Lean",
+      "description": "Diagnosing rich and lean fuel trim conditions",
+      "steps": [
+        {
+          "id": 1,
+          "title": "Coming Soon",
+          "procedure": "Fuel trim workflow under development.",
+          "tips": ""
+        }
+      ]
+    },
+    {
+      "id": "diesel",
+      "title": "Diesel / EGR / Exhaust Aftercare",
+      "description": "Diesel-specific diagnostics including codes, EGR, and DPF/SCR systems",
+      "steps": [
+        {
+          "id": 1,
+          "title": "Coming Soon",
+          "procedure": "Diesel workflow under development.",
+          "tips": ""
+        }
+      ]
+    },
+    {
+      "id": "electrical",
+      "title": "Electrical - Voltage / Short / Basics",
+      "description": "Electrical fault diagnosis including voltage drop, shorts, and fundamentals",
+      "steps": [
+        {
+          "id": 1,
+          "title": "Coming Soon",
+          "procedure": "Electrical workflow under development.",
+          "tips": ""
+        }
+      ]
+    }
+  ]
+}

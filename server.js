@@ -7,6 +7,26 @@ const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 const pdfParse = require('pdf-parse');
+const fs = require('fs');
+
+// Load diagnostic workflow reference
+let diagWorkflowReference = '';
+try {
+  const wfData = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'diagnostic-workflows.json'), 'utf8'));
+  diagWorkflowReference = '\n\nDIAGNOSTIC WORKFLOW REFERENCE GUIDES:\n' +
+    'The following structured diagnostic workflows are available to technicians in the DiagFlow app. ' +
+    'Reference these when analyzing cases - if a tech appears to be working a network, misfire, fuel trim, diesel, or electrical fault, ' +
+    'you can reference the relevant workflow steps to guide your analysis.\n\n' +
+    wfData.workflows.map(wf =>
+      `WORKFLOW: ${wf.title}\n` +
+      wf.steps.filter(s => s.title !== 'Coming Soon').map(s =>
+        `  Step ${s.id}: ${s.title}\n  Procedure: ${s.procedure}${s.tips ? '\n  Tip: ' + s.tips : ''}`
+      ).join('\n')
+    ).join('\n\n');
+  console.log('Diagnostic workflow reference loaded successfully');
+} catch(e) {
+  console.warn('Could not load diagnostic-workflows.json:', e.message);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -1170,7 +1190,7 @@ app.post('/api/ai-analysis', async (req, res) => {
       console.log('CAN bus data included:', stepsWithCanLogs.reduce((n, s) => n + s.canLogs.length, 0), 'log files');
     }
 
-    const systemPrompt = 'You are an expert ASE Master Certified automotive diagnostic technician with 45+ years of experience. You specialize in systematic diagnosis using the "Never Miss A Step" 15-step methodology.\n\nYour role is to analyze diagnostic findings from other technicians and provide:\n1. Confirmation or questions about the diagnosis path\n2. Potential root causes they may have missed\n3. Common failures for this specific vehicle/symptom\n4. Recommended next steps or additional tests\n5. Any safety concerns or critical issues\n\nBe direct and technical - you are talking to fellow technicians. Use proper terminology. Reference TSBs or common issues when relevant. If the notes are sparse, ask clarifying questions about what tests were performed.\n\nFormat your response clearly with sections. Be helpful but also challenge assumptions if the diagnostic path seems incomplete.' + (canSection ? '\n\nWhen CAN bus data is provided, analyze it for:\n- Modules that are NOT responding (missing expected CAN IDs for this vehicle)\n- Modules sending error frames or abnormal message rates\n- Communication bus issues (low message counts may indicate wiring/termination problems)\n- Correlate CAN bus findings with the reported symptoms and diagnostic steps\n- Identify any CAN IDs with unusual data patterns or timing gaps' : '');
+    const systemPrompt = 'You are an expert ASE Master Certified automotive diagnostic technician with 45+ years of experience. You specialize in systematic diagnosis using the "Never Miss A Step" 15-step methodology.\n\nYour role is to analyze diagnostic findings from other technicians and provide:\n1. Confirmation or questions about the diagnosis path\n2. Potential root causes they may have missed\n3. Common failures for this specific vehicle/symptom\n4. Recommended next steps or additional tests\n5. Any safety concerns or critical issues\n\nBe direct and technical - you are talking to fellow technicians. Use proper terminology. Reference TSBs or common issues when relevant. If the notes are sparse, ask clarifying questions about what tests were performed.\n\nFormat your response clearly with sections. Be helpful but also challenge assumptions if the diagnostic path seems incomplete.' + (canSection ? '\n\nWhen CAN bus data is provided, analyze it for:\n- Modules that are NOT responding (missing expected CAN IDs for this vehicle)\n- Modules sending error frames or abnormal message rates\n- Communication bus issues (low message counts may indicate wiring/termination problems)\n- Correlate CAN bus findings with the reported symptoms and diagnostic steps\n- Identify any CAN IDs with unusual data patterns or timing gaps' : '') + diagWorkflowReference;
 
     const textMessage = 'Please analyze this diagnostic case:\n\n**VEHICLE INFORMATION:**\n- Year/Make/Model: ' + (v.year || 'Unknown') + ' ' + (v.make || 'Unknown') + ' ' + (v.model || 'Unknown') + '\n- VIN: ' + (v.vin || 'Not provided') + '\n- Mileage: ' + (v.mileage || 'Not recorded') + '\n- RO#: ' + (v.roNumber || 'N/A') + '\n\n**DIAGNOSTIC PROGRESS:**\n- Steps Completed: ' + completedSteps.length + ' of ' + steps.length + '\n- Steps with Documentation: ' + stepsWithNotes.length + '\n- Steps with Photos: ' + stepsWithImages.length + '\n\n**TECHNICIAN FINDINGS:**\n' + (diagnosticSummary || 'No notes recorded in diagnostic steps.') + '\n\n**PARTS IDENTIFIED:**\n' + partsListText + pdfSection + canSection + '\n\n---\n\nBased on this information, please provide your analysis.' + (pdfSection ? ' Reference the attached document where relevant to the diagnosis.' : '') + (canSection ? ' Analyze the CAN bus data for missing/non-responding modules, error frames, and communication issues. Identify which modules are present and which may be failing or offline.' : '') + ' If the documentation is sparse, ask what specific tests or observations the tech has made. If there is enough info, provide your diagnostic insights and recommendations.';
 
