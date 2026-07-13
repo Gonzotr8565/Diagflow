@@ -2120,7 +2120,7 @@ const diagWorkflows = [
                       ) : (
                         <span className="font-bold text-gray-800">Diagnostic Workflows</span>
                       )}
-                      <button onClick={() => { setShowDiagWorkflowPanel(false); setSelectedDiagWorkflow(null); }} className="text-gray-500 hover:text-gray-800 text-xl font-bold px-2">âœ•</button>
+                      <button onClick={() => { setShowDiagWorkflowPanel(false); setSelectedDiagWorkflow(null); }} className="text-gray-500 hover:text-gray-800 text-xl font-bold px-2">âœ|</button>
                     </div>
 
                     {!selectedDiagWorkflow ? (
@@ -2336,7 +2336,7 @@ const diagWorkflows = [
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Expert Help</h2>
                 <button onClick={() => setShowHelpModal(false)} className="text-gray-400 hover:text-gray-600">
-                  âœ•
+                  âœ|
                 </button>
               </div>
               
@@ -2408,7 +2408,7 @@ const diagWorkflows = [
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Submit Report to SA</h2>
                 <button onClick={() => setShowSubmitModal(false)} className="text-gray-400 hover:text-gray-600">
-                  âœ•
+                  âœ|
                 </button>
               </div>
               
@@ -2529,7 +2529,7 @@ const diagWorkflows = [
               <div className="p-4 bg-gray-100 border-b flex items-center justify-between">
                 <h3 className="font-bold text-lg">{expandedImage.title}</h3>
                 <button onClick={() => setExpandedImage(null)} className="text-gray-600 hover:text-gray-900">
-                  âœ•
+                  âœ|
                 </button>
               </div>
               <img 
@@ -2553,7 +2553,7 @@ const diagWorkflows = [
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Request Expert Support</h2>
                 <button onClick={() => setShowSupportModal(false)} className="text-gray-400 hover:text-gray-600">
-                  âœ•
+                  âœ|
                 </button>
               </div>
               
@@ -2694,7 +2694,7 @@ const diagWorkflows = [
                   <h2 className="text-lg font-bold">Archived Reports</h2>
                   <span className="text-xs text-gray-400">({archivedReports.length} loaded)</span>
                 </div>
-                <button onClick={() => { setShowArchiveModal(false); setArchiveSearch(''); }} className="text-gray-400 hover:text-gray-600">âœ•</button>
+                <button onClick={() => { setShowArchiveModal(false); setArchiveSearch(''); }} className="text-gray-400 hover:text-gray-600">âœ|</button>
               </div>
               <input
                 type="text"
@@ -2760,7 +2760,7 @@ const diagWorkflows = [
                           }}
                           className="text-red-400 hover:text-red-600 text-sm ml-2 flex-shrink-0"
                         >
-                          âœ•
+                          âœ|
                         </button>
                       </div>
 
@@ -2824,7 +2824,7 @@ const diagWorkflows = [
                 <h2 className="text-lg font-bold">AI Diagnostic Analysis</h2>
               </div>
               <button onClick={() => setShowAIModal(false)} className="text-white/80 hover:text-white">
-                âœ•
+                âœ|
               </button>
             </div>
             
@@ -2909,7 +2909,7 @@ const diagWorkflows = [
                     {aiPdfFile ? (
                       <div className="flex items-center justify-between bg-purple-50 rounded px-2 py-1">
                         <span className="text-xs text-purple-700 truncate">ðŸ"„ {aiPdfFile.name}</span>
-                        <button onClick={() => setAiPdfFile(null)} className="text-red-400 hover:text-red-600 ml-2 text-xs">âœ•</button>
+                        <button onClick={() => setAiPdfFile(null)} className="text-red-400 hover:text-red-600 ml-2 text-xs">âœ|</button>
                       </div>
                     ) : (
                       <label className="flex items-center justify-center gap-2 cursor-pointer text-purple-600 hover:text-purple-700 text-sm">
@@ -3056,7 +3056,7 @@ const diagWorkflows = [
                 <h2 className="text-lg font-bold">VIN Scanner</h2>
               </div>
               <button onClick={() => setShowVinScanner(false)} className="text-white/80 hover:text-white">
-                âœ•
+                âœ|
               </button>
             </div>
             
