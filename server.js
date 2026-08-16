@@ -6,27 +6,6 @@ const path = require('path');
 const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
-const pdfParse = require('pdf-parse');
-const fs = require('fs');
-
-// Load diagnostic workflow reference
-let diagWorkflowReference = '';
-try {
-  const wfData = JSON.parse(fs.readFileSync(path.join(__dirname, 'public', 'diagnostic-workflows.json'), 'utf8'));
-  diagWorkflowReference = '\n\nDIAGNOSTIC WORKFLOW REFERENCE GUIDES:\n' +
-    'The following structured diagnostic workflows are available to technicians in the DiagFlow app. ' +
-    'Reference these when analyzing cases - if a tech appears to be working a network, misfire, fuel trim, diesel, or electrical fault, ' +
-    'you can reference the relevant workflow steps to guide your analysis.\n\n' +
-    wfData.workflows.map(wf =>
-      `WORKFLOW: ${wf.title}\n` +
-      wf.steps.filter(s => s.title !== 'Coming Soon').map(s =>
-        `  Step ${s.id}: ${s.title}\n  Procedure: ${s.procedure}${s.tips ? '\n  Tip: ' + s.tips : ''}`
-      ).join('\n')
-    ).join('\n\n');
-  console.log('Diagnostic workflow reference loaded successfully');
-} catch(e) {
-  console.warn('Could not load diagnostic-workflows.json:', e.message);
-}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,14 +29,6 @@ console.log('Supabase connected');
 // =============================================
 const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
 const FALLBACK_PASSWORD = process.env.BETA_PASSWORD || 'diagflow2024';
-
-// Extract DTC codes from technician notes (P, B, C, U codes)
-// Kept for future confirmed-fix API integration (CarMD defunct; Identifix/macs Data Service pending)
-function extractDTCs(notes) {
-  if (!notes) return [];
-  const matches = notes.match(/[PBCU][0-9]{4}/gi) || [];
-  return [...new Set(matches.map(d => d.toUpperCase()))];
-}
 
 // Anthropic AI Configuration
 let anthropic = null;
@@ -296,25 +267,18 @@ app.get('/api/reports/active', async (req, res) => {
 app.get('/api/reports/archived/list', async (req, res) => {
   try {
     const orgId = req.query.orgId;
-    const limit = parseInt(req.query.limit) || 100;
-    const search = req.query.search || '';
-
+    
     let query = supabase
       .from('reports')
       .select('*')
       .eq('status', 'archived')
-      .order('updated_at', { ascending: false })
-      .limit(limit);
-
+      .order('updated_at', { ascending: false });
+    
+    // Filter by org if provided
     if (orgId) {
       query = query.eq('org_id', orgId);
     }
-
-    // Server-side search by RO number or last 8 of VIN
-    if (search) {
-      query = query.or(`ro_number.ilike.%${search}%,vehicle_vin.ilike.%${search}%,vehicle_make.ilike.%${search}%,vehicle_model.ilike.%${search}%`);
-    }
-
+    
     const { data, error } = await query;
     
     if (error) throw error;
@@ -531,17 +495,18 @@ function generatePDFReport(reportData) {
           doc.y += 14;
         }
 
-        // Inline images for this step
+        // Inline images for this step (preview thumbnails - larger, full-res versions in appendix)
         if (hasImages) {
           let imgX = 65;
           let imgY = doc.y;
           let imagesInRow = 0;
-          
+          const thumbW = 220, thumbH = 150; // preserves aspect ratio via 'fit', larger & clearer than before
+
           step.images.forEach((img) => {
             try {
               const imgData = typeof img === 'string' ? img : (img.url || img.data);
               if (imgData && imgData.startsWith('data:image')) {
-                if (imgY > 620) {
+                if (imgY + thumbH > 700) {
                   doc.addPage();
                   imgY = 50;
                   imgX = 65;
@@ -551,14 +516,16 @@ function generatePDFReport(reportData) {
                 const base64Data = imgData.split(',')[1];
                 const imgBuffer = Buffer.from(base64Data, 'base64');
                 
-                doc.image(imgBuffer, imgX, imgY, { width: 150, height: 100 });
+                // 'fit' preserves aspect ratio instead of stretching/distorting the image
+                doc.image(imgBuffer, imgX, imgY, { fit: [thumbW, thumbH] });
+                doc.strokeColor('#e5e7eb').lineWidth(1).rect(imgX, imgY, thumbW, thumbH).stroke();
                 
-                imgX += 160;
+                imgX += thumbW + 20;
                 imagesInRow++;
                 
-                if (imagesInRow >= 3) {
+                if (imagesInRow >= 2) {
                   imgX = 65;
-                  imgY += 110;
+                  imgY += thumbH + 15;
                   imagesInRow = 0;
                 }
               }
@@ -568,7 +535,7 @@ function generatePDFReport(reportData) {
           });
           
           if (imagesInRow > 0) {
-            doc.y = imgY + 110;
+            doc.y = imgY + thumbH + 15;
           } else if (step.images.length > 0) {
             doc.y = imgY;
           }
@@ -576,6 +543,52 @@ function generatePDFReport(reportData) {
 
         doc.y += 6;
       });
+
+      // ============ FULL-SIZE IMAGE APPENDIX ============
+      // Thumbnails above are sized for quick review; this appendix gives each image
+      // full-page width so fine detail (waveforms, scan tool screenshots, etc.) is readable.
+      const stepsWithImages = steps.filter(s => s.images && s.images.length > 0);
+      if (stepsWithImages.length > 0) {
+        doc.addPage();
+        doc.fillColor('#0066ff')
+           .fontSize(15)
+           .font('Helvetica-Bold')
+           .text('Appendix: Full-Size Images', 50, 50);
+        doc.y = 80;
+
+        stepsWithImages.forEach((step) => {
+          step.images.forEach((img, imgIdx) => {
+            try {
+              const imgData = typeof img === 'string' ? img : (img.url || img.data);
+              if (!imgData || !imgData.startsWith('data:image')) return;
+
+              if (doc.y > 680) {
+                doc.addPage();
+                doc.y = 50;
+              }
+
+              doc.fillColor('#374151')
+                 .fontSize(10)
+                 .font('Helvetica-Bold')
+                 .text('Step ' + step.id + ': ' + step.title + (step.images.length > 1 ? ' (' + (imgIdx + 1) + ' of ' + step.images.length + ')' : ''), 50, doc.y);
+              doc.y += 16;
+
+              const base64Data = imgData.split(',')[1];
+              const imgBuffer = Buffer.from(base64Data, 'base64');
+              const fullW = pageWidth; // full content width, aspect ratio preserved via 'fit'
+              doc.image(imgBuffer, 50, doc.y, { fit: [fullW, 420] });
+              doc.y += 300; // conservative spacing; most captures are landscape scan/scope shots
+
+              if (doc.y > 750) {
+                doc.addPage();
+                doc.y = 50;
+              }
+            } catch (imgErr) {
+              console.error('Error embedding appendix image:', imgErr.message);
+            }
+          });
+        });
+      }
 
       // ============ PARTS REQUEST ============
       const partsRequest = reportData.partsRequest || [];
@@ -695,6 +708,97 @@ function generatePDFReport(reportData) {
         doc.y += 20;
       }
 
+      // ============ FUEL TRIMS SECTION ============
+      const fuelTrims = reportData.fuelTrims;
+      const postRepairTrims = reportData.postRepairTrims;
+      // Check ALL conditions (idle, light throttle, loaded) and ALL fields - a tech may only
+      // fill in one condition, and a value of "0" is a legitimate real reading, not "empty"
+      const trimHasData = (trims) => {
+        if (!trims) return false;
+        return ['idle', 'lightThrottle', 'loaded'].some(cond => {
+          const row = trims[cond];
+          if (!row) return false;
+          return ['stftB1', 'ltftB1', 'stftB2', 'ltftB2'].some(field => 
+            row[field] !== undefined && row[field] !== null && String(row[field]).trim() !== ''
+          );
+        });
+      };
+      const hasPreTrims = trimHasData(fuelTrims);
+      const hasPostTrims = trimHasData(postRepairTrims);
+      
+      if (hasPreTrims || hasPostTrims) {
+        if (doc.y > 500) {
+          doc.addPage();
+          doc.y = 50;
+        } else {
+          doc.y += 15;
+        }
+
+        doc.fillColor('#0066ff')
+           .fontSize(13)
+           .font('Helvetica-Bold')
+           .text('Fuel Trim Data', 50, doc.y);
+        doc.y += 20;
+
+        // Helper function to render a trim table
+        const renderTrimTable = (trims, title, color) => {
+          doc.fillColor(color)
+             .fontSize(11)
+             .font('Helvetica-Bold')
+             .text(title, 50, doc.y);
+          doc.y += 15;
+
+          // Table header
+          const colW = 80;
+          doc.fillColor('#f3f4f6')
+             .rect(50, doc.y, pageWidth, 20)
+             .fill();
+          
+          doc.fillColor('#374151')
+             .fontSize(9)
+             .font('Helvetica-Bold')
+             .text('Condition', 55, doc.y + 5)
+             .text('STFT B1', 140, doc.y + 5)
+             .text('LTFT B1', 220, doc.y + 5)
+             .text('STFT B2', 300, doc.y + 5)
+             .text('LTFT B2', 380, doc.y + 5);
+          doc.y += 22;
+
+          // Rows
+          const rows = [
+            { label: 'Idle', data: trims.idle || {} },
+            { label: 'Light Throttle', data: trims.lightThrottle || {} },
+            { label: 'Loaded', data: trims.loaded || {} }
+          ];
+
+          rows.forEach((row, idx) => {
+            if (idx % 2 === 0) {
+              doc.fillColor('#f9fafb')
+                 .rect(50, doc.y, pageWidth, 18)
+                 .fill();
+            }
+            const fmt = (v) => (v !== undefined && v !== null && String(v).trim() !== '') ? v + '%' : '-';
+            doc.fillColor('#333333')
+               .fontSize(9)
+               .font('Helvetica')
+               .text(row.label, 55, doc.y + 4)
+               .text(fmt(row.data.stftB1), 140, doc.y + 4)
+               .text(fmt(row.data.ltftB1), 220, doc.y + 4)
+               .text(fmt(row.data.stftB2), 300, doc.y + 4)
+               .text(fmt(row.data.ltftB2), 380, doc.y + 4);
+            doc.y += 18;
+          });
+          doc.y += 10;
+        };
+
+        if (hasPreTrims) {
+          renderTrimTable(fuelTrims, 'Pre-Repair Trims (Step 2)', '#16a34a');
+        }
+        if (hasPostTrims) {
+          renderTrimTable(postRepairTrims, 'Post-Repair Trims (Step 13)', '#ea580c');
+        }
+      }
+
       // ============ FOOTER ============
       doc.fillColor('#666666')
          .fontSize(8)
@@ -712,6 +816,98 @@ function generatePDFReport(reportData) {
       reject(error);
     }
   });
+}
+
+// =============================================
+// MARKDOWN REPORT GENERATOR
+// Plain-text companion to the PDF - easy to paste into a work order system,
+// text message, or note, and diffable/searchable in a way a PDF isn't.
+// =============================================
+function generateMarkdownReport(reportData) {
+  const v = reportData.vehicleInfo || {};
+  const steps = reportData.steps || [];
+  const partsRequest = reportData.partsRequest || [];
+  const fuelTrims = reportData.fuelTrims;
+  const postRepairTrims = reportData.postRepairTrims;
+  const lines = [];
+
+  lines.push('# DiagFlow Diagnostic Report');
+  lines.push('');
+  lines.push('**Shop:** ' + (reportData.shopName || 'N/A'));
+  lines.push('**Technician:** ' + (reportData.technicianName || 'N/A'));
+  lines.push('**Generated:** ' + new Date().toLocaleString());
+  lines.push('');
+  lines.push('## Vehicle Information');
+  lines.push('');
+  lines.push('| Field | Value |');
+  lines.push('|---|---|');
+  lines.push('| Year/Make/Model | ' + [v.year, v.make, v.model].filter(Boolean).join(' ') + ' |');
+  lines.push('| VIN | ' + (v.vin || 'N/A') + ' |');
+  lines.push('| RO Number | ' + (v.roNumber || 'N/A') + ' |');
+  lines.push('| Mileage | ' + (v.mileage || 'N/A') + ' |');
+  lines.push('');
+  lines.push('**Progress:** ' + (reportData.completedSteps || 0) + ' of ' + (reportData.totalSteps || 13) + ' steps completed');
+  lines.push('');
+  lines.push('## Diagnostic Steps');
+  lines.push('');
+  steps.forEach(step => {
+    const check = step.completed ? 'x' : ' ';
+    lines.push('- [' + check + '] **Step ' + step.id + ': ' + step.title + '**');
+    if (step.notes && step.notes.trim()) {
+      lines.push('  - Notes: ' + step.notes.trim());
+    }
+    if (step.images && step.images.length > 0) {
+      lines.push('  - Images: ' + step.images.length + ' attached (see PDF or attached image files)');
+    }
+  });
+  lines.push('');
+
+  const trimHasData = (trims) => {
+    if (!trims) return false;
+    return ['idle', 'lightThrottle', 'loaded'].some(cond => {
+      const row = trims[cond];
+      if (!row) return false;
+      return ['stftB1', 'ltftB1', 'stftB2', 'ltftB2'].some(f => row[f] !== undefined && row[f] !== null && String(row[f]).trim() !== '');
+    });
+  };
+  const fmtTrim = (v) => (v !== undefined && v !== null && String(v).trim() !== '') ? v + '%' : '-';
+  const renderTrimMd = (trims, title) => {
+    lines.push('### ' + title);
+    lines.push('');
+    lines.push('| Condition | STFT B1 | LTFT B1 | STFT B2 | LTFT B2 |');
+    lines.push('|---|---|---|---|---|');
+    [['Idle', 'idle'], ['Light Throttle', 'lightThrottle'], ['Loaded', 'loaded']].forEach(([label, key]) => {
+      const row = trims[key] || {};
+      lines.push('| ' + label + ' | ' + fmtTrim(row.stftB1) + ' | ' + fmtTrim(row.ltftB1) + ' | ' + fmtTrim(row.stftB2) + ' | ' + fmtTrim(row.ltftB2) + ' |');
+    });
+    lines.push('');
+  };
+
+  if (trimHasData(fuelTrims) || trimHasData(postRepairTrims)) {
+    lines.push('## Fuel Trim Data');
+    lines.push('');
+    if (trimHasData(fuelTrims)) renderTrimMd(fuelTrims, 'Pre-Repair Trims (Step 2)');
+    if (trimHasData(postRepairTrims)) renderTrimMd(postRepairTrims, 'Post-Repair Trims (Step 13)');
+  }
+
+  if (partsRequest.length > 0) {
+    lines.push('## Parts & Labor Request');
+    lines.push('');
+    lines.push('| Item | Type | Stock | P/N |');
+    lines.push('|---|---|---|---|');
+    partsRequest.forEach(p => {
+      const name = p.partName || p.name || 'Unnamed';
+      const type = p.laborItem ? 'Labor' : 'Part';
+      const stock = p.laborItem ? '-' : (p.inStock ? 'In Stock' : 'Order');
+      lines.push('| ' + name + ' | ' + type + ' | ' + stock + ' | ' + (p.partNumber || '-') + ' |');
+    });
+    lines.push('');
+  }
+
+  lines.push('---');
+  lines.push('*Generated by DiagFlow | Never Miss A Step*');
+
+  return lines.join('\n');
 }
 
 // =============================================
@@ -748,7 +944,43 @@ app.post('/api/submit-report', async (req, res) => {
     console.log('PDF generated, size:', pdfBuffer.length);
     
     const v = reportData.vehicleInfo || {};
-    const filename = 'DiagFlow_Report_' + (v.year || 'Vehicle') + '_' + (v.make || '') + '_' + (v.model || '') + '_' + Date.now() + '.pdf';
+    const baseFilename = 'DiagFlow_Report_' + (v.year || 'Vehicle') + '_' + (v.make || '') + '_' + (v.model || '') + '_' + Date.now();
+    const filename = baseFilename + '.pdf';
+
+    // Generate the Markdown companion report (plain-text, easy to paste into a work order
+    // system or search later - complements the PDF rather than replacing it)
+    const markdownContent = generateMarkdownReport(reportData);
+    const mdFilename = baseFilename + '.md';
+
+    // Attach full-resolution images as individual files so the SA (or shop system) can save
+    // them directly to whatever folder/network share they use, rather than only the
+    // PDF-embedded versions. Capped so a job with many photos doesn't blow past email size
+    // limits - the PDF appendix always has everything regardless of this cap.
+    const MAX_IMAGE_ATTACH_BYTES = 15 * 1024 * 1024; // ~15MB budget for raw image attachments
+    const imageAttachments = [];
+    let imageAttachBytes = 0;
+    let imagesSkipped = 0;
+    (reportData.steps || []).forEach(step => {
+      (step.images || []).forEach((img, idx) => {
+        const imgData = typeof img === 'string' ? img : (img.url || img.data);
+        if (!imgData || !imgData.startsWith('data:image')) return;
+        const match = imgData.match(/^data:image\/(\w+);base64,(.+)$/);
+        if (!match) return;
+        const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+        const base64Data = match[2];
+        const sizeBytes = Math.ceil(base64Data.length * 0.75);
+        if (imageAttachBytes + sizeBytes > MAX_IMAGE_ATTACH_BYTES) {
+          imagesSkipped++;
+          return;
+        }
+        imageAttachBytes += sizeBytes;
+        imageAttachments.push({
+          filename: 'Step' + step.id + '_' + step.title.replace(/[^a-z0-9]+/gi, '_').substring(0, 30) + '_' + (idx + 1) + '.' + ext,
+          content: base64Data
+        });
+      });
+    });
+    console.log('Image attachments:', imageAttachments.length, 'skipped:', imagesSkipped, 'bytes:', imageAttachBytes);
 
     // Support multiple input formats
     let emailList = [];
@@ -825,7 +1057,11 @@ app.post('/api/submit-report', async (req, res) => {
       '<p style="margin: 0; font-size: 18px;"><strong>' + (reportData.completedSteps || 0) + '</strong> of <strong>' + (reportData.totalSteps || 13) + '</strong> steps completed</p>' +
       '</div>' +
       partsHtml +
-      '<p style="margin-top: 20px; color: #666;">Please find the complete diagnostic report attached as a PDF.</p>' +
+      '<p style="margin-top: 20px; color: #666;">Please find the complete diagnostic report attached as a PDF' +
+      (imageAttachments.length > 0 ? ', along with ' + imageAttachments.length + ' full-resolution image' + (imageAttachments.length === 1 ? '' : 's') + ' for closer review or filing' : '') +
+      '. A plain-text (.md) copy of the report is also attached for easy pasting into other systems.' +
+      (imagesSkipped > 0 ? '<br><em>Note: ' + imagesSkipped + ' additional image(s) were left off this email to keep it a reasonable size, but are still included in full inside the PDF.</em>' : '') +
+      '</p>' +
       '</div>' +
       '<div style="background: #333; padding: 15px; text-align: center;">' +
       '<p style="color: #999; margin: 0; font-size: 12px;">Generated by DiagFlow | Never Miss A Step</p>' +
@@ -840,7 +1076,12 @@ app.post('/api/submit-report', async (req, res) => {
         {
           filename: filename,
           content: pdfBuffer.toString('base64')
-        }
+        },
+        {
+          filename: mdFilename,
+          content: Buffer.from(markdownContent, 'utf-8').toString('base64')
+        },
+        ...imageAttachments
       ]
     });
 
@@ -850,252 +1091,6 @@ app.post('/api/submit-report', async (req, res) => {
   } catch (error) {
     console.error('Submit report error:', error);
     res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// =============================================
-// MF4 CAN BUS LOG PARSER ENDPOINT
-// =============================================
-function parseMF4(buffer) {
-  const buf = Buffer.from(buffer);
-
-  // Verify MDF4 file signature
-  const fileId = buf.toString('ascii', 0, 4);
-  if (fileId !== 'MDF ' && fileId !== 'UnFi') {
-    throw new Error('Not a valid MF4/MDF4 file');
-  }
-
-  function readBlock(offset) {
-    if (offset === 0 || offset >= buf.length - 24) return null;
-    const id = buf.toString('ascii', offset, offset + 4);
-    const length = Number(buf.readBigUInt64LE(offset + 8));
-    const linkCount = Number(buf.readBigUInt64LE(offset + 16));
-    const links = [];
-    for (let i = 0; i < linkCount; i++) {
-      links.push(Number(buf.readBigUInt64LE(offset + 24 + i * 8)));
-    }
-    return { id, offset, length, linkCount, links, dataOffset: offset + 24 + linkCount * 8 };
-  }
-
-  function readTX(offset) {
-    if (!offset) return '';
-    const block = readBlock(offset);
-    if (!block || (block.id !== '##TX' && block.id !== '##MD')) return '';
-    let text = buf.toString('utf8', block.dataOffset, offset + block.length);
-    const nullIdx = text.indexOf('\0');
-    return nullIdx >= 0 ? text.slice(0, nullIdx) : text.trim();
-  }
-
-  function extractBits(recordStart, byteOff, bitOff, bitCount) {
-    const startByte = recordStart + 1 + byteOff;
-    if (startByte + Math.ceil((bitOff + bitCount) / 8) > buf.length) return 0;
-    const bytesNeeded = Math.ceil((bitOff + bitCount) / 8);
-    let val = BigInt(0);
-    for (let i = 0; i < bytesNeeded && i < 8; i++) {
-      val |= BigInt(buf.readUInt8(startByte + i)) << BigInt(i * 8);
-    }
-    val >>= BigInt(bitOff);
-    return Number(val & ((BigInt(1) << BigInt(bitCount)) - BigInt(1)));
-  }
-
-  // Parse HD block at offset 64
-  const hd = readBlock(64);
-  if (!hd || hd.id !== '##HD') throw new Error('Missing HD block');
-
-  const dgOffset = hd.links[0];
-  if (!dgOffset) throw new Error('No data groups in file');
-  const dg = readBlock(dgOffset);
-  if (!dg || dg.id !== '##DG') throw new Error('Invalid DG block');
-
-  // Parse channel groups to find CAN_DataFrame CG
-  const dtOffset = dg.links[2];
-  const dt = readBlock(dtOffset);
-  if (!dt) throw new Error('No data block');
-
-  let canCgDataBytes = 0;
-  let canRecordId = 0;
-  let vlsdRecordId = 0;
-  let linRecordId = 0;
-  let linCgDataBytes = 0;
-
-  // Discover channel group layout and find CAN ID/DLC bit positions
-  let canIdByteOff = 8, canIdBitOff = 3, canIdBits = 29;
-  let ideBitOff = 0;
-  let dlcByteOff = 13, dlcBitOff = 4, dlcBits = 4;
-
-  let cgOffset = dg.links[1];
-  while (cgOffset) {
-    const cg = readBlock(cgOffset);
-    if (!cg || cg.id !== '##CG') break;
-    const cgBody = cg.dataOffset;
-    const recId = Number(buf.readBigUInt64LE(cgBody));
-    const flags = buf.readUInt16LE(cgBody + 16);
-    const dataBytes = buf.readUInt32LE(cgBody + 24);
-    const acqName = readTX(cg.links[2]);
-
-    if (flags & 1) {
-      // VLSD CG
-      vlsdRecordId = recId;
-    } else if (acqName.includes('CAN') || acqName.includes('can')) {
-      canRecordId = recId;
-      canCgDataBytes = dataBytes;
-
-      // Parse CN sub-channels for exact bit positions
-      let cnOffset = cg.links[1];
-      while (cnOffset) {
-        const cn = readBlock(cnOffset);
-        if (!cn || cn.id !== '##CN') break;
-        const compLink = cn.links[1];
-        if (compLink) {
-          let subCn = readBlock(compLink);
-          while (subCn && subCn.id === '##CN') {
-            const sb = subCn.dataOffset;
-            const sName = readTX(subCn.links[2]);
-            if (sName.includes('.ID') && !sName.includes('.IDE')) {
-              canIdByteOff = buf.readUInt32LE(sb + 4);
-              canIdBitOff = buf.readUInt8(sb + 3);
-              canIdBits = buf.readUInt32LE(sb + 8);
-            } else if (sName.includes('.IDE')) {
-              ideBitOff = buf.readUInt8(sb + 3);
-            } else if (sName.includes('.DLC')) {
-              dlcByteOff = buf.readUInt32LE(sb + 4);
-              dlcBitOff = buf.readUInt8(sb + 3);
-              dlcBits = buf.readUInt32LE(sb + 8);
-            }
-            subCn = subCn.links[0] ? readBlock(subCn.links[0]) : null;
-          }
-        }
-        cnOffset = cn.links[0];
-      }
-    } else if (acqName.includes('LIN') || acqName.includes('lin')) {
-      linRecordId = recId;
-      linCgDataBytes = dataBytes;
-    }
-    cgOffset = cg.links[0];
-  }
-
-  if (!canRecordId) throw new Error('No CAN data group found in MF4 file');
-
-  // Parse data records
-  const dataStart = dt.dataOffset;
-  let pos = dataStart;
-  const canFrames = [];
-  const maxFrames = 500000; // safety limit
-
-  while (pos < buf.length - 1 && canFrames.length < maxFrames) {
-    const recId = buf.readUInt8(pos);
-    if (recId === canRecordId) {
-      const ts = buf.readDoubleLE(pos + 1);
-      const canId = extractBits(pos, canIdByteOff, canIdBitOff, canIdBits);
-      const ide = extractBits(pos, canIdByteOff, ideBitOff, 1);
-      const dlc = extractBits(pos, dlcByteOff, dlcBitOff, dlcBits);
-      canFrames.push({ ts: ts / 1e6, canId, ide, dlc, data: '' });
-      pos += 1 + canCgDataBytes;
-    } else if (recId === vlsdRecordId) {
-      const len = buf.readUInt32LE(pos + 1);
-      const dataBytes = buf.slice(pos + 5, pos + 5 + Math.min(len, 64));
-      // Attach to most recent CAN frame
-      if (canFrames.length > 0 && !canFrames[canFrames.length - 1].data) {
-        canFrames[canFrames.length - 1].data = dataBytes.toString('hex');
-      }
-      pos += 5 + len;
-    } else if (recId === linRecordId && linCgDataBytes > 0) {
-      pos += 1 + linCgDataBytes;
-    } else {
-      pos++;
-    }
-  }
-
-  // Build summary
-  const idCounts = {};
-  canFrames.forEach(f => {
-    const key = '0x' + f.canId.toString(16).toUpperCase().padStart(3, '0');
-    idCounts[key] = (idCounts[key] || 0) + 1;
-  });
-  const uniqueIds = Object.keys(idCounts).sort();
-  const timeSpan = canFrames.length > 1
-    ? ((canFrames[canFrames.length - 1].ts - canFrames[0].ts) / 1000).toFixed(2)
-    : '0';
-
-  // Decode OBD2 PIDs from 0x7E8/0x7E9-0x7EF responses
-  const obd2Decoded = [];
-  const obd2PidNames = {
-    0x04: 'Calc Engine Load', 0x05: 'Coolant Temp', 0x06: 'STFT Bank 1',
-    0x07: 'LTFT Bank 1', 0x08: 'STFT Bank 2', 0x09: 'LTFT Bank 2',
-    0x0A: 'Fuel Pressure', 0x0B: 'Intake MAP', 0x0C: 'Engine RPM',
-    0x0D: 'Vehicle Speed', 0x0E: 'Timing Advance', 0x0F: 'Intake Air Temp',
-    0x10: 'MAF Rate', 0x11: 'Throttle Position', 0x1C: 'OBD Standard',
-    0x1F: 'Run Time', 0x21: 'Distance w/ MIL', 0x2F: 'Fuel Tank Level',
-    0x31: 'Distance Since Clear', 0x33: 'Baro Pressure', 0x42: 'Control Module Voltage',
-    0x46: 'Ambient Air Temp', 0x49: 'Accel Pedal D', 0x4A: 'Accel Pedal E',
-    0x51: 'Fuel Type', 0x5C: 'Oil Temp', 0x62: 'Actual Engine Torque',
-  };
-
-  for (const f of canFrames) {
-    if (f.canId >= 0x7E8 && f.canId <= 0x7EF && f.data.length >= 8) {
-      const bytes = Buffer.from(f.data, 'hex');
-      const pci = bytes[0];
-      if (bytes[1] === 0x41) { // Mode 01 response
-        const pid = bytes[2];
-        const pidName = obd2PidNames[pid] || `PID 0x${pid.toString(16).toUpperCase()}`;
-        let value = '';
-        // Decode common PIDs
-        if (pid === 0x05 || pid === 0x0F || pid === 0x46) value = (bytes[3] - 40) + ' °C';
-        else if (pid === 0x04 || pid === 0x11) value = (bytes[3] / 2.55).toFixed(1) + ' %';
-        else if (pid === 0x06 || pid === 0x07 || pid === 0x08 || pid === 0x09) value = ((bytes[3] - 128) * 100 / 128).toFixed(1) + ' %';
-        else if (pid === 0x0B || pid === 0x33) value = bytes[3] + ' kPa';
-        else if (pid === 0x0C) value = ((bytes[3] * 256 + bytes[4]) / 4).toFixed(0) + ' RPM';
-        else if (pid === 0x0D) value = bytes[3] + ' km/h';
-        else if (pid === 0x0E) value = (bytes[3] / 2 - 64).toFixed(1) + ' deg';
-        else if (pid === 0x10) value = ((bytes[3] * 256 + bytes[4]) / 100).toFixed(2) + ' g/s';
-        else if (pid === 0x2F) value = (bytes[3] / 2.55).toFixed(1) + ' %';
-        else if (pid === 0x42) value = ((bytes[3] * 256 + bytes[4]) / 1000).toFixed(2) + ' V';
-        else if (pid === 0x5C) value = (bytes[3] - 40) + ' °C';
-        else value = '0x' + bytes.slice(3, 3 + (pci & 0x0F) - 2).toString('hex');
-
-        obd2Decoded.push({ ts: f.ts.toFixed(1), pid: '0x' + pid.toString(16).toUpperCase().padStart(2, '0'), name: pidName, value });
-      }
-    }
-  }
-
-  return {
-    totalMessages: canFrames.length,
-    uniqueIds: uniqueIds.length,
-    timeSpanSeconds: timeSpan,
-    idCounts,
-    topIds: uniqueIds.sort((a, b) => idCounts[b] - idCounts[a]).slice(0, 30),
-    sampleMessages: canFrames.slice(0, 20).map(f => ({
-      timestamp: f.ts.toFixed(3),
-      id: '0x' + f.canId.toString(16).toUpperCase().padStart(3, '0'),
-      extended: f.ide === 1,
-      dlc: f.dlc,
-      data: f.data
-    })),
-    obd2Decoded: obd2Decoded.slice(0, 500), // first 500 decoded values
-    obd2Summary: (() => {
-      // Summarize OBD2 data: latest value per PID
-      const latest = {};
-      obd2Decoded.forEach(d => { latest[d.pid] = d; });
-      return Object.values(latest);
-    })()
-  };
-}
-
-app.post('/api/parse-mf4', (req, res) => {
-  try {
-    const { fileBase64 } = req.body;
-    if (!fileBase64) return res.status(400).json({ success: false, error: 'No file data provided' });
-
-    const buffer = Buffer.from(fileBase64, 'base64');
-    console.log('Parsing MF4 file:', (buffer.length / 1024).toFixed(1), 'KB');
-
-    const result = parseMF4(buffer);
-    console.log('MF4 parsed:', result.totalMessages, 'CAN messages,', result.uniqueIds, 'unique IDs,', result.obd2Decoded.length, 'OBD2 values decoded');
-
-    res.json({ success: true, ...result });
-  } catch (error) {
-    console.error('MF4 parse error:', error.message);
-    res.status(400).json({ success: false, error: error.message });
   }
 });
 
@@ -1120,129 +1115,28 @@ app.post('/api/ai-analysis', async (req, res) => {
     const stepsWithNotes = steps.filter(s => s.notes && s.notes.trim());
     const stepsWithImages = steps.filter(s => s.images && s.images.length > 0);
     
-    const diagnosticSummary = stepsWithNotes.map(s =>
+    const diagnosticSummary = stepsWithNotes.map(s => 
       'Step ' + s.id + ' (' + s.title + '): ' + s.notes
     ).join('\n\n');
 
-    const partsListText = partsRequest.length > 0
+    const partsListText = partsRequest.length > 0 
       ? partsRequest.map(p => '- ' + (p.partName || p.name) + (p.partNumber ? ' (P/N: ' + p.partNumber + ')' : '') + (p.inStock ? ' [In Stock]' : ' [Needs Order]')).join('\n')
       : 'No parts requested yet.';
 
-    // DTC extraction kept for future confirmed-fix API (Identifix/macs Data Service integration pending)
-    // const allNotes = stepsWithNotes.map(s => s.notes).join(' ');
-    // const dtcs = extractDTCs(allNotes);
+    const systemPrompt = 'You are an expert ASE Master Certified automotive diagnostic technician with 45+ years of experience. You specialize in systematic diagnosis using the "Never Miss A Step" 15-step methodology.\n\nYour role is to analyze diagnostic findings from other technicians and provide:\n1. Confirmation or questions about the diagnosis path\n2. Potential root causes they may have missed\n3. Common failures for this specific vehicle/symptom\n4. Recommended next steps or additional tests\n5. Any safety concerns or critical issues\n\nBe direct and technical - you are talking to fellow technicians. Use proper terminology. Reference TSBs or common issues when relevant. If the notes are sparse, ask clarifying questions about what tests were performed.\n\nFormat your response clearly with sections. Be helpful but also challenge assumptions if the diagnostic path seems incomplete.';
 
-    // Extract text from uploaded PDF reference document if provided
-    let pdfSection = '';
-    if (reportData.pdfReference?.base64) {
-      try {
-        const pdfBuffer = Buffer.from(reportData.pdfReference.base64, 'base64');
-        const parsed = await pdfParse(pdfBuffer);
-        const pdfText = parsed.text?.trim();
-        if (pdfText) {
-          // Limit to ~8000 chars to avoid token overload
-          const truncated = pdfText.length > 8000 ? pdfText.slice(0, 8000) + '\n...[document truncated]' : pdfText;
-          pdfSection = `\n\n**REFERENCE DOCUMENT (${reportData.pdfReference.name}):**\n${truncated}`;
-          console.log('PDF reference extracted:', reportData.pdfReference.name, '— chars:', pdfText.length);
-        }
-      } catch (err) {
-        console.log('PDF parse failed:', err.message);
-        pdfSection = `\n\n**REFERENCE DOCUMENT:** (Tech attached "${reportData.pdfReference?.name}" but it could not be read — may be a scanned/image-only PDF)`;
-      }
-    }
-
-    // Build CAN bus data section if tech included CAN logs
-    let canSection = '';
-    const stepsWithCanLogs = steps.filter(s => s.canLogs && s.canLogs.length > 0);
-    if (reportData.includeCanLogs && stepsWithCanLogs.length > 0) {
-      const canParts = [];
-      for (const step of stepsWithCanLogs) {
-        for (const log of step.canLogs) {
-          const s = log.summary || {};
-          let logText = `\nCAN Log "${log.name}" (Step ${step.id} — ${step.title}):`;
-          logText += `\n  Total Messages: ${s.totalMessages || 0}, Unique CAN IDs: ${s.uniqueIds || 0}, Duration: ${s.timeSpanSeconds || 0}s`;
-          if (s.topIds && s.topIds.length > 0) {
-            logText += `\n  Top IDs by frequency: ${s.topIds.map(id => id + ' (' + (s.idCounts?.[id] || 0) + ')').join(', ')}`;
-          }
-          // Include OBD2 decoded values if available (from MF4 parsing)
-          if (s.obd2Summary && s.obd2Summary.length > 0) {
-            logText += `\n  OBD2 Decoded Values:`;
-            s.obd2Summary.forEach(d => {
-              logText += `\n    ${d.name} (${d.pid}): ${d.value}`;
-            });
-          }
-          if (s.obd2Decoded && s.obd2Decoded.length > 0) {
-            const decodedSample = s.obd2Decoded.slice(0, 200);
-            logText += `\n  OBD2 Time Series (${s.obd2Decoded.length} readings, showing first ${decodedSample.length}):`;
-            decodedSample.forEach(d => {
-              logText += `\n    ${d.ts}ms ${d.name}: ${d.value}`;
-            });
-          }
-          // Include raw data sample (first ~8000 chars) for text-based logs
-          if (log.rawText) {
-            const rawSample = log.rawText.length > 8000 ? log.rawText.slice(0, 8000) + '\n...[log truncated]' : log.rawText;
-            logText += `\n  Raw CAN data:\n${rawSample}`;
-          }
-          canParts.push(logText);
-        }
-      }
-      canSection = '\n\n**CAN BUS DATA:**' + canParts.join('\n');
-      console.log('CAN bus data included:', stepsWithCanLogs.reduce((n, s) => n + s.canLogs.length, 0), 'log files');
-    }
-
-    const systemPrompt = 'You are an expert ASE Master Certified automotive diagnostic technician with 45+ years of experience. You specialize in systematic diagnosis using the "Never Miss A Step" 15-step methodology.\n\nYour role is to analyze diagnostic findings from other technicians and provide:\n1. Confirmation or questions about the diagnosis path\n2. Potential root causes they may have missed\n3. Common failures for this specific vehicle/symptom\n4. Recommended next steps or additional tests\n5. Any safety concerns or critical issues\n\nBe direct and technical - you are talking to fellow technicians. Use proper terminology. Reference TSBs or common issues when relevant. If the notes are sparse, ask clarifying questions about what tests were performed.\n\nFormat your response clearly with sections. Be helpful but also challenge assumptions if the diagnostic path seems incomplete.' + (canSection ? '\n\nWhen CAN bus data is provided, analyze it for:\n- Modules that are NOT responding (missing expected CAN IDs for this vehicle)\n- Modules sending error frames or abnormal message rates\n- Communication bus issues (low message counts may indicate wiring/termination problems)\n- Correlate CAN bus findings with the reported symptoms and diagnostic steps\n- Identify any CAN IDs with unusual data patterns or timing gaps' : '') + diagWorkflowReference;
-
-    const textMessage = 'Please analyze this diagnostic case:\n\n**VEHICLE INFORMATION:**\n- Year/Make/Model: ' + (v.year || 'Unknown') + ' ' + (v.make || 'Unknown') + ' ' + (v.model || 'Unknown') + '\n- VIN: ' + (v.vin || 'Not provided') + '\n- Mileage: ' + (v.mileage || 'Not recorded') + '\n- RO#: ' + (v.roNumber || 'N/A') + '\n\n**DIAGNOSTIC PROGRESS:**\n- Steps Completed: ' + completedSteps.length + ' of ' + steps.length + '\n- Steps with Documentation: ' + stepsWithNotes.length + '\n- Steps with Photos: ' + stepsWithImages.length + '\n\n**TECHNICIAN FINDINGS:**\n' + (diagnosticSummary || 'No notes recorded in diagnostic steps.') + '\n\n**PARTS IDENTIFIED:**\n' + partsListText + pdfSection + canSection + '\n\n---\n\nBased on this information, please provide your analysis.' + (pdfSection ? ' Reference the attached document where relevant to the diagnosis.' : '') + (canSection ? ' Analyze the CAN bus data for missing/non-responding modules, error frames, and communication issues. Identify which modules are present and which may be failing or offline.' : '') + ' If the documentation is sparse, ask what specific tests or observations the tech has made. If there is enough info, provide your diagnostic insights and recommendations.';
-
-    // Build message content — add images as vision blocks if tech opted in
-    let messageContent;
-    if (reportData.includeImages && stepsWithImages.length > 0) {
-      messageContent = [{ type: 'text', text: textMessage }];
-      for (const step of stepsWithImages) {
-        messageContent.push({ type: 'text', text: `\n📷 Photos from Step ${step.id} (${step.title}):` });
-        for (const img of step.images) {
-          // Images are stored as data URLs: "data:image/jpeg;base64,/9j/..."
-          const matches = img.match(/^data:(.+);base64,(.+)$/);
-          if (matches) {
-            messageContent.push({
-              type: 'image',
-              source: { type: 'base64', media_type: matches[1], data: matches[2] }
-            });
-          }
-        }
-      }
-      console.log('AI Analysis with images:', stepsWithImages.reduce((n, s) => n + s.images.length, 0), 'photos included');
-    } else {
-      messageContent = textMessage;
-    }
+    const userMessage = 'Please analyze this diagnostic case:\n\n**VEHICLE INFORMATION:**\n- Year/Make/Model: ' + (v.year || 'Unknown') + ' ' + (v.make || 'Unknown') + ' ' + (v.model || 'Unknown') + '\n- VIN: ' + (v.vin || 'Not provided') + '\n- Mileage: ' + (v.mileage || 'Not recorded') + '\n- RO#: ' + (v.roNumber || 'N/A') + '\n\n**DIAGNOSTIC PROGRESS:**\n- Steps Completed: ' + completedSteps.length + ' of ' + steps.length + '\n- Steps with Documentation: ' + stepsWithNotes.length + '\n- Steps with Photos: ' + stepsWithImages.length + '\n\n**TECHNICIAN FINDINGS:**\n' + (diagnosticSummary || 'No notes recorded in diagnostic steps.') + '\n\n**PARTS IDENTIFIED:**\n' + partsListText + '\n\n---\n\nBased on this information, please provide your analysis. If the documentation is sparse, ask what specific tests or observations the tech has made. If there is enough info, provide your diagnostic insights and recommendations.';
 
     console.log('AI Analysis requested for:', v.year + ' ' + v.make + ' ' + v.model);
 
-    // Retry with exponential backoff for transient API errors (429, 529 overloaded)
-    let message;
-    const maxRetries = 3;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        message = await anthropic.messages.create({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2000,
-          messages: [
-            { role: 'user', content: messageContent }
-          ],
-          system: systemPrompt
-        });
-        break; // success
-      } catch (apiError) {
-        const status = apiError.status || apiError.statusCode;
-        if ((status === 429 || status === 529) && attempt < maxRetries) {
-          const delay = attempt * 2000; // 2s, 4s
-          console.log(`AI API overloaded (${status}), retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`);
-          await new Promise(r => setTimeout(r, delay));
-        } else {
-          throw apiError;
-        }
-      }
-    }
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      messages: [
+        { role: 'user', content: userMessage }
+      ],
+      system: systemPrompt
+    });
 
     const analysisText = message.content[0].text;
     

@@ -10,14 +10,14 @@
     <meta name="application-name" content="DiagFlow">
     <meta name="theme-color" content="#0066ff">
     <meta name="description" content="Professional 13-Step Diagnostic Workflow for Automotive Technicians">
-    
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
-    
+
     <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="/icons/diagflow-icon.svg">
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
-    
+
     <title>DiagFlow V49 - Professional Diagnostic Workflow</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -25,7 +25,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
+        body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             overscroll-behavior: none;
             -webkit-overflow-scrolling: touch;
@@ -36,7 +36,7 @@
 </head>
 <body>
     <div id="root"></div>
-    
+
     <!-- Service Worker Registration -->
     <script>
       if ('serviceWorker' in navigator) {
@@ -47,10 +47,10 @@
         });
       }
     </script>
-    
+
     <script type="text/babel">
         const { useState, useEffect } = React;
-        
+
         // Import all Lucide icons as inline SVG components
         const Menu = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>;
         const Home = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>;
@@ -217,7 +217,7 @@ const HowToUsePage = () => {
     { step: 4, title: 'Electrical System Evaluation', desc: 'Test battery state of health and stable voltage' },
     { step: 5, title: 'TSB & Known Issues Research', desc: 'Search manufacturer TSBs and NHTSA database' },
     { step: 6, title: 'Wiring Diagrams & System Operation', desc: 'Study system operation and identify components' },
-    { step: 7, title: 'Stable Voltage Setup (Optional)', desc: 'May not be needed on all jobs. Required for programming or extended Key On diagnostics.' },
+    { step: 7, title: 'Stable Voltage Setup', desc: 'Use battery maintainer during diagnostics' },
     { step: 8, title: 'Test Plan Development', desc: 'Write down test plan before testing' },
     { step: 9, title: 'Data Recording & Scope Work', desc: 'Capture waveforms and save scope data' },
     { step: 10, title: 'Delta Analysis & Data Mapping', desc: 'Compare readings to baseline values' },
@@ -241,8 +241,8 @@ const HowToUsePage = () => {
             key={section.id}
             onClick={() => setActiveSection(section.id)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              activeSection === section.id 
-                ? 'bg-blue-900 text-white' 
+              activeSection === section.id
+                ? 'bg-blue-900 text-white'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
@@ -253,18 +253,18 @@ const HowToUsePage = () => {
 
       {/* Content */}
       <div className="bg-gray-50 rounded-xl p-6 min-h-[400px]">
-        
+
         {/* Overview */}
         {activeSection === 'overview' && (
           <div>
             <h2 className="text-xl font-bold text-blue-900 mb-4">Welcome to DiagFlow</h2>
             <p className="text-gray-700 leading-relaxed mb-4">
-              DiagFlow is a professional automotive diagnostic training and workflow management 
-              application built on the <strong>"Never Miss A Step"</strong> methodology. 
-              Developed from 45 years of hands-on diagnostic experience, DiagFlow helps 
+              DiagFlow is a professional automotive diagnostic training and workflow management
+              application built on the <strong>"Never Miss A Step"</strong> methodology.
+              Developed from 45 years of hands-on diagnostic experience, DiagFlow helps
               technicians work through complex vehicle problems systematically.
             </p>
-            
+
             <div className="bg-white p-5 rounded-lg border-l-4 border-blue-600 mt-4">
               <h3 className="font-bold text-blue-900 mb-3">Key Features</h3>
               <ul className="space-y-2 text-gray-700">
@@ -301,10 +301,10 @@ const HowToUsePage = () => {
           <div>
             <h2 className="text-xl font-bold text-blue-900 mb-4">The 13-Step Diagnostic Workflow</h2>
             <p className="text-gray-700 mb-4">
-              The heart of DiagFlow is the <strong>"Never Miss A Step"</strong> methodology. 
+              The heart of DiagFlow is the <strong>"Never Miss A Step"</strong> methodology.
               Each step is designed to systematically guide you through the diagnostic process.
             </p>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {workflowSteps.map(item => (
                 <div key={item.step} className="bg-white p-3 rounded-lg border-l-4 border-blue-600">
@@ -326,10 +326,10 @@ const HowToUsePage = () => {
           <div>
             <h2 className="text-xl font-bold text-blue-900 mb-4">Scope Testing Module</h2>
             <p className="text-gray-700 mb-4">
-              The Scope Testing module provides reference waveforms and testing procedures 
+              The Scope Testing module provides reference waveforms and testing procedures
               to help you verify component operation.
             </p>
-            
+
             <div className="bg-white p-5 rounded-lg mb-4">
               <h3 className="font-bold text-blue-900 mb-3">How to Use Scope Testing</h3>
               <ol className="list-decimal list-inside space-y-2 text-gray-700">
@@ -343,7 +343,7 @@ const HowToUsePage = () => {
             </div>
 
             <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-400">
-              <strong>⚠️ Pro Tip:</strong> Always verify your scope settings match the reference. 
+              <strong>⚠️ Pro Tip:</strong> Always verify your scope settings match the reference.
               Time base and voltage scale differences can make a good signal look bad.
             </div>
           </div>
@@ -354,10 +354,10 @@ const HowToUsePage = () => {
           <div>
             <h2 className="text-xl font-bold text-blue-900 mb-4">Photos & Notes</h2>
             <p className="text-gray-700 mb-4">
-              Thorough documentation is key to professional diagnostics and protecting yourself 
+              Thorough documentation is key to professional diagnostics and protecting yourself
               from comebacks. DiagFlow makes it easy to capture evidence at every step.
             </p>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="bg-white p-5 rounded-lg">
                 <h3 className="font-bold text-blue-900 mb-3">📸 Adding Photos</h3>
@@ -368,7 +368,7 @@ const HowToUsePage = () => {
                   <li>• All photos appear in your final report</li>
                 </ul>
               </div>
-              
+
               <div className="bg-white p-5 rounded-lg">
                 <h3 className="font-bold text-blue-900 mb-3">📝 Adding Notes</h3>
                 <ul className="space-y-2 text-gray-700 text-sm">
@@ -381,7 +381,7 @@ const HowToUsePage = () => {
             </div>
 
             <div className="bg-green-50 p-4 rounded-lg border border-green-500">
-              <strong>✅ Best Practice:</strong> Document what you find even if it's normal. 
+              <strong>✅ Best Practice:</strong> Document what you find even if it's normal.
               "Verified battery voltage at 12.6V" is valuable information when reviewing a comeback.
             </div>
           </div>
@@ -392,11 +392,11 @@ const HowToUsePage = () => {
           <div>
             <h2 className="text-xl font-bold text-blue-900 mb-4">🔩 Parts Request</h2>
             <p className="text-gray-700 mb-4">
-              The Parts Request feature in Step 12 (Quality Repair & Parts) allows you to build a complete 
-              parts list and submit it directly to your service advisor. No more handwritten notes 
+              The Parts Request feature in Step 12 (Quality Repair & Parts) allows you to build a complete
+              parts list and submit it directly to your service advisor. No more handwritten notes
               or forgotten items—everything is documented and sent professionally.
             </p>
-            
+
             <div className="bg-white p-5 rounded-lg mb-4">
               <h3 className="font-bold text-blue-900 mb-3">How to Add Parts</h3>
               <ol className="list-decimal list-inside space-y-2 text-gray-700">
@@ -421,7 +421,7 @@ const HowToUsePage = () => {
                   <li>• <strong>In Stock:</strong> Check if already in inventory</li>
                 </ul>
               </div>
-              
+
               <div className="bg-white p-5 rounded-lg">
                 <h3 className="font-bold text-blue-900 mb-3">📤 Submitting to SA</h3>
                 <ul className="space-y-2 text-gray-700 text-sm">
@@ -435,13 +435,13 @@ const HowToUsePage = () => {
             </div>
 
             <div className="bg-green-50 p-4 rounded-lg border border-green-500 mb-4">
-              <strong>✅ Pro Tip:</strong> Always include part numbers when possible. This eliminates 
-              confusion at the parts counter and speeds up the ordering process. Use the photo feature 
+              <strong>✅ Pro Tip:</strong> Always include part numbers when possible. This eliminates
+              confusion at the parts counter and speeds up the ordering process. Use the photo feature
               to capture the part number label directly off the old part.
             </div>
 
             <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-400">
-              <strong>⚠️ Remember:</strong> Check "In Stock" for parts you know are on the shelf. 
+              <strong>⚠️ Remember:</strong> Check "In Stock" for parts you know are on the shelf.
               This helps the SA know what needs to be ordered vs. what's ready to go.
             </div>
           </div>
@@ -452,10 +452,10 @@ const HowToUsePage = () => {
           <div>
             <h2 className="text-xl font-bold text-blue-900 mb-4">PDF Reports</h2>
             <p className="text-gray-700 mb-4">
-              DiagFlow generates professional PDF reports that document your entire diagnostic 
+              DiagFlow generates professional PDF reports that document your entire diagnostic
               process. These reports can be emailed directly to service advisors.
             </p>
-            
+
             <div className="bg-white p-5 rounded-lg mb-4">
               <h3 className="font-bold text-blue-900 mb-3">Report Contents</h3>
               <ul className="space-y-2 text-gray-700">
@@ -514,17 +514,15 @@ const DiagnosticApp = () => {
   const [currentView, setCurrentView] = useState('vehicle-info');
   const [selectedStep, setSelectedStep] = useState(null);
   const [selectedScopeWorkflow, setSelectedScopeWorkflow] = useState(null);
-  const [selectedDiagWorkflow, setSelectedDiagWorkflow] = useState(null);
-  const [showDiagWorkflowPanel, setShowDiagWorkflowPanel] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [completedSteps, setCompletedSteps] = useState([]);
-  
+
   // Organization state (V49 Multi-Org)
   const [organization, setOrganization] = useState(() => {
     const saved = localStorage.getItem('diagflow_org');
     return saved ? JSON.parse(saved) : null;
   });
-  
+
   const [vehicleInfo, setVehicleInfo] = useState({
     year: '',
     make: '',
@@ -537,46 +535,34 @@ const DiagnosticApp = () => {
   const [stepNotes, setStepNotes] = useState({});
   const [stepImages, setStepImages] = useState({});
   const [partsRequest, setPartsRequest] = useState([]);
-  
+
   // Fuel Trim capture table (Step 2)
   const [fuelTrims, setFuelTrims] = useState({
     idle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
     lightThrottle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
     loaded: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' }
   });
-  
+
   // Post-repair fuel trims (Step 13)
   const [postRepairTrims, setPostRepairTrims] = useState({
     idle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
     lightThrottle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
     loaded: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' }
   });
-  
+
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
-  const [archiveSearch, setArchiveSearch] = useState('');
-  const [archiveLoadLimit, setArchiveLoadLimit] = useState(100);
   const [showAIModal, setShowAIModal] = useState(false);
-  const [toast, setToast] = useState(null); // { message, type: 'error'|'success' }
-  const showToast = (message, type = 'error', duration = 6000) => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), duration);
-  };
   const [showVinScanner, setShowVinScanner] = useState(false);
   const [archivedReports, setArchivedReports] = useState([]);
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiIncludeImages, setAiIncludeImages] = useState(false);
-  const [aiPdfFile, setAiPdfFile] = useState(null); // { name, base64 }
-  const [canLogFiles, setCanLogFiles] = useState({}); // { [stepId]: [{ id, name, rawText, summary }] }
-  const [aiIncludeCanLogs, setAiIncludeCanLogs] = useState(false);
-  const [currentReportId, setCurrentReportId] = useState(null); // tracks restored report's ID for update-on-archive
   const [submitEmail, setSubmitEmail] = useState('');
   const [additionalEmails, setAdditionalEmails] = useState('');
   const [showEmailSettings, setShowEmailSettings] = useState(false);
-  
+
   // Shop Profile & Email Routing
   const [shopProfile, setShopProfile] = useState(() => {
     const saved = localStorage.getItem('diagflow_shop_profile');
@@ -609,10 +595,10 @@ const DiagnosticApp = () => {
   useEffect(() => {
     const loadArchive = async () => {
       let loadedReports = [];
-      
+
       if (organization?.id) {
         const localArchiveKey = `diagflow_archive_${organization.id}`;
-        
+
         // MIGRATION: Check if old generic key has data but org-specific doesn't
         const oldArchive = localStorage.getItem('diagflow_archive');
         const orgArchive = localStorage.getItem(localArchiveKey);
@@ -621,7 +607,7 @@ const DiagnosticApp = () => {
           localStorage.setItem(localArchiveKey, oldArchive);
           console.log('Migrated archive from generic key to org-specific key');
         }
-        
+
         // Load from org-specific localStorage
         const savedLocalArchive = localStorage.getItem(localArchiveKey);
         if (savedLocalArchive) {
@@ -632,10 +618,10 @@ const DiagnosticApp = () => {
             console.log('Error parsing localStorage archive:', e);
           }
         }
-        
+
         // Also try to load from Supabase and merge
         try {
-          const response = await fetch(`${API_BASE_URL}/api/reports/archived/list?orgId=${organization.id}&limit=${archiveLoadLimit}`);
+          const response = await fetch(`${API_BASE_URL}/api/reports/archived/list?orgId=${organization.id}`);
           const data = await response.json();
           if (data.success && data.reports && data.reports.length > 0) {
             // Transform Supabase format to frontend format
@@ -655,18 +641,10 @@ const DiagnosticApp = () => {
               completedSteps: r.completed_steps?.length || 0,
               completedStepIds: r.completed_steps || [],
               stepNotes: r.step_notes || {},
-              stepImages: r.step_images || {},
-              steps: r.step_notes ? Object.keys(r.step_notes).map(id => ({
-                id: parseInt(id),
-                notes: r.step_notes[id],
-                images: (r.step_images || {})[id] || []
-              })) : [],
               partsRequest: r.parts_request || [],
-              fuelTrims: r.fuel_trims || null,
-              postRepairTrims: r.post_repair_trims || null,
               fromSupabase: true
             }));
-            
+
             // Merge: Supabase reports first, then local reports not in Supabase
             const supabaseIds = new Set(supabaseReports.map(r => r.id));
             const uniqueLocalReports = loadedReports.filter(r => !supabaseIds.has(r.id));
@@ -687,22 +665,114 @@ const DiagnosticApp = () => {
           }
         }
       }
-      
+
       setArchivedReports(loadedReports);
       console.log('Total archived reports loaded:', loadedReports.length);
     };
-    
+
     if (isAuthenticated) {
       loadArchive();
     }
-  }, [organization, isAuthenticated, archiveLoadLimit]);
+  }, [organization, isAuthenticated]);
+
+  // ===== AUTO-SAVE / RESUME IN-PROGRESS JOB =====
+  // Key is org-specific so different shops don't clobber each other on shared devices
+  const getActiveJobKey = () => organization?.id ? `diagflow_active_job_${organization.id}` : 'diagflow_active_job';
+
+  // On login, if there's an in-progress job saved and nothing is currently loaded, resume it automatically
+  const [hasCheckedForActiveJob, setHasCheckedForActiveJob] = useState(false);
+  useEffect(() => {
+    if (!isAuthenticated || hasCheckedForActiveJob) return;
+    setHasCheckedForActiveJob(true);
+
+    try {
+      const saved = localStorage.getItem(getActiveJobKey());
+      if (saved) {
+        const job = JSON.parse(saved);
+        if (job && job.vehicleInfo && (job.vehicleInfo.year || job.vehicleInfo.make || job.vehicleInfo.model || job.vehicleInfo.roNumber)) {
+          setVehicleInfo(job.vehicleInfo);
+          setHasVehicleInfo(true);
+          setCompletedSteps(job.completedStepIds || []);
+          setStepNotes(job.stepNotes || {});
+          setStepImages(job.stepImages || {});
+          setPartsRequest(job.partsRequest || []);
+          if (job.fuelTrims) setFuelTrims(job.fuelTrims);
+          if (job.postRepairTrims) setPostRepairTrims(job.postRepairTrims);
+          setCurrentView('home');
+          console.log('Resumed in-progress job from auto-save:', job.vehicleInfo);
+        }
+      }
+    } catch (e) {
+      console.log('Error restoring in-progress job:', e);
+    }
+  }, [isAuthenticated, hasCheckedForActiveJob]);
+
+  // Continuously auto-save the in-progress job (debounced) so nothing is lost if the browser
+  // closes, crashes, or the tech walks away before archiving/submitting.
+  useEffect(() => {
+    if (!hasVehicleInfo || !hasCheckedForActiveJob) return;
+
+    const timer = setTimeout(() => {
+      const activeJob = {
+        savedAt: new Date().toISOString(),
+        vehicleInfo,
+        completedStepIds: [...completedSteps],
+        stepNotes: {...stepNotes},
+        stepImages: {...stepImages},
+        partsRequest: [...partsRequest],
+        fuelTrims: {...fuelTrims},
+        postRepairTrims: {...postRepairTrims},
+        orgId: organization?.id || null
+      };
+      try {
+        localStorage.setItem(getActiveJobKey(), JSON.stringify(activeJob));
+        console.log('Auto-saved in-progress job (', completedSteps.length, 'steps complete)');
+      } catch (e) {
+        console.log('Auto-save failed (localStorage full?):', e);
+      }
+
+      // Best-effort background save to Supabase too (cross-device resume), non-blocking
+      if (organization?.id) {
+        fetch(`${API_BASE_URL}/api/reports/save`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reportData: {
+              id: null,
+              shopName,
+              technicianName,
+              vehicleInfo,
+              completedSteps: [...completedSteps],
+              stepNotes,
+              stepImages,
+              partsRequest,
+              status: 'active'
+            },
+            orgId: organization.id
+          })
+        }).catch(err => console.log('Background Supabase auto-save failed:', err));
+      }
+    }, 800); // debounce so rapid typing doesn't spam saves
+
+    return () => clearTimeout(timer);
+  }, [hasVehicleInfo, hasCheckedForActiveJob, vehicleInfo, completedSteps, stepNotes, stepImages, partsRequest, fuelTrims, postRepairTrims, organization]);
+
+  // Clear the in-progress auto-save once a job is archived, submitted, or discarded
+  const clearActiveJobSave = () => {
+    try {
+      localStorage.removeItem(getActiveJobKey());
+    } catch (e) {
+      console.log('Error clearing active job save:', e);
+    }
+  };
+  // ===== END AUTO-SAVE / RESUME =====
 
   // Check authentication on mount
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('diagflow_token');
       const savedOrg = localStorage.getItem('diagflow_org');
-      
+
       if (token) {
         try {
           const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
@@ -728,82 +798,11 @@ const DiagnosticApp = () => {
     checkAuth();
   }, []);
 
-  // Auto-save draft to localStorage whenever job data changes
-  useEffect(() => {
-    if (!hasVehicleInfo) return; // nothing to save yet
-    const draftKey = `diagflow_draft_${organization?.id || 'generic'}`;
-    const draft = {
-      vehicleInfo,
-      completedSteps,
-      stepNotes,
-      stepImages,
-      canLogFiles,
-      partsRequest,
-      fuelTrims,
-      postRepairTrims,
-      currentReportId,
-      savedAt: new Date().toISOString()
-    };
-    try {
-      localStorage.setItem(draftKey, JSON.stringify(draft));
-    } catch (e) {
-      // localStorage full (likely due to images/CAN data) — save draft without bulky data
-      console.warn('Draft save with images failed, saving without images:', e.message);
-      const { stepImages: _, canLogFiles: _c, ...draftNoImages } = draft;
-      localStorage.setItem(draftKey, JSON.stringify(draftNoImages));
-    }
-  }, [hasVehicleInfo, vehicleInfo, completedSteps, stepNotes, stepImages, canLogFiles, partsRequest, fuelTrims, postRepairTrims]);
-
-  // On login/org change, check for a saved draft and offer to restore
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const draftKey = `diagflow_draft_${organization?.id || 'generic'}`;
-    const saved = localStorage.getItem(draftKey);
-    if (!saved) return;
-    try {
-      const draft = JSON.parse(saved);
-      if (!draft.vehicleInfo?.roNumber) return;
-      const savedAt = new Date(draft.savedAt).toLocaleString();
-      const restore = window.confirm(
-        `Resume in-progress job?\n\n${draft.vehicleInfo.year} ${draft.vehicleInfo.make} ${draft.vehicleInfo.model} — RO# ${draft.vehicleInfo.roNumber}\n${draft.completedSteps?.length || 0} steps completed\nLast saved: ${savedAt}\n\nOK to resume, Cancel to discard.`
-      );
-      if (restore) {
-        setVehicleInfo(draft.vehicleInfo);
-        setHasVehicleInfo(true);
-        setCompletedSteps(draft.completedSteps || []);
-        setStepNotes(draft.stepNotes || {});
-        if (draft.stepImages) setStepImages(draft.stepImages);
-        if (draft.canLogFiles) setCanLogFiles(draft.canLogFiles);
-        setPartsRequest(draft.partsRequest || []);
-        if (draft.fuelTrims) setFuelTrims(draft.fuelTrims);
-        if (draft.postRepairTrims) setPostRepairTrims(draft.postRepairTrims);
-        if (draft.currentReportId) setCurrentReportId(draft.currentReportId);
-        setCurrentView('workflow');
-      } else {
-        localStorage.removeItem(draftKey);
-      }
-    } catch (e) {
-      localStorage.removeItem(draftKey);
-    }
-  }, [isAuthenticated, organization]);
-
   const handleLogout = () => {
     localStorage.removeItem('diagflow_token');
     localStorage.removeItem('diagflow_org');
-    localStorage.removeItem('diagflow_shop_profile');
-    localStorage.removeItem('diagflow_shopName');
-    localStorage.removeItem('diagflow_technicianName');
     setIsAuthenticated(false);
     setOrganization(null);
-    setShopName('');
-    setTechnicianName('');
-    setShopProfile({
-      shopName: '',
-      technicianName: '',
-      ownerEmail: '',
-      defaultRecipients: [],
-      alwaysCCOwner: false
-    });
   };
 
   // Handle login with organization data
@@ -820,10 +819,10 @@ const DiagnosticApp = () => {
       }
       // Auto-populate default recipients from org
       if (org.advisorEmails && org.advisorEmails.length > 0) {
-        const updatedProfile = { 
-          ...shopProfile, 
+        const updatedProfile = {
+          ...shopProfile,
           shopName: org.name || shopProfile.shopName,
-          defaultRecipients: org.advisorEmails 
+          defaultRecipients: org.advisorEmails
         };
         setShopProfile(updatedProfile);
         localStorage.setItem('diagflow_shop_profile', JSON.stringify(updatedProfile));
@@ -843,177 +842,89 @@ const DiagnosticApp = () => {
     email: ''
   });
 
-  const SAMPLE_WAVEFORMS_URL = 'https://diagflow.org/scope/';
+  const SAMPLE_WAVEFORMS_URL = 'https://diagflow-production.up.railway.app/samples';
 
   const diagnosticSteps = [
-    { 
-      id: 1, 
-      title: "Pre-Scan Documentation", 
+    {
+      id: 1,
+      title: "Pre-Scan Documentation",
       category: "Pre-Diagnostic",
       bestPractice: "Always perform pre-scan BEFORE any work begins. Document ALL DTCs present, including pending and history codes. Take screenshots or photos of scan data. This protects you from comebacks and establishes baseline condition."
     },
-    { 
-      id: 2, 
-      title: "Test Drive & Data Capture", 
+    {
+      id: 2,
+      title: "Test Drive & Data Capture",
       category: "Pre-Diagnostic",
       bestPractice: "Duplicate customer concern if possible. Record data during test drive - freeze frame data, Mode 6 data, and live parameters. Note exact conditions when problem occurs (temperature, speed, load). Use your phone to video/audio record unusual sounds or behaviors."
     },
-    { 
-      id: 3, 
-      title: "Baseline Health & Inspection", 
+    {
+      id: 3,
+      title: "Baseline Health & Inspection",
       category: "Pre-Diagnostic",
       bestPractice: "Check fluid levels, battery state of health, and perform visual inspection for obvious damage. Use your shop's digital inspection process and document everything with photos - this builds customer trust and protects against liability. Look for aftermarket modifications, previous repairs, or collision damage. Note deferred maintenance that could affect diagnosis. Don't assume basic maintenance was done."
     },
-    { 
-      id: 4, 
-      title: "Electrical System Evaluation", 
+    {
+      id: 4,
+      title: "Electrical System Evaluation",
       category: "Pre-Diagnostic",
       bestPractice: "CRITICAL: Test battery STATE OF HEALTH and capacity, not just voltage. Check alternator output and ripple. Verify stable voltage before any diagnostic work - low voltage causes false DTCs and intermittent issues. Load test battery if over 2 years old."
     },
-    { 
-      id: 5, 
-      title: "TSB & Known Issues Research", 
+    {
+      id: 5,
+      title: "TSB & Known Issues Research",
       category: "Research",
       bestPractice: "Search manufacturer TSBs, NHTSA database, and tech forums BEFORE diving into diagnosis. Many issues have known fixes or software updates. Check for recalls and warranty extensions. Document TSB numbers found - this justifies repair to customer. This is not a silver bullet, do not replace this with valid testing."
     },
-    { 
-      id: 6, 
-      title: "Wiring Diagrams & System Operation", 
+    {
+      id: 6,
+      title: "Wiring Diagrams & System Operation",
       category: "Research",
       bestPractice: "Study wiring diagrams and system operation BEFORE testing. Understand how the system works normally so you recognize abnormal. Identify all components in the circuit, their locations, and connectors. Know what voltages/resistances to expect. If this is a Comm problem, you must look at topology. Do not ignore Comm codes. See if they integrate into your complaint, or can be ignored. Test to see if they repeat and are part of this diag."
     },
-    { 
-      id: 7, 
-      title: "Stable Voltage Setup (Optional)", 
+    {
+      id: 7,
+      title: "Stable Voltage Setup",
       category: "Research",
-      bestPractice: "(Optional) This step may not be needed on all workflows. It is primarily required when performing programming, or extended Key On diagnostics in the shop. If your diagnosis is a quick inspection or road test, you may skip this step.\n\nUse a battery maintainer or power supply during extended diagnostics. Unstable voltage during testing gives false results and can set DTCs. Many techs skip this and waste hours chasing ghosts. Maintain 12.6V minimum during all testing."
+      bestPractice: "Use a battery maintainer or power supply during extended diagnostics. Unstable voltage during testing gives false results and can set DTCs. Many techs skip this and waste hours chasing ghosts. Maintain 12.6V minimum during all testing."
     },
-    { 
-      id: 8, 
-      title: "Test Plan Development", 
+    {
+      id: 8,
+      title: "Test Plan Development",
       category: "Diagnosis",
       bestPractice: "Write down your test plan BEFORE you start testing. What are you testing? What results prove/disprove your theory? Test the most likely causes first but have a systematic plan. Don't just throw parts at it or randomly test things. This is where you may need to sell more diag, what we call Scope, and Pinpoint testing. If a high level of Scope diagnostics is needed, or physical tear down, that should not be free. Get paid for your skill. (see the Scope part for this workflow)"
     },
-    { 
-      id: 9, 
-      title: "Data Recording & Scope Work", 
+    {
+      id: 9,
+      title: "Data Recording & Scope Work",
       category: "Diagnosis",
-      bestPractice: "Use your scope to capture actual waveforms - don't just trust scan data. Save all scope captures with filename showing RO# and what was tested. Capture known-good and fault conditions. This is your evidence that proves the diagnosis. This can sometimes be done in the first diag charge, (RC, VE, etc. But know when to stop and sell more work.)\n\n💡 AI TIP: Scope software like PicoScope saves native files (.psdata) that cannot be read by AI tools. To include your waveform in the AI Analysis, export or screenshot the capture as a PNG or JPG image (PicoScope: File → Export → Image, or just screenshot the waveform window), then upload it as a photo in this step. The AI can then read and analyze the actual waveform alongside your diagnostic notes."
+      bestPractice: "Use your scope to capture actual waveforms - don't just trust scan data. Save all scope captures with filename showing RO# and what was tested. Capture known-good and fault conditions. This is your evidence that proves the diagnosis. This can sometimes be done in the first diag charge, (RC, VE, etc. But know when to stop and sell more work.)"
     },
-    { 
-      id: 10, 
-      title: "Delta Analysis & Data Mapping", 
+    {
+      id: 10,
+      title: "Delta Analysis & Data Mapping",
       category: "Diagnosis",
       bestPractice: "Compare current readings to baseline/known good values. Look for CHANGES - what's different when problem occurs vs when it doesn't? Map data relationships (fuel trim vs load, MAF vs RPM). The delta (change) often reveals the root cause."
     },
-    { 
-      id: 11, 
-      title: "Part Verification & Prove It Twice", 
+    {
+      id: 11,
+      title: "Part Verification & Prove It Twice",
       category: "Diagnosis",
       bestPractice: "NEVER replace parts based on DTCs alone. Test the actual component - verify it's out of spec. Check connectors and wiring first - most 'bad parts' are actually wiring/connector issues. Prove your diagnosis TWO different ways. If sensor reads low, verify both the sensor output AND the circuit continuity. Or test at both ends, and refer to the Scope Part of this App for Amp, and other SigInt work. Duplicate the failure if intermittent. Never rely on one test. This prevents comebacks and wrong part installation."
     },
-    { 
-      id: 12, 
-      title: "Quality Repair & Parts", 
+    {
+      id: 12,
+      title: "Quality Repair & Parts",
       category: "Repair",
       hasParts: true,
       bestPractice: "Use OE or quality aftermarket parts - cheap parts cause comebacks. Follow manufacturer repair procedures exactly. Take photos of repair area before/after. Clean connectors, apply dielectric grease. If you find poor previous repairs, document and repair correctly. USE THE PARTS REQUEST DROPDOWN BELOW to add all parts needed to complete the job - this will be included in your SA report for ordering."
     },
-    { 
-      id: 13, 
-      title: "Post-Repair Validation & Post-Scan", 
+    {
+      id: 13,
+      title: "Post-Repair Validation & Post-Scan",
       category: "Repair",
       bestPractice: "ALWAYS post-scan after repair. Clear codes properly (not just erase). Test drive and verify concern is fixed. Check for any NEW codes created during repair. Run monitors to set readiness. Document successful repair with scan data showing fix. This proves you fixed it. If you are doing engine Drivability, Always document Trims on final test drive, this will confirm it is running the way it was designed and protect your integrity. If there are still Trim problems, let the SA know, it is not really fixed, even if it runs better. (Cascading Failure, sometimes requires more than one repair.)"
     }
   ];
-
-
-const diagWorkflows = [
-  {
-    id: 'network',
-    title: 'Network Diagnostics',
-    color: 'bg-blue-700',
-    description: 'CAN/LIN/FlexRay communication fault diagnosis',
-    icon: 'Network',
-    steps: [
-      {
-        id: 1,
-        title: 'Determine Complaint & Communication Status',
-        description: 'Gather initial information and confirm tool communication',
-        procedure: 'Determine complaint, codes, operation, and warning lights. Confirm scan tool communication with all modules. Try OEM and global scan tools. If no-comm at OBD: check pin tension/condition on OBD2 connector, and 60 Ohms test, try hard-wiring further into the network, consider gateway issues. (See Topology)',
-        tips: 'Before replacing any module, bench test first. Check software levels, powers, grounds, and comm lines. Check all inputs/outputs for excessive amperage draw including 5v reference signals (CKP/CMP, temp, pressures) and outputs (coils, AFRs, solenoids).'
-      },
-      {
-        id: 2,
-        title: 'Determine Network & Topology',
-        description: 'Identify which network is affected and its physical layout',
-        procedure: 'Use wiring diagrams to identify the network type (CAN-C, CAN-B, LIN, FlexRay, MOST, etc.) and topology. Map out which modules are on which network legs. Fill out a Network Identification Chart listing all modules and their associated DTCs.',
-        tips: 'Record ALL codes before clearing. Fill out the network identification chart to find commonality between DTCs. Determine which modules and network legs the DTCs are indicating — look for modules calling faults on multiple branches. Remember, broken modules may not tell on themselves. Codes in other modules will. Seems backwards, but its not.'
-      },
-      {
-        id: 3,
-        title: 'Gather Network Waveforms — 3 Failure Layers',
-        description: 'Scope the network and classify the failure type',
-        procedure: 'Connect lab scope to the network in multiple locations. Capture waveforms during all operations. Classify the failure into one of three layers:\n\n1. Physical Layer — anything you can TOUCH (wiring, connectors, terminating resistors, module hardware)\n2. Transport Layer — packet structure and function (frame timing, arbitration, acknowledgment)\n3. Software Layer — I/O logic and programming of data (module calibration, configuration, programming errors)',
-        tips: 'If using PicoScope, run in deep record or anti-PicoGap mode to catch intermittents. Leave scope connected to the troubled network during all operations including functional tests and test drives.'
-      },
-      {
-        id: 4,
-        title: 'Utilize Scan Tool Network Diagnostic Menus',
-        description: 'Use all available scan tool network-specific functions',
-        procedure: 'Access network diagnostic menus in your scan tool. Perform module-specific tests. Clear codes in each individual module if necessary. Perform functional tests and test drives, re-checking for codes after each operation.',
-        tips: 'Clear in each individual module if necessary — global clear may not reach all modules. Check for codes that return immediately vs. codes that require a drive cycle.'
-      },
-      {
-        id: 5,
-        title: 'Network Logical Diagnostic Approach',
-        description: 'Systematic fault isolation using DTC analysis',
-        procedure: 'Use a spreadsheet to record all DTCs and determine which modules and network legs are indicated. Find the commonality — which modules are calling faults on multiple network branches. Use this to isolate where to start physical testing. Combine scanner data, network identification chart, schematics, and lab scope.',
-        tips: 'The goal is to find the commonality of DTCs and isolate where to start physical testing. A well-executed DTC sort can quickly and productively identify your target area and prevent misdiagnosis.'
-      }
-    ]
-  },
-  {
-    id: 'misfire',
-    title: 'Misfire Diagnostics',
-    color: 'bg-red-600',
-    description: 'Systematic approach to engine misfire diagnosis',
-    icon: 'Zap',
-    steps: [
-      { id: 1, title: 'Coming Soon', description: 'Misfire workflow under development', procedure: 'This workflow is being developed. Check back for updates.', tips: '' }
-    ]
-  },
-  {
-    id: 'trims',
-    title: 'Fuel Trims — Rich/Lean',
-    color: 'bg-green-600',
-    description: 'Diagnosing rich and lean fuel trim conditions',
-    icon: 'TrendingUp',
-    steps: [
-      { id: 1, title: 'Coming Soon', description: 'Fuel trim workflow under development', procedure: 'This workflow is being developed. Check back for updates.', tips: '' }
-    ]
-  },
-  {
-    id: 'diesel',
-    title: 'Diesel / EGR / Exhaust Aftercare',
-    color: 'bg-gray-700',
-    description: 'Diesel-specific diagnostics including codes, EGR, and DPF/SCR systems',
-    icon: 'Settings',
-    steps: [
-      { id: 1, title: 'Coming Soon', description: 'Diesel workflow under development', procedure: 'This workflow is being developed. Check back for updates.', tips: '' }
-    ]
-  },
-  {
-    id: 'electrical',
-    title: 'Electrical — Voltage / Short / Basics',
-    color: 'bg-yellow-600',
-    description: 'Electrical fault diagnosis including voltage drop, shorts, and fundamentals',
-    icon: 'Zap',
-    steps: [
-      { id: 1, title: 'Coming Soon', description: 'Electrical workflow under development', procedure: 'This workflow is being developed. Check back for updates.', tips: '' }
-    ]
-  }
-];
 
   const scopeWorkflows = [
     {
@@ -1023,8 +934,8 @@ const diagWorkflows = [
       color: 'bg-blue-600',
       description: 'Essential baseline tests for engine health assessment',
       steps: [
-        { 
-          id: 1, 
+        {
+          id: 1,
           title: 'Relative Compression Test',
           description: 'Use starter current draw to assess cylinder compression',
           procedure: 'Disable fuel and ignition. Connect current clamp to battery cable. Crank engine and capture waveform. Look for consistent current spikes across all cylinders.',
@@ -1047,8 +958,8 @@ const diagWorkflows = [
             }
           ]
         },
-        { 
-          id: 2, 
+        {
+          id: 2,
           title: 'Volumetric Efficiency (VE)',
           description: 'Assess engine breathing efficiency using vacuum/pressure analysis',
           procedure: 'If you have a Transducer, WPS, this is a much better way to see actual intake VE, and you can add sync. Record MAP, RPM, and IAT at various loads. Calculate VE = (actual airflow / theoretical airflow) x 100. Compare to baseline values.',
@@ -1080,8 +991,8 @@ const diagWorkflows = [
       color: 'bg-green-600',
       description: 'Verify timing chain/belt alignment and sensor operation',
       steps: [
-        { 
-          id: 1, 
+        {
+          id: 1,
           title: 'Sensor Signal Quality Check',
           description: 'Verify clean cam and crank sensor signals',
           procedure: 'Connect scope to both cam and crank sensors. Crank or run engine. Check for clean square waves (Hall) or sine waves (magnetic). No dropouts or noise.',
@@ -1104,8 +1015,8 @@ const diagWorkflows = [
             }
           ]
         },
-        { 
-          id: 2, 
+        {
+          id: 2,
           title: 'Timing Correlation Analysis',
           description: 'Verify proper phase relationship between cam and crank',
           procedure: 'Overlay cam and crank signals on scope. Count crank pulses between cam pulses. Compare to factory specs. Check at cranking and running speeds.',
@@ -1137,8 +1048,8 @@ const diagWorkflows = [
       color: 'bg-red-600',
       description: 'Advanced combustion analysis using pressure transducer',
       steps: [
-        { 
-          id: 1, 
+        {
+          id: 1,
           title: 'Transducer Installation',
           description: 'Install pressure transducer in spark plug hole',
           procedure: 'Remove spark plug from cylinder to test. Install pressure transducer. Ensure proper sealing. Connect to scope pressure input.',
@@ -1161,8 +1072,8 @@ const diagWorkflows = [
             }
           ]
         },
-        { 
-          id: 2, 
+        {
+          id: 2,
           title: 'Compression Stroke Analysis',
           description: 'Measure actual cylinder pressure during compression',
           procedure: 'Disable fuel and ignition. Crank engine and capture pressure trace. Normal compression is 120-180 PSI depending on engine.',
@@ -1194,8 +1105,8 @@ const diagWorkflows = [
       color: 'bg-purple-600',
       description: 'Network communication testing and troubleshooting',
       steps: [
-        { 
-          id: 1, 
+        {
+          id: 1,
           title: 'Network Topology Check',
           description: 'Identify CAN network architecture and termination',
           procedure: 'Reference wiring diagram for CAN High/Low wires and termination resistors. Key off, measure resistance between CAN H and CAN L at DLC. Should be 60 ohms (two 120-ohm resistors in parallel).',
@@ -1218,8 +1129,8 @@ const diagWorkflows = [
             }
           ]
         },
-        { 
-          id: 2, 
+        {
+          id: 2,
           title: 'CAN Signal Quality Test',
           description: 'Verify clean differential signal on CAN bus',
           procedure: 'Connect scope to CAN H and CAN L. Key on or engine running. Look for clean differential signal around 2.5V center. Activity should be constant.',
@@ -1251,8 +1162,8 @@ const diagWorkflows = [
       color: 'bg-orange-600',
       description: 'Additional diagnostic tests and techniques',
       steps: [
-        { 
-          id: 1, 
+        {
+          id: 1,
           title: 'Ignition System Testing',
           description: 'Primary and secondary ignition analysis',
           procedure: 'Capture primary or secondary ignition pattern. Check coil saturation time, firing voltage, spark duration, and burn time.',
@@ -1275,8 +1186,8 @@ const diagWorkflows = [
             }
           ]
         },
-        { 
-          id: 2, 
+        {
+          id: 2,
           title: 'Injector Current Ramping',
           description: 'Test injector electrical operation',
           procedure: 'Connect current clamp around injector wire. Capture opening and closing ramp. Look for smooth pintle movement signature.',
@@ -1309,17 +1220,18 @@ const diagWorkflows = [
       setCurrentView('vehicle-info');
       return true;
     }
-    
+
     const hasData = completedSteps.length > 0 || Object.keys(stepNotes).length > 0 || Object.keys(stepImages).length > 0 || partsRequest.length > 0;
-    
+
     if (!skipConfirm && hasData) {
       const action = window.confirm('Archive this job before starting new? Click OK to archive, Cancel to discard.');
       if (action) {
         archiveCurrentJob();
       }
     }
-    
+
     // Clear all state completely
+    clearActiveJobSave();
     setVehicleInfo({ year: '', make: '', model: '', vin: '', roNumber: '', mileage: '' });
     setHasVehicleInfo(false);
     setCompletedSteps([]);
@@ -1327,26 +1239,21 @@ const diagWorkflows = [
     setStepImages({});
     setPartsRequest([]);
     setFuelTrims({
-      idle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: ' Remember, broken modules may not tell on themselves. Codes in other modules will. Seems backwards, but its not.' },
+      idle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
       lightThrottle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
       loaded: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' }
     });
     setSelectedStep(null);
     setSelectedScopeWorkflow(null);
     setCurrentView('vehicle-info');
-    setCurrentReportId(null);
-    localStorage.removeItem(`diagflow_draft_${organization?.id || 'generic'}`);
 
     return true;
   };
 
   // Archive current job (saves to localStorage and Supabase if org)
   const archiveCurrentJob = async () => {
-    // Reuse existing ID if this is a restored report, otherwise check by RO number, else new
-    const existingByRO = archivedReports.find(r => r.vehicleInfo?.roNumber && r.vehicleInfo.roNumber === vehicleInfo.roNumber);
-    const resolvedId = currentReportId || existingByRO?.id || Date.now();
     const report = {
-      id: resolvedId,
+      id: Date.now(),
       date: new Date().toISOString(),
       vehicleInfo,
       shopName: organization?.name || shopName,
@@ -1366,30 +1273,27 @@ const diagWorkflows = [
       postRepairTrims: {...postRepairTrims}, // Post-repair fuel trim data (Step 13)
       partsRequest: [...partsRequest],
       stepNotes: {...stepNotes},
-      canLogFiles: {...canLogFiles}, // CAN bus log data
       orgId: organization?.id || null
     };
-    
-    // Save to org-specific localStorage key - replace existing entry with same ID, otherwise prepend
-    const filteredReports = archivedReports.filter(r => r.id !== resolvedId);
-    const newArchive = [report, ...filteredReports].slice(0, 50);
+
+    // Save to org-specific localStorage key
+    const newArchive = [report, ...archivedReports].slice(0, 50);
     setArchivedReports(newArchive);
-    setCurrentReportId(resolvedId); // keep ID in sync after save
     const archiveKey = organization?.id ? `diagflow_archive_${organization.id}` : 'diagflow_archive';
     localStorage.setItem(archiveKey, JSON.stringify(newArchive));
-    
+
+    // Job is now safely archived, so the in-progress auto-save is no longer needed
+    clearActiveJobSave();
+
     // Also save to Supabase if we have an org
     if (organization?.id) {
       try {
-        // Only pass the ID if it came from Supabase (a string UUID), not a local Date.now() number
-        const supabaseId = (currentReportId && typeof currentReportId === 'string') ? currentReportId
-                         : (existingByRO?.fromSupabase ? existingByRO.id : null);
-        const res = await fetch(`${API_BASE_URL}/api/reports/save`, {
+        await fetch(`${API_BASE_URL}/api/reports/save`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             reportData: {
-              id: supabaseId,
+              id: null,
               shopName,
               technicianName,
               vehicleInfo,
@@ -1402,26 +1306,11 @@ const diagWorkflows = [
             orgId: organization.id
           })
         });
-        const saved = await res.json();
-        // Store the Supabase UUID so future re-archives update instead of insert
-        if (saved.success && saved.report?.id) {
-          setCurrentReportId(saved.report.id);
-          // Also update the local archive entry with the real Supabase ID
-          const updatedReport = { ...report, id: saved.report.id, fromSupabase: true };
-          const refiltered = archivedReports.filter(r => r.id !== resolvedId && r.id !== saved.report.id);
-          const finalArchive = [updatedReport, ...refiltered].slice(0, 50);
-          setArchivedReports(finalArchive);
-          localStorage.setItem(archiveKey, JSON.stringify(finalArchive));
-        }
         console.log('Report archived to Supabase');
       } catch (err) {
-        console.error('Supabase archive failed:', err);
-        showToast('Cloud save failed — report saved locally only. ' + (err.message || ''), 'error');
+        console.log('Supabase archive failed:', err);
       }
     }
-
-    // Clear draft after successful archive
-    localStorage.removeItem(`diagflow_draft_${organization?.id || 'generic'}`);
 
     return report;
   };
@@ -1432,15 +1321,14 @@ const diagWorkflows = [
       const confirm = window.confirm('This will replace your current job. Continue?');
       if (!confirm) return;
     }
-    
+
     // Restore all data
-    setCurrentReportId(report.id || null); // track original ID so re-archive updates instead of inserting new
     setVehicleInfo(report.vehicleInfo || { year: '', make: '', model: '', vin: '', roNumber: '', mileage: '' });
     setHasVehicleInfo(true);
     setCompletedSteps(report.completedStepIds || []);
     setStepNotes(report.stepNotes || {});
     setPartsRequest(report.partsRequest || []);
-    
+
     // Restore fuel trims if available
     if (report.fuelTrims) {
       setFuelTrims(report.fuelTrims);
@@ -1452,29 +1340,8 @@ const diagWorkflows = [
       });
     }
 
-    // Restore post-repair trims if available
-    if (report.postRepairTrims) {
-      setPostRepairTrims(report.postRepairTrims);
-    } else {
-      setPostRepairTrims({
-        idle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
-        lightThrottle: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' },
-        loaded: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' }
-      });
-    }
-    
-    // Restore CAN log files if available
-    if (report.canLogFiles && Object.keys(report.canLogFiles).length > 0) {
-      setCanLogFiles(report.canLogFiles);
-    } else {
-      setCanLogFiles({});
-    }
-
     // Restore images if available
-    // Restore images — prefer stepImages directly, fall back to building from steps array
-    if (report.stepImages && Object.keys(report.stepImages).length > 0) {
-      setStepImages(report.stepImages);
-    } else if (report.steps) {
+    if (report.steps) {
       const restoredImages = {};
       report.steps.forEach(step => {
         if (step.images && step.images.length > 0) {
@@ -1483,12 +1350,12 @@ const diagWorkflows = [
       });
       setStepImages(restoredImages);
     }
-    
+
     setSelectedStep(null);
     setSelectedScopeWorkflow(null);
     setCurrentView('home');
     setShowArchiveModal(false);
-    
+
     alert(`Restored: ${report.vehicleInfo?.year} ${report.vehicleInfo?.make} ${report.vehicleInfo?.model}`);
   };
 
@@ -1513,7 +1380,7 @@ const diagWorkflows = [
 
   // Update part
   const updatePart = (id, field, value) => {
-    setPartsRequest(partsRequest.map(part => 
+    setPartsRequest(partsRequest.map(part =>
       part.id === id ? { ...part, [field]: value } : part
     ));
   };
@@ -1554,9 +1421,9 @@ const diagWorkflows = [
 
   // Check if enough steps for Get Help (minimum 5 steps = 33%)
   const canGetHelp = hasVehicleInfo && completedSteps.length >= 5;
-  
+
   // Check if all steps complete for AI Analysis
-  const canGetAI = completedSteps.length >= 11;
+  const canGetAI = completedSteps.length === 11;
 
   const saveStepNote = (stepId, note) => {
     setStepNotes(prev => ({ ...prev, [stepId]: note }));
@@ -1573,48 +1440,22 @@ const diagWorkflows = [
     }));
   };
 
-  // Compress image using canvas — caps at maxDim px and outputs as JPEG
-  const compressImage = (file, maxDim = 1200, quality = 0.7) => {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          let { width, height } = img;
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round(height * (maxDim / width));
-              width = maxDim;
-            } else {
-              width = Math.round(width * (maxDim / height));
-              height = maxDim;
-            }
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressed = canvas.toDataURL('image/jpeg', quality);
-          resolve(compressed);
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
   const handleImageUpload = (stepId, event) => {
     const files = Array.from(event.target.files);
-    const imagePromises = files.map(async (file) => {
-      const compressed = await compressImage(file);
-      return {
-        id: Date.now() + Math.random(),
-        url: compressed,
-        name: file.name,
-        description: '',
-        type: 'neutral'
-      };
+    const imagePromises = files.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          resolve({
+            id: Date.now() + Math.random(),
+            url: e.target.result,
+            name: file.name,
+            description: '',
+            type: 'neutral'
+          });
+        };
+        reader.readAsDataURL(file);
+      });
     });
 
     Promise.all(imagePromises).then(newImages => {
@@ -1628,7 +1469,7 @@ const diagWorkflows = [
   const updateImageDescription = (stepId, imageId, description) => {
     setStepImages(prev => ({
       ...prev,
-      [stepId]: prev[stepId].map(img => 
+      [stepId]: prev[stepId].map(img =>
         img.id === imageId ? { ...img, description } : img
       )
     }));
@@ -1637,7 +1478,7 @@ const diagWorkflows = [
   const updateImageType = (stepId, imageId, type) => {
     setStepImages(prev => ({
       ...prev,
-      [stepId]: prev[stepId].map(img => 
+      [stepId]: prev[stepId].map(img =>
         img.id === imageId ? { ...img, type } : img
       )
     }));
@@ -1650,155 +1491,9 @@ const diagWorkflows = [
     }));
   };
 
-  // ---- CAN Bus Log parsing (CL2000 .TXT and common formats) ----
-  const parseCanLog = (text) => {
-    const lines = text.split(/\r?\n/).filter(l => l.trim() && !l.startsWith(';'));
-    const messages = [];
-    for (const line of lines) {
-      // Try semicolon-separated (CSS Electronics CL2000 default)
-      let parts = line.split(';');
-      if (parts.length < 4) {
-        // Try space/tab-separated
-        parts = line.trim().split(/[\s,]+/);
-      }
-      if (parts.length < 4) continue;
-
-      // Detect format: first field is usually timestamp (number), second is CAN ID
-      const timestamp = parseFloat(parts[0]);
-      if (isNaN(timestamp)) continue; // skip header or non-data lines
-
-      const canId = parts[1]?.trim();
-      if (!canId) continue;
-
-      // Find DLC and data — DLC is typically a single digit 0-8
-      let dlc = 0;
-      let dataBytes = [];
-      // Check if format has explicit DLC field
-      if (parts.length >= 5) {
-        // Try to find DLC: could be at index 2, 3, or 4 depending on format
-        for (let i = 2; i < Math.min(parts.length, 5); i++) {
-          const val = parseInt(parts[i], 10);
-          if (val >= 0 && val <= 8 && parts[i].trim().length <= 2) {
-            dlc = val;
-            dataBytes = parts.slice(i + 1, i + 1 + dlc).map(b => b.trim());
-            break;
-          }
-        }
-        if (dlc === 0 && parts.length > 4) {
-          // Fallback: assume data bytes start at index 2 or after known fields
-          dataBytes = parts.slice(2).filter(b => /^(0x)?[0-9a-fA-F]{1,2}$/.test(b.trim()));
-          dlc = dataBytes.length;
-        }
-      }
-
-      messages.push({
-        timestamp,
-        id: canId.toUpperCase().replace(/^0X/i, '0x'),
-        dlc,
-        data: dataBytes.join(' ')
-      });
-    }
-
-    // Build summary
-    const idCounts = {};
-    messages.forEach(m => { idCounts[m.id] = (idCounts[m.id] || 0) + 1; });
-    const uniqueIds = Object.keys(idCounts).sort();
-    const timeSpan = messages.length > 1
-      ? (messages[messages.length - 1].timestamp - messages[0].timestamp).toFixed(2)
-      : '0';
-
-    return {
-      totalMessages: messages.length,
-      uniqueIds: uniqueIds.length,
-      timeSpanSeconds: timeSpan,
-      idCounts,
-      topIds: uniqueIds.sort((a, b) => idCounts[b] - idCounts[a]).slice(0, 20),
-      sampleMessages: messages.slice(0, 10),
-      allMessages: messages
-    };
-  };
-
-  const handleCanLogUpload = (stepId, event) => {
-    const files = Array.from(event.target.files);
-    files.forEach(file => {
-      const isMF4 = file.name.toLowerCase().endsWith('.mf4');
-      const reader = new FileReader();
-      reader.onload = async ev => {
-        if (isMF4) {
-          // MF4 binary — send to server for parsing
-          try {
-            const base64 = ev.target.result.split(',')[1];
-            const resp = await fetch('/api/parse-mf4', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ fileBase64: base64 })
-            });
-            const data = await resp.json();
-            if (!data.success) throw new Error(data.error);
-            const logEntry = {
-              id: Date.now() + Math.random(),
-              name: file.name,
-              isMF4: true,
-              rawText: '', // MF4 is binary, raw text not applicable
-              summary: {
-                totalMessages: data.totalMessages,
-                uniqueIds: data.uniqueIds,
-                timeSpanSeconds: data.timeSpanSeconds,
-                idCounts: data.idCounts,
-                topIds: data.topIds,
-                sampleMessages: data.sampleMessages?.map(m => ({
-                  timestamp: parseFloat(m.timestamp),
-                  id: m.id,
-                  dlc: m.dlc,
-                  data: m.data
-                })) || [],
-                obd2Decoded: data.obd2Decoded || [],
-                obd2Summary: data.obd2Summary || []
-              }
-            };
-            setCanLogFiles(prev => ({
-              ...prev,
-              [stepId]: [...(prev[stepId] || []), logEntry]
-            }));
-            showToast('MF4 parsed: ' + data.totalMessages + ' CAN messages, ' + data.uniqueIds + ' unique IDs' + (data.obd2Decoded?.length ? ', ' + data.obd2Decoded.length + ' OBD2 values decoded' : ''), 'success');
-          } catch (err) {
-            showToast('MF4 parse failed: ' + err.message, 'error');
-          }
-        } else {
-          // Text-based CAN log
-          const rawText = ev.target.result;
-          const summary = parseCanLog(rawText);
-          const logEntry = {
-            id: Date.now() + Math.random(),
-            name: file.name,
-            rawText: rawText.slice(0, 500000),
-            summary
-          };
-          setCanLogFiles(prev => ({
-            ...prev,
-            [stepId]: [...(prev[stepId] || []), logEntry]
-          }));
-        }
-      };
-      if (isMF4) {
-        reader.readAsDataURL(file); // base64 for binary
-      } else {
-        reader.readAsText(file);
-      }
-    });
-    event.target.value = '';
-  };
-
-  const deleteCanLog = (stepId, logId) => {
-    setCanLogFiles(prev => ({
-      ...prev,
-      [stepId]: (prev[stepId] || []).filter(l => l.id !== logId)
-    }));
-  };
-
   const initiateHelpSession = (type) => {
     console.log(`Help session requested: ${type}`);
-    
+
     if (type === 'support') {
       setShowHelpModal(false);
       setSupportForm({
@@ -1811,7 +1506,7 @@ const diagWorkflows = [
       setShowSupportModal(true);
       return;
     }
-    
+
     alert(`Premium Help Feature\n\nThis will connect you to an expert technician for ${type} support.\n\nBackend integration coming soon!`);
     setShowHelpModal(false);
   };
@@ -1861,7 +1556,7 @@ const diagWorkflows = [
 
       const response = await fetch(`${API_BASE_URL}/api/support-request`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
@@ -1918,33 +1613,33 @@ const diagWorkflows = [
   const submitToServiceAdvisor = async () => {
     // Build recipient list from shop defaults + additional emails
     const recipients = [];
-    
+
     // Add shop default recipients
     if (shopProfile.defaultRecipients && shopProfile.defaultRecipients.length > 0) {
       recipients.push(...shopProfile.defaultRecipients);
     }
-    
+
     // Add owner email if always CC owner is enabled
     if (shopProfile.alwaysCCOwner && shopProfile.ownerEmail) {
       if (!recipients.includes(shopProfile.ownerEmail)) {
         recipients.push(shopProfile.ownerEmail);
       }
     }
-    
+
     // Add manually entered email
     if (submitEmail && submitEmail.trim()) {
       recipients.push(submitEmail.trim());
     }
-    
+
     // Add additional emails (comma-separated)
     if (additionalEmails && additionalEmails.trim()) {
       const extras = additionalEmails.split(',').map(e => e.trim()).filter(e => e);
       recipients.push(...extras);
     }
-    
+
     // Remove duplicates
     const uniqueRecipients = [...new Set(recipients)];
-    
+
     if (uniqueRecipients.length === 0) {
       alert('Please enter at least one email address or configure shop email settings');
       return;
@@ -1954,10 +1649,10 @@ const diagWorkflows = [
 
     try {
       const reportData = await generatePDFReport();
-      
+
       const response = await fetch(`${API_BASE_URL}/api/submit-report`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
@@ -1967,7 +1662,7 @@ const diagWorkflows = [
           orgId: organization?.id || null
         })
       });
-      
+
       if (!response.ok) {
         // Endpoint doesn't exist yet - show friendly message
         console.log('Report data prepared:', reportData);
@@ -1978,38 +1673,38 @@ const diagWorkflows = [
         setAdditionalEmails('');
         return;
       }
-      
+
       const result = await response.json();
-      
+
       // Auto-archive the report after successful submission
       await archiveCurrentJob();
-      
+
       // Show success message with archive confirmation
       const shouldStartNew = confirm(`✅ Report successfully sent to:\n${uniqueRecipients.join('\n')}\n\n📦 Job archived automatically!\n\nWould you like to start a new job?`);
-      
+
       setIsSubmitting(false);
       setShowSubmitModal(false);
       setSubmitEmail('');
       setAdditionalEmails('');
-      
+
       // If user wants to start new job, reset everything
       if (shouldStartNew) {
         resetJob();
       }
-      
+
     } catch (error) {
       console.log('Report data prepared:', await generatePDFReport());
-      
+
       // Still archive on error (report was generated successfully)
       await archiveCurrentJob();
-      
+
       const shouldStartNew = confirm(`Report generated and archived!\n\nTo: ${uniqueRecipients.join(', ')}\n\nNote: Backend configuration needed for email delivery.\nReport data logged to console.\n\nWould you like to start a new job?`);
-      
+
       setIsSubmitting(false);
       setShowSubmitModal(false);
       setSubmitEmail('');
       setAdditionalEmails('');
-      
+
       if (shouldStartNew) {
         resetJob();
       }
@@ -2035,14 +1730,6 @@ const diagWorkflows = [
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {toast && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[9999] max-w-md w-full px-4 py-3 rounded-lg shadow-lg text-white text-sm font-medium flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}
-          onClick={() => setToast(null)} style={{cursor:'pointer'}}>
-          <span>{toast.type === 'error' ? '⚠️' : '✓'}</span>
-          <span className="flex-1">{toast.message}</span>
-          <span className="opacity-70 text-xs">tap to dismiss</span>
-        </div>
-      )}
       <div className="bg-white shadow-md sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -2059,43 +1746,43 @@ const diagWorkflows = [
               {hasVehicleInfo && (
                 <div className="text-xs text-gray-600">
                   {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}
-                  {vehicleInfo.roNumber && ` | RO# ${vehicleInfo.roNumber}`}
+                  {vehicleInfo.roNumber && ` • RO# ${vehicleInfo.roNumber}`}
                 </div>
               )}
             </div>
           </div>
-          
+
           {/* Header buttons - always visible */}
           <div className="flex items-center gap-2">
             {/* New Job - always visible */}
-            <button 
-              onClick={() => resetJob()} 
+            <button
+              onClick={() => resetJob()}
               className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm font-medium ${
-                hasVehicleInfo 
-                  ? 'text-blue-600 hover:bg-blue-50' 
+                hasVehicleInfo
+                  ? 'text-blue-600 hover:bg-blue-50'
                   : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
             >
               <PlusCircle className="w-4 h-4" />
               {hasVehicleInfo ? 'New' : 'New Job'}
             </button>
-            
+
             {/* Archive - always visible */}
-            <button 
+            <button
               onClick={() => setShowArchiveModal(true)}
               className="text-gray-600 hover:bg-gray-100 p-1.5 rounded-lg"
               title="Archived Reports"
             >
               <Archive className="w-5 h-5" />
             </button>
-            
+
             {/* Get Help - requires minimum 5 steps */}
             {hasVehicleInfo && (
-              <button 
+              <button
                 onClick={() => canGetHelp ? setShowHelpModal(true) : alert(`Complete at least 5 diagnostic steps before requesting help.\n\nCurrently completed: ${completedSteps.length} of 13 steps`)}
                 className={`px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1 ${
-                  canGetHelp 
-                    ? 'bg-orange-500 text-white hover:bg-orange-600' 
+                  canGetHelp
+                    ? 'bg-orange-500 text-white hover:bg-orange-600'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
                 title={canGetHelp ? 'Request expert help' : `Complete ${5 - completedSteps.length} more steps to unlock`}
@@ -2104,72 +1791,10 @@ const diagWorkflows = [
                 Help
               </button>
             )}
-            
-            
-              {/* ── Diagnostic Workflow Panel ─────────────────────────── */}
-              {showDiagWorkflowPanel && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end justify-center modal-overlay" onClick={(e) => { if(e.target === e.currentTarget) { setShowDiagWorkflowPanel(false); setSelectedDiagWorkflow(null); }}}>
-                  <div className="bg-white w-full max-w-lg rounded-t-2xl max-h-[90vh] overflow-y-auto">
-                    <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between z-10">
-                      {selectedDiagWorkflow ? (
-                        <button onClick={() => setSelectedDiagWorkflow(null)} className="text-orange-600 flex items-center gap-1 font-semibold text-sm">
-                          <ChevronRight className="w-4 h-4 rotate-180" /> Back
-                        </button>
-                      ) : (
-                        <span className="font-bold text-gray-800">Diagnostic Workflows</span>
-                      )}
-                      <button onClick={() => { setShowDiagWorkflowPanel(false); setSelectedDiagWorkflow(null); }} className="text-gray-500 hover:text-gray-800 text-xl font-bold px-2">✕</button>
-                    </div>
 
-                    {!selectedDiagWorkflow ? (
-                      <div className="p-4 space-y-3">
-                        <p className="text-sm text-gray-500 mb-2">Select a diagnostic pathway:</p>
-                        {diagWorkflows.map(wf => (
-                          <button key={wf.id} onClick={() => setSelectedDiagWorkflow(wf)} className="w-full text-left p-4 rounded-xl border-2 border-gray-200 hover:border-orange-400 hover:bg-orange-50 transition-all">
-                            <div className={`inline-flex items-center justify-center w-8 h-8 rounded-lg ${wf.color} text-white text-xs font-bold mb-2`}>{wf.id.charAt(0).toUpperCase()}</div>
-                            <div className="font-bold text-gray-800">{wf.title}</div>
-                            <div className="text-xs text-gray-500 mt-1">{wf.description}</div>
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="p-4 space-y-4">
-                        <div className={`${selectedDiagWorkflow.color} text-white p-4 rounded-xl`}>
-                          <div className="font-bold text-lg">{selectedDiagWorkflow.title}</div>
-                          <div className="text-sm opacity-90 mt-1">{selectedDiagWorkflow.description}</div>
-                        </div>
-                        {selectedDiagWorkflow.steps.map(step => (
-                          <div key={step.id} className="bg-white rounded-xl shadow border overflow-hidden">
-                            <div className="bg-gray-50 px-4 py-3 border-b flex items-center gap-3">
-                              <span className="bg-orange-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">{step.id}</span>
-                              <div>
-                                <div className="font-bold text-sm text-gray-800">{step.title}</div>
-                                <div className="text-xs text-gray-500">{step.description}</div>
-                              </div>
-                            </div>
-                            <div className="p-4 space-y-3">
-                              <div>
-                                <div className="text-xs font-semibold text-gray-500 uppercase mb-1">Procedure</div>
-                                <p className="text-sm text-gray-700 whitespace-pre-line">{step.procedure}</p>
-                              </div>
-                              {step.tips && (
-                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                  <div className="text-xs font-semibold text-yellow-700 mb-1">Pro Tip</div>
-                                  <p className="text-sm text-yellow-800">{step.tips}</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-{/* AI Analysis - requires all 13 steps */}
+            {/* AI Analysis - requires all 13 steps */}
             {hasVehicleInfo && canGetAI && (
-              <button 
+              <button
                 onClick={() => setShowAIModal(true)}
                 className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-purple-700 flex items-center gap-1"
               >
@@ -2192,25 +1817,13 @@ const diagWorkflows = [
                 { icon: Home, label: 'Home', view: 'home' },
                 { icon: BookOpen, label: 'Workflow', view: 'workflow' },
                 { icon: TrendingUp, label: 'Scope & Pinpoint', view: 'scope' },
-                { icon: BookOpen, label: 'Diagnostic Workflows', view: 'diagworkflow' },
-                { icon: GraduationCap, label: 'How To Use', view: 'howto', externalUrl: 'https://diagflow.org/the-13-steps/' },
+                { icon: GraduationCap, label: 'How To Use', view: 'howto' },
                 { icon: Settings, label: 'Settings', view: 'settings' }
               ].map(item => (
                 <button
                   key={item.view}
                   onClick={() => {
-                    if (item.view === 'diagworkflow') { setShowDiagWorkflowPanel(true); setSelectedDiagWorkflow(null); setMenuOpen(false); return; }
-                    if (item.externalUrl) {
-                      window.open(item.externalUrl, '_blank');
-                      setMenuOpen(false);
-                      return;
-                    }
-                    // Guard: if tapping Workflow with no vehicle entered, go to vehicle-info first
-                    if (item.view === 'workflow' && !hasVehicleInfo) {
-                      setCurrentView('vehicle-info');
-                    } else {
-                      setCurrentView(item.view);
-                    }
+                    setCurrentView(item.view);
                     setSelectedStep(null);
                     setSelectedScopeWorkflow(null);
                     setMenuOpen(false);
@@ -2221,9 +1834,9 @@ const diagWorkflows = [
                   <span>{item.label}</span>
                 </button>
               ))}
-              
+
               <div className="border-t my-2"></div>
-              
+
               <button
                 onClick={() => {
                   setShowArchiveModal(true);
@@ -2239,7 +1852,7 @@ const diagWorkflows = [
                   </span>
                 )}
               </button>
-              
+
               <button
                 onClick={() => {
                   window.open(SAMPLE_WAVEFORMS_URL, '_blank');
@@ -2250,7 +1863,7 @@ const diagWorkflows = [
                 <Video className="w-5 h-5" />
                 <span>Sample Waveforms</span>
               </button>
-              
+
               {hasVehicleInfo && (
                 <button
                   onClick={() => {
@@ -2278,7 +1891,7 @@ const diagWorkflows = [
                   ✕
                 </button>
               </div>
-              
+
               {/* Current Job Summary */}
               <div className="bg-gray-50 p-3 rounded-lg mb-4 text-sm">
                 <div className="font-semibold text-gray-800 mb-2">Current Job:</div>
@@ -2307,7 +1920,7 @@ const diagWorkflows = [
                   <Video className="w-5 h-5" />
                   Start Live Video Call
                 </button>
-                
+
                 <button
                   onClick={() => initiateHelpSession('support')}
                   className="w-full bg-purple-500 text-white py-3 rounded-lg font-semibold hover:bg-purple-600 flex items-center justify-center gap-2"
@@ -2350,7 +1963,7 @@ const diagWorkflows = [
                   ✕
                 </button>
               </div>
-              
+
               <p className="text-sm text-gray-600 mb-4">
                 Generate and email a PDF report with all diagnostic findings, notes, and photos.
               </p>
@@ -2471,8 +2084,8 @@ const diagWorkflows = [
                   ✕
                 </button>
               </div>
-              <img 
-                src={expandedImage.image} 
+              <img
+                src={expandedImage.image}
                 alt={expandedImage.title}
                 className="w-full h-auto"
               />
@@ -2495,7 +2108,7 @@ const diagWorkflows = [
                   ✕
                 </button>
               </div>
-              
+
               <p className="text-sm text-gray-600 mb-4">
                 Fill out the form below and a Master Technician will assist you.
               </p>
@@ -2625,38 +2238,19 @@ const diagWorkflows = [
       {/* Archive Modal */}
       {showArchiveModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[85vh] flex flex-col">
-            <div className="p-4 border-b">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Archive className="w-5 h-5 text-blue-600" />
-                  <h2 className="text-lg font-bold">Archived Reports</h2>
-                  <span className="text-xs text-gray-400">({archivedReports.length} loaded)</span>
-                </div>
-                <button onClick={() => { setShowArchiveModal(false); setArchiveSearch(''); }} className="text-gray-400 hover:text-gray-600">✕</button>
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col">
+            <div className="p-4 border-b flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Archive className="w-5 h-5 text-blue-600" />
+                <h2 className="text-lg font-bold">Archived Reports</h2>
               </div>
-              <input
-                type="text"
-                value={archiveSearch}
-                onChange={e => setArchiveSearch(e.target.value)}
-                placeholder="Search RO#, last 8 of VIN, make, model..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
-              />
+              <button onClick={() => setShowArchiveModal(false)} className="text-gray-400 hover:text-gray-600">
+                ✕
+              </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
-              {(() => {
-                const q = archiveSearch.trim().toLowerCase();
-                const filtered = q ? archivedReports.filter(r =>
-                  (r.vehicleInfo?.roNumber || '').toLowerCase().includes(q) ||
-                  (r.vehicleInfo?.vin || '').slice(-8).toLowerCase().includes(q) ||
-                  (r.vehicleInfo?.vin || '').toLowerCase().includes(q) ||
-                  (r.vehicleInfo?.make || '').toLowerCase().includes(q) ||
-                  (r.vehicleInfo?.model || '').toLowerCase().includes(q) ||
-                  (r.vehicleInfo?.year || '').toString().includes(q) ||
-                  (r.technicianName || '').toLowerCase().includes(q)
-                ) : archivedReports;
-                return filtered.length === 0 ? (
+              {archivedReports.length === 0 ? (
                 <div className="text-center text-gray-500 py-8">
                   <Archive className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                   <p>No archived reports yet</p>
@@ -2664,16 +2258,12 @@ const diagWorkflows = [
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {filtered.map(report => (
-                    <div key={report.id} className={`bg-gray-50 p-3 rounded-lg border hover:border-blue-300 transition-colors ${report.fromSupabase ? 'border-l-4 border-l-blue-400' : 'border-l-4 border-l-gray-300'}`}>
+                  {archivedReports.map(report => (
+                    <div key={report.id} className="bg-gray-50 p-3 rounded-lg border hover:border-blue-300 transition-colors">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <div className="font-semibold text-gray-800 flex items-center gap-2">
+                          <div className="font-semibold text-gray-800">
                             {report.vehicleInfo?.year} {report.vehicleInfo?.make} {report.vehicleInfo?.model}
-                            {report.fromSupabase
-                              ? <span title="Saved to cloud" className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">☁️ Cloud</span>
-                              : <span title="Local only — not synced to cloud" className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full font-medium">📱 Local</span>
-                            }
                           </div>
                           <div className="text-sm text-gray-600">
                             RO# {report.vehicleInfo?.roNumber || 'N/A'} • {new Date(report.date).toLocaleDateString()}
@@ -2684,20 +2274,14 @@ const diagWorkflows = [
                               <span className="ml-2 text-green-600">• 🔧 {report.partsRequest.length} parts</span>
                             )}
                           </div>
-                          {report.vehicleInfo?.vin && (
-                            <div className="text-xs text-gray-400 mt-0.5">VIN: ...{report.vehicleInfo.vin.slice(-8)}</div>
-                          )}
                         </div>
                         <button
                           onClick={() => {
-                            const msg = report.fromSupabase
-                              ? 'Delete this report from cloud and local? This cannot be undone.'
-                              : 'Delete this local report? (Not in cloud — will be permanently lost)';
-                            if (window.confirm(msg)) {
+                            if (window.confirm('Delete this archived report?')) {
                               deleteArchivedReport(report.id);
                             }
                           }}
-                          className="text-red-400 hover:text-red-600 text-sm ml-2 flex-shrink-0"
+                          className="text-red-400 hover:text-red-600 text-sm ml-2"
                         >
                           ✕
                         </button>
@@ -2727,23 +2311,13 @@ const diagWorkflows = [
                       </div>
                     </div>
                   ))}
-                  {/* Load more — only show if not searching and loaded count might have more */}
-                  {!q && archivedReports.length >= archiveLoadLimit && (
-                    <button
-                      onClick={() => setArchiveLoadLimit(prev => prev + 100)}
-                      className="w-full text-sm text-blue-600 border border-blue-300 py-2 rounded-lg hover:bg-blue-50"
-                    >
-                      Load more (showing {archivedReports.length})
-                    </button>
-                  )}
                 </div>
-              );
-              })()}
+              )}
             </div>
 
             <div className="p-4 border-t">
               <button
-                onClick={() => { setShowArchiveModal(false); setArchiveSearch(''); }}
+                onClick={() => setShowArchiveModal(false)}
                 className="w-full border border-gray-300 py-2 rounded-lg font-semibold hover:bg-gray-50"
               >
                 Close
@@ -2766,7 +2340,7 @@ const diagWorkflows = [
                 ✕
               </button>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto p-4">
               {/* Job Summary */}
               <div className="bg-purple-50 p-4 rounded-lg mb-4">
@@ -2804,118 +2378,46 @@ const diagWorkflows = [
                     <li>• Common issues for this vehicle</li>
                     <li>• Confidence level in diagnosis</li>
                   </ul>
-                  
-                  {(() => {
-                    const totalImages = Object.values(stepImages).reduce((sum, imgs) => sum + (imgs?.length || 0), 0);
-                    return totalImages > 0 && (
-                      <label className="flex items-center justify-center gap-2 mt-5 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={aiIncludeImages}
-                          onChange={e => setAiIncludeImages(e.target.checked)}
-                          className="w-4 h-4 accent-purple-600"
-                        />
-                        <span className="text-sm text-gray-700">
-                          Include photos in AI query
-                          <span className="ml-1 text-xs text-purple-600 font-medium">({totalImages} photo{totalImages !== 1 ? 's' : ''})</span>
-                        </span>
-                      </label>
-                    );
-                  })()}
-
-                  {(() => {
-                    const totalCanLogs = Object.values(canLogFiles).reduce((sum, logs) => sum + (logs?.length || 0), 0);
-                    return totalCanLogs > 0 && (
-                      <label className="flex items-center justify-center gap-2 mt-3 cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={aiIncludeCanLogs}
-                          onChange={e => setAiIncludeCanLogs(e.target.checked)}
-                          className="w-4 h-4 accent-cyan-600"
-                        />
-                        <span className="text-sm text-gray-700">
-                          Include CAN bus data in AI query
-                          <span className="ml-1 text-xs text-cyan-600 font-medium">({totalCanLogs} log{totalCanLogs !== 1 ? 's' : ''})</span>
-                        </span>
-                      </label>
-                    );
-                  })()}
-
-                  {/* PDF Reference Upload */}
-                  <div className="mt-4 border border-dashed border-purple-300 rounded-lg p-3 max-w-sm mx-auto">
-                    <div className="text-xs text-gray-500 mb-2 text-center font-medium">📄 Attach Reference Document (optional)</div>
-                    <div className="text-xs text-gray-400 mb-2 text-center">TSB, case study, wiring diagram — Claude will read it as context</div>
-                    {aiPdfFile ? (
-                      <div className="flex items-center justify-between bg-purple-50 rounded px-2 py-1">
-                        <span className="text-xs text-purple-700 truncate">📄 {aiPdfFile.name}</span>
-                        <button onClick={() => setAiPdfFile(null)} className="text-red-400 hover:text-red-600 ml-2 text-xs">✕</button>
-                      </div>
-                    ) : (
-                      <label className="flex items-center justify-center gap-2 cursor-pointer text-purple-600 hover:text-purple-700 text-sm">
-                        <input
-                          type="file"
-                          accept=".pdf"
-                          className="hidden"
-                          onChange={e => {
-                            const file = e.target.files[0];
-                            if (!file) return;
-                            if (file.size > 10 * 1024 * 1024) {
-                              alert('PDF too large — please use files under 10MB');
-                              return;
-                            }
-                            const reader = new FileReader();
-                            reader.onload = ev => {
-                              const base64 = ev.target.result.split(',')[1];
-                              setAiPdfFile({ name: file.name, base64 });
-                            };
-                            reader.readAsDataURL(file);
-                          }}
-                        />
-                        ＋ Upload PDF
-                      </label>
-                    )}
-                  </div>
 
                   <button
-                    onClick={async () => {
+                    onClick={() => {
                       setIsAiLoading(true);
-                      try {
-                        const reportData = {
-                          vehicleInfo,
-                          includeImages: aiIncludeImages,
-                          includeCanLogs: aiIncludeCanLogs,
-                          pdfReference: aiPdfFile || null,
-                          steps: diagnosticSteps.map(s => ({
-                            id: s.id,
-                            title: s.title,
-                            completed: completedSteps.includes(s.id),
-                            notes: stepNotes[s.id] || '',
-                            images: aiIncludeImages ? (stepImages[s.id] || []) : [],
-                            canLogs: aiIncludeCanLogs ? (canLogFiles[s.id] || []).map(l => ({
-                              name: l.name,
-                              summary: l.summary,
-                              rawText: l.rawText.slice(0, 50000) // send up to 50KB of raw data per log
-                            })) : []
-                          })),
-                          partsRequest: partsRequest || []
-                        };
-                        const response = await fetch('/api/ai-analysis', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ reportData })
-                        });
-                        const data = await response.json();
-                        if (data.success) {
-                          setAiAnalysis(data.analysis);
-                        } else {
-                          setAiAnalysis('AI analysis failed: ' + (data.error || 'Unknown error. Please try again.'));
-                        }
-                      } catch (err) {
-                        setAiAnalysis('AI analysis failed: ' + err.message);
-                      }
-                      setIsAiLoading(false);
+                      // Simulate AI analysis (replace with real API call later)
+                      setTimeout(() => {
+                        const notes = Object.entries(stepNotes).map(([id, note]) => `Step ${id}: ${note}`).join('\n');
+                        setAiAnalysis(`🔍 AI DIAGNOSTIC ANALYSIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 VEHICLE: ${vehicleInfo.year} ${vehicleInfo.make} ${vehicleInfo.model}
+📊 MILEAGE: ${vehicleInfo.mileage || 'Not recorded'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🧪 FINDINGS FROM YOUR DIAGNOSTIC:
+
+${notes || 'No notes recorded in diagnostic steps.'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 AI INSIGHTS:
+
+Based on your completed diagnostic workflow, here are the key observations:
+
+1. All 13 steps were completed systematically
+2. Documentation quality: ${Object.keys(stepNotes).length} steps have notes
+3. Photo documentation: ${Object.values(stepImages).filter(arr => arr.length > 0).length} steps have photos
+
+🎯 RECOMMENDATION:
+Review your documented findings against the known common issues for this vehicle. Your systematic approach following the "Never Miss A Step" methodology provides a solid foundation for accurate diagnosis.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ NOTE: This is a preview of AI analysis. Full AI integration with Claude API coming soon for deeper diagnostic insights.
+`);
+                        setIsAiLoading(false);
+                      }, 2000);
                     }}
-                    className="mt-4 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 flex items-center gap-2 mx-auto"
+                    className="mt-6 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 flex items-center gap-2 mx-auto"
                   >
                     <Sparkles className="w-5 h-5" />
                     Generate AI Analysis
@@ -2923,56 +2425,15 @@ const diagWorkflows = [
                 </div>
               )}
             </div>
-            
-            <div className="p-4 border-t flex gap-3 flex-wrap">
+
+            <div className="p-4 border-t flex gap-3">
               {aiAnalysis && (
-                <>
-                  <button
-                    onClick={() => setAiAnalysis('')}
-                    className="flex-1 border border-purple-300 text-purple-600 py-2 rounded-lg font-semibold hover:bg-purple-50"
-                  >
-                    Regenerate
-                  </button>
-                  <button
-                    onClick={() => {
-                      const win = window.open('', '_blank');
-                      win.document.write(`
-                        <html><head><title>AI Analysis - ${vehicleInfo.year} ${vehicleInfo.make} ${vehicleInfo.model} RO#${vehicleInfo.roNumber}</title>
-                        <style>
-                          body { font-family: Arial, sans-serif; padding: 24px; max-width: 800px; margin: 0 auto; font-size: 13px; line-height: 1.6; }
-                          h1 { color: #7c3aed; font-size: 18px; margin-bottom: 4px; }
-                          .meta { color: #555; margin-bottom: 16px; font-size: 12px; }
-                          .content { white-space: pre-wrap; border: 1px solid #ddd; padding: 16px; border-radius: 6px; }
-                          .close-bar { text-align: center; margin: 16px 0; }
-                          .close-btn { background: #7c3aed; color: white; border: none; padding: 10px 32px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
-                          .close-btn:hover { background: #6d28d9; }
-                          @media print { .close-bar { display: none; } }
-                        </style></head>
-                        <body>
-                          <div class="close-bar"><button class="close-btn" onclick="window.close()">Close & Return to Diagflow</button></div>
-                          <h1>AI Diagnostic Analysis</h1>
-                          <div class="meta">
-                            ${vehicleInfo.year} ${vehicleInfo.make} ${vehicleInfo.model} &nbsp;|&nbsp;
-                            RO# ${vehicleInfo.roNumber} &nbsp;|&nbsp;
-                            VIN: ${vehicleInfo.vin || 'N/A'} &nbsp;|&nbsp;
-                            ${new Date().toLocaleDateString()}
-                          </div>
-                          <div class="content">${aiAnalysis.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-                          <div class="close-bar"><button class="close-btn" onclick="window.close()">Close & Return to Diagflow</button></div>
-                        </body></html>
-                      `);
-                      win.document.close();
-                      win.focus();
-                      setTimeout(() => {
-                        win.print();
-                        win.addEventListener('afterprint', () => win.close());
-                      }, 500);
-                    }}
-                    className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg font-semibold hover:bg-gray-50 flex items-center justify-center gap-1"
-                  >
-                    🖨️ Print / PDF
-                  </button>
-                </>
+                <button
+                  onClick={() => setAiAnalysis('')}
+                  className="flex-1 border border-purple-300 text-purple-600 py-2 rounded-lg font-semibold hover:bg-purple-50"
+                >
+                  Regenerate
+                </button>
               )}
               <button
                 onClick={() => { setShowAIModal(false); setAiAnalysis(''); }}
@@ -2998,7 +2459,7 @@ const diagWorkflows = [
                 ✕
               </button>
             </div>
-            
+
             <div className="p-6">
               <div className="bg-blue-50 p-4 rounded-lg mb-4">
                 <h3 className="font-semibold text-blue-900 mb-2">How to Use:</h3>
@@ -3080,7 +2541,7 @@ const diagWorkflows = [
               {/* Tip */}
               <div className="mt-4 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
                 <p className="text-xs text-yellow-800">
-                  <strong>💡 Tip:</strong> The VIN is typically located on the dashboard near the windshield, 
+                  <strong>💡 Tip:</strong> The VIN is typically located on the dashboard near the windshield,
                   driver's door jamb, or under the hood. Make sure lighting is good for a clear photo.
                 </p>
               </div>
@@ -3095,7 +2556,7 @@ const diagWorkflows = [
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-xl font-bold mb-4">Vehicle & Job Information</h2>
               <p className="text-sm text-gray-600 mb-4">Enter vehicle details to begin. All fields optional.</p>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">RO Number</label>
@@ -3204,38 +2665,21 @@ const diagWorkflows = [
               <p className="text-sm text-gray-800">{selectedStep.bestPractice}</p>
             </div>
 
-            {(selectedStep.id === 8 || selectedStep.id === 9 || selectedStep.id === 10) && (
-              <div className="space-y-3">
-                <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
-                  <h3 className="font-bold text-sm mb-2 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-purple-600" />
-                    Advanced Diagnostics
-                  </h3>
-                  <p className="text-sm text-gray-800 mb-3">
-                    Ready for advanced scope work and pinpoint testing? Access the specialized workflow.
-                  </p>
-                  <button
-                    onClick={() => setCurrentView('scope')}
-                    className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700"
-                  >
-                    Go to Scope & Pinpoint Workflow
-                  </button>
-                </div>
-                <div className="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-500">
-                  <h3 className="font-bold text-sm mb-2 flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-orange-600" />
-                    Diagnostic Workflows
-                  </h3>
-                  <p className="text-sm text-gray-800 mb-3">
-                    Structured pathways for network, misfire, fuel trims, diesel, and electrical faults.
-                  </p>
-                  <button
-                    onClick={() => { setShowDiagWorkflowPanel(true); setSelectedDiagWorkflow(null); }}
-                    className="w-full bg-orange-500 text-white py-2 rounded-lg font-semibold hover:bg-orange-600"
-                  >
-                    Open Diagnostic Workflows
-                  </button>
-                </div>
+            {selectedStep.id === 8 && (
+              <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
+                <h3 className="font-bold text-sm mb-2 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  Advanced Diagnostics
+                </h3>
+                <p className="text-sm text-gray-800 mb-3">
+                  Ready for advanced scope work and pinpoint testing? Access the specialized workflow.
+                </p>
+                <button
+                  onClick={() => setCurrentView('scope')}
+                  className="w-full bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700"
+                >
+                  Go to Scope & Pinpoint Workflow
+                </button>
               </div>
             )}
 
@@ -3247,7 +2691,7 @@ const diagWorkflows = [
                   Fuel Trim Capture (Drivability)
                 </h3>
                 <p className="text-xs text-gray-600 mb-3">Record fuel trims at different conditions. This data helps identify air/fuel issues.</p>
-                
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm border-collapse">
                     <thead>
@@ -3263,36 +2707,36 @@ const diagWorkflows = [
                       <tr>
                         <td className="p-2 font-medium border border-green-200 bg-white">Idle</td>
                         <td className="p-1 border border-green-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={fuelTrims.idle.stftB1}
                             onChange={(e) => updateFuelTrim('idle', 'stftB1', e.target.value)}
                           />
                         </td>
                         <td className="p-1 border border-green-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={fuelTrims.idle.ltftB1}
                             onChange={(e) => updateFuelTrim('idle', 'ltftB1', e.target.value)}
                           />
                         </td>
                         <td className="p-1 border border-green-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={fuelTrims.idle.stftB2}
                             onChange={(e) => updateFuelTrim('idle', 'stftB2', e.target.value)}
                           />
                         </td>
                         <td className="p-1 border border-green-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={fuelTrims.idle.ltftB2}
                             onChange={(e) => updateFuelTrim('idle', 'ltftB2', e.target.value)}
@@ -3302,36 +2746,36 @@ const diagWorkflows = [
                       <tr>
                         <td className="p-2 font-medium border border-green-200 bg-white">Light Throttle</td>
                         <td className="p-1 border border-green-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={fuelTrims.lightThrottle.stftB1}
                             onChange={(e) => updateFuelTrim('lightThrottle', 'stftB1', e.target.value)}
                           />
                         </td>
                         <td className="p-1 border border-green-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={fuelTrims.lightThrottle.ltftB1}
                             onChange={(e) => updateFuelTrim('lightThrottle', 'ltftB1', e.target.value)}
                           />
                         </td>
                         <td className="p-1 border border-green-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={fuelTrims.lightThrottle.stftB2}
                             onChange={(e) => updateFuelTrim('lightThrottle', 'stftB2', e.target.value)}
                           />
                         </td>
                         <td className="p-1 border border-green-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={fuelTrims.lightThrottle.ltftB2}
                             onChange={(e) => updateFuelTrim('lightThrottle', 'ltftB2', e.target.value)}
@@ -3341,36 +2785,36 @@ const diagWorkflows = [
                       <tr>
                         <td className="p-2 font-medium border border-green-200 bg-white">Loaded</td>
                         <td className="p-1 border border-green-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={fuelTrims.loaded.stftB1}
                             onChange={(e) => updateFuelTrim('loaded', 'stftB1', e.target.value)}
                           />
                         </td>
                         <td className="p-1 border border-green-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={fuelTrims.loaded.ltftB1}
                             onChange={(e) => updateFuelTrim('loaded', 'ltftB1', e.target.value)}
                           />
                         </td>
                         <td className="p-1 border border-green-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={fuelTrims.loaded.stftB2}
                             onChange={(e) => updateFuelTrim('loaded', 'stftB2', e.target.value)}
                           />
                         </td>
                         <td className="p-1 border border-green-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={fuelTrims.loaded.ltftB2}
                             onChange={(e) => updateFuelTrim('loaded', 'ltftB2', e.target.value)}
@@ -3410,7 +2854,7 @@ const diagWorkflows = [
                   Post-Repair Fuel Trim Validation
                 </h3>
                 <p className="text-xs text-gray-600 mb-3">Record trims AFTER repair to verify fix. Compare to pre-repair values from Step 2.</p>
-                
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm border-collapse">
                     <thead>
@@ -3426,36 +2870,36 @@ const diagWorkflows = [
                       <tr>
                         <td className="p-2 font-medium border border-orange-200 bg-white">Idle</td>
                         <td className="p-1 border border-orange-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={postRepairTrims.idle.stftB1}
                             onChange={(e) => setPostRepairTrims(prev => ({...prev, idle: {...prev.idle, stftB1: e.target.value}}))}
                           />
                         </td>
                         <td className="p-1 border border-orange-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={postRepairTrims.idle.ltftB1}
                             onChange={(e) => setPostRepairTrims(prev => ({...prev, idle: {...prev.idle, ltftB1: e.target.value}}))}
                           />
                         </td>
                         <td className="p-1 border border-orange-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={postRepairTrims.idle.stftB2}
                             onChange={(e) => setPostRepairTrims(prev => ({...prev, idle: {...prev.idle, stftB2: e.target.value}}))}
                           />
                         </td>
                         <td className="p-1 border border-orange-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={postRepairTrims.idle.ltftB2}
                             onChange={(e) => setPostRepairTrims(prev => ({...prev, idle: {...prev.idle, ltftB2: e.target.value}}))}
@@ -3465,36 +2909,36 @@ const diagWorkflows = [
                       <tr>
                         <td className="p-2 font-medium border border-orange-200 bg-white">Light Throttle</td>
                         <td className="p-1 border border-orange-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={postRepairTrims.lightThrottle.stftB1}
                             onChange={(e) => setPostRepairTrims(prev => ({...prev, lightThrottle: {...prev.lightThrottle, stftB1: e.target.value}}))}
                           />
                         </td>
                         <td className="p-1 border border-orange-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={postRepairTrims.lightThrottle.ltftB1}
                             onChange={(e) => setPostRepairTrims(prev => ({...prev, lightThrottle: {...prev.lightThrottle, ltftB1: e.target.value}}))}
                           />
                         </td>
                         <td className="p-1 border border-orange-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={postRepairTrims.lightThrottle.stftB2}
                             onChange={(e) => setPostRepairTrims(prev => ({...prev, lightThrottle: {...prev.lightThrottle, stftB2: e.target.value}}))}
                           />
                         </td>
                         <td className="p-1 border border-orange-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={postRepairTrims.lightThrottle.ltftB2}
                             onChange={(e) => setPostRepairTrims(prev => ({...prev, lightThrottle: {...prev.lightThrottle, ltftB2: e.target.value}}))}
@@ -3504,36 +2948,36 @@ const diagWorkflows = [
                       <tr>
                         <td className="p-2 font-medium border border-orange-200 bg-white">Loaded</td>
                         <td className="p-1 border border-orange-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={postRepairTrims.loaded.stftB1}
                             onChange={(e) => setPostRepairTrims(prev => ({...prev, loaded: {...prev.loaded, stftB1: e.target.value}}))}
                           />
                         </td>
                         <td className="p-1 border border-orange-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={postRepairTrims.loaded.ltftB1}
                             onChange={(e) => setPostRepairTrims(prev => ({...prev, loaded: {...prev.loaded, ltftB1: e.target.value}}))}
                           />
                         </td>
                         <td className="p-1 border border-orange-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={postRepairTrims.loaded.stftB2}
                             onChange={(e) => setPostRepairTrims(prev => ({...prev, loaded: {...prev.loaded, stftB2: e.target.value}}))}
                           />
                         </td>
                         <td className="p-1 border border-orange-200">
-                          <input 
-                            type="text" 
-                            placeholder="%" 
+                          <input
+                            type="text"
+                            placeholder="%"
                             className="w-full p-1 text-center border rounded text-sm"
                             value={postRepairTrims.loaded.ltftB2}
                             onChange={(e) => setPostRepairTrims(prev => ({...prev, loaded: {...prev.loaded, ltftB2: e.target.value}}))}
@@ -3544,7 +2988,7 @@ const diagWorkflows = [
                   </table>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">✓ Good: ±5% | ⚠ Marginal: ±10% | ✗ Problem: Beyond ±10%. If trims are still off, repair may not be complete.</p>
-                
+
                 {/* Show comparison to pre-repair if data exists */}
                 {(fuelTrims.idle.stftB1 || fuelTrims.idle.ltftB1) && (
                   <div className="mt-3 p-3 bg-white rounded border border-orange-200">
@@ -3576,7 +3020,7 @@ const diagWorkflows = [
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="font-bold text-lg mb-3">File Documentation</h3>
               <p className="text-xs text-gray-600 mb-3">Upload images or PDFs to document findings, conditions, test results, or technical specifications</p>
-              
+
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/jpg,application/pdf"
@@ -3597,8 +3041,8 @@ const diagWorkflows = [
                   {stepImages[selectedStep.id].map(image => (
                     <div key={image.id} className="border rounded-lg p-3 bg-gray-50">
                       <div className="flex gap-3">
-                        <img 
-                          src={image.url} 
+                        <img
+                          src={image.url}
                           alt={image.name}
                           className="w-24 h-24 object-cover rounded"
                         />
@@ -3644,113 +3088,6 @@ const diagWorkflows = [
                           </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* CAN Bus Log Upload */}
-            <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-cyan-500">
-              <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
-                CAN Bus Data
-              </h3>
-              <p className="text-xs text-gray-600 mb-3">Upload CL2000 or compatible CAN bus log files (.txt, .csv, .asc) for AI analysis</p>
-
-              <input
-                type="file"
-                accept=".txt,.csv,.asc,.log,.mf4,.MF4"
-                multiple
-                onChange={(e) => handleCanLogUpload(selectedStep.id, e)}
-                className="hidden"
-                id={`can-upload-${selectedStep.id}`}
-              />
-              <label
-                htmlFor={`can-upload-${selectedStep.id}`}
-                className="block w-full bg-cyan-600 text-white py-2 px-4 rounded-lg font-semibold text-center cursor-pointer hover:bg-cyan-700"
-              >
-                Upload CAN Log (.mf4 / .txt / .csv / .asc)
-              </label>
-
-              {canLogFiles[selectedStep.id] && canLogFiles[selectedStep.id].length > 0 && (
-                <div className="mt-4 space-y-4">
-                  {canLogFiles[selectedStep.id].map(log => (
-                    <div key={log.id} className="border border-cyan-200 rounded-lg p-4 bg-cyan-50">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="font-semibold text-sm text-cyan-800">{log.name}</span>
-                        <button
-                          onClick={() => deleteCanLog(selectedStep.id, log.id)}
-                          className="text-red-500 text-xs hover:underline"
-                        >
-                          Remove
-                        </button>
-                      </div>
-
-                      {log.summary.totalMessages > 0 ? (
-                        <div>
-                          <div className="grid grid-cols-3 gap-2 mb-3">
-                            <div className="bg-white rounded p-2 text-center">
-                              <div className="text-lg font-bold text-cyan-700">{log.summary.totalMessages.toLocaleString()}</div>
-                              <div className="text-xs text-gray-500">Messages</div>
-                            </div>
-                            <div className="bg-white rounded p-2 text-center">
-                              <div className="text-lg font-bold text-cyan-700">{log.summary.uniqueIds}</div>
-                              <div className="text-xs text-gray-500">Unique IDs</div>
-                            </div>
-                            <div className="bg-white rounded p-2 text-center">
-                              <div className="text-lg font-bold text-cyan-700">{log.summary.timeSpanSeconds}s</div>
-                              <div className="text-xs text-gray-500">Duration</div>
-                            </div>
-                          </div>
-
-                          <div className="text-xs font-semibold text-gray-600 mb-1">Top CAN IDs by frequency:</div>
-                          <div className="flex flex-wrap gap-1 mb-3">
-                            {log.summary.topIds.map(canId => (
-                              <span key={canId} className="bg-white border border-cyan-200 rounded px-2 py-0.5 text-xs font-mono">
-                                {canId} <span className="text-gray-400">({log.summary.idCounts[canId]})</span>
-                              </span>
-                            ))}
-                          </div>
-
-                          {log.summary.obd2Summary && log.summary.obd2Summary.length > 0 && (
-                            <div className="mb-3">
-                              <div className="text-xs font-semibold text-green-700 mb-1">OBD2 Decoded Values:</div>
-                              <div className="grid grid-cols-2 gap-1">
-                                {log.summary.obd2Summary.map((d, i) => (
-                                  <div key={i} className="bg-white rounded px-2 py-1 text-xs flex justify-between">
-                                    <span className="text-gray-600">{d.name}</span>
-                                    <span className="font-mono font-bold text-gray-800">{d.value}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {log.summary.sampleMessages.length > 0 && (
-                            <details className="text-xs">
-                              <summary className="cursor-pointer text-cyan-700 font-medium">Sample messages (first {log.summary.sampleMessages.length})</summary>
-                              <div className="mt-1 bg-gray-900 text-green-400 rounded p-2 overflow-x-auto font-mono">
-                                {log.summary.sampleMessages.map((m, i) => (
-                                  <div key={i}>{typeof m.timestamp === 'number' ? m.timestamp.toFixed(4) : m.timestamp} | {m.id} | DLC:{m.dlc} | {m.data}</div>
-                                ))}
-                              </div>
-                            </details>
-                          )}
-
-                          {log.summary.obd2Decoded && log.summary.obd2Decoded.length > 0 && (
-                            <details className="text-xs mt-1">
-                              <summary className="cursor-pointer text-green-700 font-medium">Full OBD2 decode log ({log.summary.obd2Decoded.length} values)</summary>
-                              <div className="mt-1 bg-gray-900 text-yellow-300 rounded p-2 overflow-x-auto font-mono max-h-64 overflow-y-auto">
-                                {log.summary.obd2Decoded.map((d, i) => (
-                                  <div key={i}>{d.ts}ms | {d.pid} {d.name}: {d.value}</div>
-                                ))}
-                              </div>
-                            </details>
-                          )}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-amber-600">Could not parse CAN messages from this file. Ensure the file contains timestamped CAN data. The raw file will still be sent to AI for analysis.</p>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -3845,9 +3182,9 @@ const diagWorkflows = [
                   <div className="mt-3 p-3 bg-green-50 rounded-lg text-sm">
                     <strong className="text-green-800">Summary:</strong>
                     <span className="text-green-700 ml-2">
-                      {partsRequest.filter(p => !p.laborItem).length} part{partsRequest.filter(p => !p.laborItem).length !== 1 ? 's' : ''} • 
-                      {partsRequest.filter(p => p.laborItem).length} labor item{partsRequest.filter(p => p.laborItem).length !== 1 ? 's' : ''} • 
-                      {partsRequest.filter(p => p.inStock && !p.laborItem).length} in stock • 
+                      {partsRequest.filter(p => !p.laborItem).length} part{partsRequest.filter(p => !p.laborItem).length !== 1 ? 's' : ''} •
+                      {partsRequest.filter(p => p.laborItem).length} labor item{partsRequest.filter(p => p.laborItem).length !== 1 ? 's' : ''} •
+                      {partsRequest.filter(p => p.inStock && !p.laborItem).length} in stock •
                       {partsRequest.filter(p => !p.inStock && !p.laborItem).length} to order
                     </span>
                   </div>
@@ -3856,9 +3193,9 @@ const diagWorkflows = [
             )}
 
             <div className="pb-4">
-              <button 
+              <button
                 onClick={() => {
-                  setCompletedSteps(prev => prev.includes(selectedStep.id) ? prev : [...prev, selectedStep.id]);
+                  setCompletedSteps(prev => [...prev, selectedStep.id]);
                   setTimeout(() => {
                     setSelectedStep(null);
                     setCurrentView('workflow');
@@ -3925,7 +3262,7 @@ const diagWorkflows = [
                     <h4 className="font-semibold text-sm mb-1">Pro Tips:</h4>
                     <p className="text-sm text-gray-800">{step.tips}</p>
                   </div>
-                  
+
                   {step.samples && step.samples.length > 0 && (
                     <div className="bg-blue-50 p-4 rounded border-l-4 border-blue-500">
                       <h4 className="font-semibold text-sm mb-3">Sample Waveforms & Examples:</h4>
@@ -4099,7 +3436,7 @@ const diagWorkflows = [
           <div className="space-y-4">
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-xl font-bold mb-4">Settings</h2>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -4184,7 +3521,7 @@ const diagWorkflows = [
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Default Report Recipients
                 </label>
-                
+
                 {shopProfile.defaultRecipients.length > 0 && (
                   <div className="space-y-2 mb-3">
                     {shopProfile.defaultRecipients.map((email, index) => (
@@ -4281,7 +3618,7 @@ const diagWorkflows = [
                 </div>
               )}
             </div>
-            
+
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="text-lg font-bold mb-2">About DiagFlow</h3>
               <p className="text-sm text-gray-600 mb-2">Version 49 Pro - Email Routing Edition</p>
@@ -4340,17 +3677,13 @@ const diagWorkflows = [
               { icon: TrendingUp, label: 'Scope', view: 'scope' },
               { icon: Settings, label: 'Settings', view: 'settings' }
             ].map(item => (
-              <button 
-                key={item.view} 
-                onClick={() => { 
-                  if (item.view === 'workflow' && !hasVehicleInfo) {
-                    setCurrentView('vehicle-info');
-                  } else {
-                    setCurrentView(item.view);
-                  }
+              <button
+                key={item.view}
+                onClick={() => {
+                  setCurrentView(item.view);
                   setSelectedStep(null);
                   setSelectedScopeWorkflow(null);
-                }} 
+                }}
                 className={`flex flex-col items-center gap-1 px-4 py-2 ${currentView === item.view ? 'text-blue-600' : 'text-gray-600'}`}
               >
                 <item.icon className="w-6 h-6" />

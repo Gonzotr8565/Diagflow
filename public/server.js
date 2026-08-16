@@ -1,201 +1,1225 @@
 const express = require('express');
 const cors = require('cors');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const PDFDocument = require('pdfkit');
 const path = require('path');
-const fs = require('fs');
+const crypto = require('crypto');
+const Anthropic = require('@anthropic-ai/sdk');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const VERSION = 'V49 Pro';
 
-// Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static('public'));
 
-// Serve sample images
-app.use('/samples', express.static(path.join(__dirname, 'public', 'samples')));
+// =============================================
+// SUPABASE CONFIGURATION
+// =============================================
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qafmmnwjgzlssogsipua.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhZm1tbndqZ3psc3NvZ3NpcHVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MTA0MDgsImV4cCI6MjA4MzI4NjQwOH0.67M7Ea2lDXK4bYRsPuZ0fagb4RtHAn5A2cAyBWV8TcQ';
 
-// Email configuration
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER || 'your-email@gmail.com',
-    pass: process.env.EMAIL_PASS || 'your-app-password'
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+console.log('Supabase connected');
+
+// =============================================
+// AUTH CONFIGURATION
+// =============================================
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
+const FALLBACK_PASSWORD = process.env.BETA_PASSWORD || 'diagflow2024';
+
+// Anthropic AI Configuration
+let anthropic = null;
+if (process.env.ANTHROPIC_API_KEY) {
+  anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  console.log('Anthropic AI configured successfully');
+} else {
+  console.warn('ANTHROPIC_API_KEY not set - AI analysis disabled');
+}
+
+// JWT Token Functions
+function generateToken(data) {
+  const payload = JSON.stringify({ ...data, exp: Date.now() + (7 * 24 * 60 * 60 * 1000) });
+  const encoded = Buffer.from(payload).toString('base64');
+  const signature = crypto.createHmac('sha256', JWT_SECRET).update(encoded).digest('hex');
+  return encoded + '.' + signature;
+}
+
+function verifyToken(token) {
+  try {
+    const [encoded, signature] = token.split('.');
+    const expectedSig = crypto.createHmac('sha256', JWT_SECRET).update(encoded).digest('hex');
+    if (signature !== expectedSig) return null;
+    const payload = JSON.parse(Buffer.from(encoded, 'base64').toString());
+    if (payload.exp < Date.now()) return null;
+    return payload;
+  } catch (e) {
+    return null;
+  }
+}
+
+// =============================================
+// AUTH ENDPOINTS (Multi-Org)
+// =============================================
+app.post('/api/auth/login', async (req, res) => {
+  const { password } = req.body;
+  
+  try {
+    // Look up organization by password
+    const { data: org, error } = await supabase
+      .from('organizations')
+      .select('*')
+      .eq('beta_password', password)
+      .single();
+    
+    if (error || !org) {
+      // Fallback to env password for backwards compatibility
+      if (password === FALLBACK_PASSWORD) {
+        const token = generateToken({ 
+          user: 'beta', 
+          orgId: null,
+          orgName: 'DiagFlow Beta',
+          loginTime: Date.now() 
+        });
+        console.log('Login successful (fallback)');
+        return res.json({ 
+          success: true, 
+          token,
+          organization: {
+            id: null,
+            name: 'DiagFlow Beta',
+            advisorEmails: [],
+            fromEmail: process.env.FROM_EMAIL || 'onboarding@resend.dev'
+          }
+        });
+      }
+      
+      console.log('Login failed - invalid password');
+      return res.json({ success: false, error: 'Invalid password' });
+    }
+    
+    // Success - create token with org info
+    const token = generateToken({ 
+      user: org.slug, 
+      orgId: org.id,
+      orgName: org.name,
+      loginTime: Date.now() 
+    });
+    
+    console.log('Login successful:', org.name);
+    
+    res.json({ 
+      success: true, 
+      token,
+      organization: {
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        advisorEmails: org.advisor_emails || [],
+        fromEmail: org.from_email || process.env.FROM_EMAIL || 'onboarding@resend.dev',
+        settings: org.settings || {}
+      }
+    });
+    
+  } catch (error) {
+    console.error('Login error:', error);
+    res.json({ success: false, error: 'Login failed' });
   }
 });
 
-// Generate PDF Report
+app.get('/api/auth/verify', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.json({ valid: false });
+  }
+  const token = authHeader.substring(7);
+  const payload = verifyToken(token);
+  
+  if (payload) {
+    res.json({ 
+      valid: true, 
+      user: payload.user,
+      orgId: payload.orgId,
+      orgName: payload.orgName
+    });
+  } else {
+    res.json({ valid: false });
+  }
+});
+
+// =============================================
+// ORGANIZATION ENDPOINTS
+// =============================================
+app.get('/api/organization/:id', async (req, res) => {
+  try {
+    const { data: org, error } = await supabase
+      .from('organizations')
+      .select('id, name, slug, from_email, advisor_emails, settings')
+      .eq('id', req.params.id)
+      .single();
+    
+    if (error || !org) {
+      return res.status(404).json({ success: false, error: 'Organization not found' });
+    }
+    
+    res.json({
+      success: true,
+      organization: {
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        advisorEmails: org.advisor_emails || [],
+        fromEmail: org.from_email,
+        settings: org.settings || {}
+      }
+    });
+  } catch (error) {
+    console.error('Get organization error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// =============================================
+// REPORTS ENDPOINTS (Org-Scoped)
+// =============================================
+app.post('/api/reports/save', async (req, res) => {
+  try {
+    const { reportData, orgId } = req.body;
+    
+    const record = {
+      org_id: orgId || null,
+      shop_name: reportData.shopName,
+      technician_name: reportData.technicianName,
+      vehicle_year: reportData.vehicleInfo?.year,
+      vehicle_make: reportData.vehicleInfo?.make,
+      vehicle_model: reportData.vehicleInfo?.model,
+      vehicle_vin: reportData.vehicleInfo?.vin,
+      ro_number: reportData.vehicleInfo?.roNumber,
+      mileage: reportData.vehicleInfo?.mileage,
+      completed_steps: reportData.completedSteps || [],
+      step_notes: reportData.stepNotes || {},
+      step_images: reportData.stepImages || {},
+      parts_request: reportData.partsRequest || [],
+      status: reportData.status || 'active',
+      updated_at: new Date().toISOString()
+    };
+    
+    let result;
+    if (reportData.id) {
+      // Update existing
+      const { data, error } = await supabase
+        .from('reports')
+        .update(record)
+        .eq('id', reportData.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      result = data;
+    } else {
+      // Insert new
+      record.created_at = new Date().toISOString();
+      const { data, error } = await supabase
+        .from('reports')
+        .insert(record)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      result = data;
+    }
+    
+    res.json({ success: true, report: result });
+  } catch (error) {
+    console.error('Save report error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/reports/active', async (req, res) => {
+  try {
+    const orgId = req.query.orgId;
+    
+    let query = supabase
+      .from('reports')
+      .select('*')
+      .eq('status', 'active')
+      .order('updated_at', { ascending: false })
+      .limit(1);
+    
+    if (orgId) {
+      query = query.eq('org_id', orgId);
+    }
+    
+    const { data, error } = await query.single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    
+    res.json({ success: true, report: data || null });
+  } catch (error) {
+    console.error('Get active report error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/reports/archived/list', async (req, res) => {
+  try {
+    const orgId = req.query.orgId;
+    
+    let query = supabase
+      .from('reports')
+      .select('*')
+      .eq('status', 'archived')
+      .order('updated_at', { ascending: false });
+    
+    // Filter by org if provided
+    if (orgId) {
+      query = query.eq('org_id', orgId);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    
+    res.json({ success: true, reports: data || [] });
+  } catch (error) {
+    console.error('List archived reports error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/reports/:id/archive', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('reports')
+      .update({ status: 'archived', updated_at: new Date().toISOString() })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    res.json({ success: true, report: data });
+  } catch (error) {
+    console.error('Archive report error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/reports/:id/restore', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('reports')
+      .update({ status: 'active', updated_at: new Date().toISOString() })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    res.json({ success: true, report: data });
+  } catch (error) {
+    console.error('Restore report error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/reports/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('reports')
+      .delete()
+      .eq('id', req.params.id);
+    
+    if (error) throw error;
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete report error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// =============================================
+// RESEND EMAIL SETUP
+// =============================================
+let resend = null;
+if (process.env.RESEND_API_KEY) {
+  resend = new Resend(process.env.RESEND_API_KEY);
+  console.log('Resend configured successfully');
+} else {
+  console.warn('RESEND_API_KEY not set');
+}
+
+const DEFAULT_FROM_EMAIL = process.env.FROM_EMAIL || 'onboarding@resend.dev';
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@example.com';
+
+// =============================================
+// TASK MANAGER ROUTE (no auth required)
+// =============================================
+app.get('/tasks', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'tasks.html'));
+});
+
+// ============ PDF GENERATION (PDFKit) ============
 function generatePDFReport(reportData) {
   return new Promise((resolve, reject) => {
     try {
-      const doc = new PDFDocument({ margin: 50 });
       const chunks = [];
-      
+      const doc = new PDFDocument({ 
+        size: 'LETTER', 
+        margins: { top: 50, bottom: 70, left: 50, right: 50 }
+      });
+
       doc.on('data', chunk => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
-      // Header
-      doc.fontSize(24).fillColor('#0066ff').text('DiagFlow Diagnostic Report', { align: 'center' });
-      doc.moveDown(0.5);
-      doc.fontSize(10).fillColor('#666666').text('Never Miss A Step', { align: 'center' });
-      doc.moveDown(1);
+      const pageWidth = doc.page.width - 100;
+      const v = reportData.vehicleInfo || {};
+      const shopName = reportData.shopName || '';
+      const techName = reportData.technicianName || '';
 
-      // Vehicle Information
-      doc.fontSize(16).fillColor('#000000').text('Vehicle Information', { underline: true });
-      doc.moveDown(0.5);
-      doc.fontSize(12);
-      const vehicle = reportData.vehicleInfo;
-      doc.text(`Year: ${vehicle.year}`);
-      doc.text(`Make: ${vehicle.make}`);
-      doc.text(`Model: ${vehicle.model}`);
-      if (vehicle.vin) doc.text(`VIN: ${vehicle.vin}`);
-      if (vehicle.roNumber) doc.text(`RO Number: ${vehicle.roNumber}`);
-      doc.moveDown(1);
+      // ============ HEADER ============
+      doc.rect(0, 0, doc.page.width, 80).fill('#0066ff');
+      
+      doc.fillColor('#ffffff')
+         .fontSize(28)
+         .font('Helvetica-Bold')
+         .text('DiagFlow', 50, 20);
+      
+      doc.fontSize(12)
+         .font('Helvetica')
+         .text('Professional Diagnostic Report', 50, 50);
 
-      // Progress Summary
-      doc.fontSize(16).fillColor('#000000').text('Diagnostic Progress', { underline: true });
-      doc.moveDown(0.5);
-      doc.fontSize(12);
-      doc.text(`Completed Steps: ${reportData.completedSteps} of ${reportData.totalSteps}`);
-      doc.text(`Generated: ${new Date(reportData.generatedDate).toLocaleString()}`);
-      doc.moveDown(1);
+      if (shopName) {
+        doc.fontSize(14)
+           .font('Helvetica-Bold')
+           .text(shopName, 400, 25, { align: 'right', width: 150 });
+      }
 
-      // Steps Detail
-      doc.fontSize(16).fillColor('#000000').text('Diagnostic Steps', { underline: true });
-      doc.moveDown(0.5);
+      doc.fontSize(10)
+         .font('Helvetica-Oblique')
+         .fillColor('#99ccff')
+         .text('Never Miss A Step', 400, 50, { align: 'right', width: 150 });
 
-      reportData.steps.forEach((step, index) => {
-        // Check if we need a new page
+      doc.y = 100;
+
+      // ============ VEHICLE INFO BOX ============
+      doc.fillColor('#f5f5f5')
+         .rect(50, doc.y, pageWidth, 85)
+         .fill();
+      
+      doc.strokeColor('#dddddd')
+         .rect(50, doc.y, pageWidth, 85)
+         .stroke();
+
+      const boxY = doc.y + 10;
+      
+      doc.fillColor('#0066ff')
+         .fontSize(12)
+         .font('Helvetica-Bold')
+         .text('VEHICLE INFORMATION', 60, boxY);
+
+      doc.fillColor('#333333')
+         .fontSize(10)
+         .font('Helvetica');
+
+      const vehicleText = [v.year, v.make, v.model].filter(Boolean).join(' ') || 'N/A';
+      doc.text('Year/Make/Model: ' + vehicleText, 60, boxY + 20);
+      doc.text('VIN: ' + (v.vin || 'N/A'), 60, boxY + 35);
+      doc.text('Mileage: ' + (v.mileage || 'N/A'), 60, boxY + 50);
+
+      doc.text('RO Number: ' + (v.roNumber || 'N/A'), 320, boxY + 20);
+      doc.text('Technician: ' + (techName || 'N/A'), 320, boxY + 35);
+      doc.text('Date: ' + new Date().toLocaleDateString(), 320, boxY + 50);
+
+      doc.y = boxY + 85;
+
+      // ============ PROGRESS ============
+      const completed = reportData.completedSteps || 0;
+      const total = reportData.totalSteps || 13;
+      const percentage = Math.round((completed / total) * 100);
+
+      doc.fillColor('#0066ff')
+         .fontSize(12)
+         .font('Helvetica-Bold')
+         .text('DIAGNOSTIC PROGRESS', 50, doc.y);
+
+      doc.y += 18;
+
+      doc.fillColor('#333333')
+         .fontSize(11)
+         .font('Helvetica')
+         .text(completed + ' of ' + total + ' steps completed (' + Math.min(percentage, 100) + '%)', 50, doc.y);
+
+      doc.y += 25;
+
+      // ============ STEPS ============
+      doc.fillColor('#0066ff')
+         .fontSize(12)
+         .font('Helvetica-Bold')
+         .text('DIAGNOSTIC WORKFLOW', 50, doc.y);
+
+      doc.y += 18;
+
+      const steps = reportData.steps || [];
+      
+      steps.forEach((step) => {
         if (doc.y > 650) {
           doc.addPage();
+          doc.y = 50;
         }
 
-        const status = step.completed ? '✓' : '○';
-        doc.fontSize(12).fillColor(step.completed ? '#22c55e' : '#666666');
-        doc.text(`${status} Step ${step.id}: ${step.title}`, { continued: false });
+        const isCompleted = step.completed;
+        const hasNotes = step.notes && step.notes.trim().length > 0;
+        const hasImages = step.images && step.images.length > 0;
+
+        const statusIcon = isCompleted ? '✓' : '○';
+        const statusColor = isCompleted ? '#22c55e' : '#999999';
         
-        if (step.notes) {
-          doc.fontSize(10).fillColor('#333333');
-          doc.text(`   Notes: ${step.notes}`, { indent: 20 });
+        doc.fillColor(statusColor)
+           .fontSize(10)
+           .font('Helvetica-Bold')
+           .text(statusIcon + ' Step ' + step.id + ': ' + step.title, 50, doc.y);
+        
+        doc.y += 14;
+
+        if (hasNotes) {
+          doc.fillColor('#333333')
+             .fontSize(9)
+             .font('Helvetica')
+             .text('Notes: ' + step.notes, 65, doc.y, { width: pageWidth - 30 });
+          doc.y += 14;
         }
-        
-        if (step.images && step.images.length > 0) {
-          doc.fontSize(10).fillColor('#666666');
-          doc.text(`   Photos: ${step.images.length} attached`, { indent: 20 });
+
+        // Inline images for this step (preview thumbnails - larger, full-res versions in appendix)
+        if (hasImages) {
+          let imgX = 65;
+          let imgY = doc.y;
+          let imagesInRow = 0;
+          const thumbW = 220, thumbH = 150; // preserves aspect ratio via 'fit', larger & clearer than before
+
+          step.images.forEach((img) => {
+            try {
+              const imgData = typeof img === 'string' ? img : (img.url || img.data);
+              if (imgData && imgData.startsWith('data:image')) {
+                if (imgY + thumbH > 700) {
+                  doc.addPage();
+                  imgY = 50;
+                  imgX = 65;
+                  imagesInRow = 0;
+                }
+                
+                const base64Data = imgData.split(',')[1];
+                const imgBuffer = Buffer.from(base64Data, 'base64');
+                
+                // 'fit' preserves aspect ratio instead of stretching/distorting the image
+                doc.image(imgBuffer, imgX, imgY, { fit: [thumbW, thumbH] });
+                doc.strokeColor('#e5e7eb').lineWidth(1).rect(imgX, imgY, thumbW, thumbH).stroke();
+                
+                imgX += thumbW + 20;
+                imagesInRow++;
+                
+                if (imagesInRow >= 2) {
+                  imgX = 65;
+                  imgY += thumbH + 15;
+                  imagesInRow = 0;
+                }
+              }
+            } catch (imgErr) {
+              console.error('Error embedding image:', imgErr.message);
+            }
+          });
+          
+          if (imagesInRow > 0) {
+            doc.y = imgY + thumbH + 15;
+          } else if (step.images.length > 0) {
+            doc.y = imgY;
+          }
         }
-        
-        doc.moveDown(0.5);
+
+        doc.y += 6;
       });
 
-      // Footer
-      doc.fontSize(8).fillColor('#999999');
-      doc.text(
-        'Generated by DiagFlow - Professional Diagnostic Workflow System',
-        50,
-        doc.page.height - 50,
-        { align: 'center' }
-      );
+      // ============ FULL-SIZE IMAGE APPENDIX ============
+      // Thumbnails above are sized for quick review; this appendix gives each image
+      // full-page width so fine detail (waveforms, scan tool screenshots, etc.) is readable.
+      const stepsWithImages = steps.filter(s => s.images && s.images.length > 0);
+      if (stepsWithImages.length > 0) {
+        doc.addPage();
+        doc.fillColor('#0066ff')
+           .fontSize(15)
+           .font('Helvetica-Bold')
+           .text('Appendix: Full-Size Images', 50, 50);
+        doc.y = 80;
+
+        stepsWithImages.forEach((step) => {
+          step.images.forEach((img, imgIdx) => {
+            try {
+              const imgData = typeof img === 'string' ? img : (img.url || img.data);
+              if (!imgData || !imgData.startsWith('data:image')) return;
+
+              if (doc.y > 680) {
+                doc.addPage();
+                doc.y = 50;
+              }
+
+              doc.fillColor('#374151')
+                 .fontSize(10)
+                 .font('Helvetica-Bold')
+                 .text('Step ' + step.id + ': ' + step.title + (step.images.length > 1 ? ' (' + (imgIdx + 1) + ' of ' + step.images.length + ')' : ''), 50, doc.y);
+              doc.y += 16;
+
+              const base64Data = imgData.split(',')[1];
+              const imgBuffer = Buffer.from(base64Data, 'base64');
+              const fullW = pageWidth; // full content width, aspect ratio preserved via 'fit'
+              doc.image(imgBuffer, 50, doc.y, { fit: [fullW, 420] });
+              doc.y += 300; // conservative spacing; most captures are landscape scan/scope shots
+
+              if (doc.y > 750) {
+                doc.addPage();
+                doc.y = 50;
+              }
+            } catch (imgErr) {
+              console.error('Error embedding appendix image:', imgErr.message);
+            }
+          });
+        });
+      }
+
+      // ============ PARTS REQUEST ============
+      const partsRequest = reportData.partsRequest || [];
+      console.log('Parts Request received:', JSON.stringify(partsRequest, null, 2));
+      
+      if (partsRequest.length > 0) {
+        if (doc.y > 500) {
+          doc.addPage();
+          doc.y = 50;
+        } else {
+          doc.y += 25;
+        }
+
+        const partsStartY = doc.y;
+        
+        doc.fillColor('#166534')
+           .fontSize(13)
+           .font('Helvetica-Bold')
+           .text('Parts & Labor Request', 50, doc.y);
+
+        doc.y += 22;
+
+        const headerY = doc.y;
+        doc.fillColor('#dcfce7')
+           .rect(50, headerY, pageWidth, 24)
+           .fill();
+        
+        doc.strokeColor('#86efac')
+           .lineWidth(2)
+           .moveTo(50, headerY + 24)
+           .lineTo(50 + pageWidth, headerY + 24)
+           .stroke();
+
+        doc.fillColor('#166534')
+           .fontSize(10)
+           .font('Helvetica-Bold')
+           .text('Part/Labor', 58, headerY + 7)
+           .text('Type', 320, headerY + 7)
+           .text('Stock', 440, headerY + 7);
+
+        doc.y = headerY + 26;
+
+        partsRequest.forEach((part, index) => {
+          if (doc.y > 680) {
+            doc.addPage();
+            doc.y = 50;
+          }
+
+          const partName = part.partName || part.name || 'Unnamed Part';
+          const partNumber = part.partNumber || '';
+          const isLabor = part.laborItem;
+          const inStock = part.inStock;
+          const rowHeight = partNumber ? 36 : 24;
+          const rowY = doc.y;
+
+          if (index % 2 === 0) {
+            doc.fillColor('#f9fafb')
+               .rect(50, rowY, pageWidth, rowHeight)
+               .fill();
+          }
+
+          doc.fillColor('#111827')
+             .fontSize(10)
+             .font('Helvetica-Bold')
+             .text(partName, 58, rowY + 6, { width: 250 });
+          
+          if (partNumber) {
+            doc.fillColor('#6b7280')
+               .fontSize(9)
+               .font('Helvetica')
+               .text('P/N: ' + partNumber, 58, rowY + 20);
+          }
+
+          const typeText = isLabor ? 'Labor' : 'Part';
+          const typeColor = isLabor ? '#3b82f6' : '#666666';
+          doc.fillColor(typeColor)
+             .fontSize(10)
+             .font('Helvetica-Bold')
+             .text(typeText, 320, rowY + 6);
+
+          if (isLabor) {
+            doc.fillColor('#9ca3af')
+               .fontSize(10)
+               .font('Helvetica')
+               .text('-', 440, rowY + 6);
+          } else {
+            const stockText = inStock ? 'In Stock' : 'Order';
+            const stockColor = inStock ? '#22c55e' : '#ef4444';
+            doc.fillColor(stockColor)
+               .fontSize(10)
+               .font('Helvetica-Bold')
+               .text(stockText, 440, rowY + 6);
+          }
+
+          doc.strokeColor('#e5e7eb')
+             .lineWidth(0.5)
+             .moveTo(50, rowY + rowHeight)
+             .lineTo(50 + pageWidth, rowY + rowHeight)
+             .stroke();
+
+          doc.y = rowY + rowHeight;
+        });
+
+        doc.y += 10;
+        const partsCount = partsRequest.filter(p => !p.laborItem).length;
+        const inStockCount = partsRequest.filter(p => !p.laborItem && p.inStock).length;
+        const toOrderCount = partsRequest.filter(p => !p.laborItem && !p.inStock).length;
+        const laborCount = partsRequest.filter(p => p.laborItem).length;
+        
+        doc.fillColor('#166534')
+           .fontSize(10)
+           .font('Helvetica-Bold')
+           .text('Summary: ', 58, doc.y, { continued: true })
+           .font('Helvetica')
+           .text(partsCount + ' parts (' + inStockCount + ' in stock, ' + toOrderCount + ' to order) | ' + laborCount + ' labor items');
+        
+        doc.y += 20;
+      }
+
+      // ============ FUEL TRIMS SECTION ============
+      const fuelTrims = reportData.fuelTrims;
+      const postRepairTrims = reportData.postRepairTrims;
+      // Check ALL conditions (idle, light throttle, loaded) and ALL fields - a tech may only
+      // fill in one condition, and a value of "0" is a legitimate real reading, not "empty"
+      const trimHasData = (trims) => {
+        if (!trims) return false;
+        return ['idle', 'lightThrottle', 'loaded'].some(cond => {
+          const row = trims[cond];
+          if (!row) return false;
+          return ['stftB1', 'ltftB1', 'stftB2', 'ltftB2'].some(field => 
+            row[field] !== undefined && row[field] !== null && String(row[field]).trim() !== ''
+          );
+        });
+      };
+      const hasPreTrims = trimHasData(fuelTrims);
+      const hasPostTrims = trimHasData(postRepairTrims);
+      
+      if (hasPreTrims || hasPostTrims) {
+        if (doc.y > 500) {
+          doc.addPage();
+          doc.y = 50;
+        } else {
+          doc.y += 15;
+        }
+
+        doc.fillColor('#0066ff')
+           .fontSize(13)
+           .font('Helvetica-Bold')
+           .text('Fuel Trim Data', 50, doc.y);
+        doc.y += 20;
+
+        // Helper function to render a trim table
+        const renderTrimTable = (trims, title, color) => {
+          doc.fillColor(color)
+             .fontSize(11)
+             .font('Helvetica-Bold')
+             .text(title, 50, doc.y);
+          doc.y += 15;
+
+          // Table header
+          const colW = 80;
+          doc.fillColor('#f3f4f6')
+             .rect(50, doc.y, pageWidth, 20)
+             .fill();
+          
+          doc.fillColor('#374151')
+             .fontSize(9)
+             .font('Helvetica-Bold')
+             .text('Condition', 55, doc.y + 5)
+             .text('STFT B1', 140, doc.y + 5)
+             .text('LTFT B1', 220, doc.y + 5)
+             .text('STFT B2', 300, doc.y + 5)
+             .text('LTFT B2', 380, doc.y + 5);
+          doc.y += 22;
+
+          // Rows
+          const rows = [
+            { label: 'Idle', data: trims.idle || {} },
+            { label: 'Light Throttle', data: trims.lightThrottle || {} },
+            { label: 'Loaded', data: trims.loaded || {} }
+          ];
+
+          rows.forEach((row, idx) => {
+            if (idx % 2 === 0) {
+              doc.fillColor('#f9fafb')
+                 .rect(50, doc.y, pageWidth, 18)
+                 .fill();
+            }
+            const fmt = (v) => (v !== undefined && v !== null && String(v).trim() !== '') ? v + '%' : '-';
+            doc.fillColor('#333333')
+               .fontSize(9)
+               .font('Helvetica')
+               .text(row.label, 55, doc.y + 4)
+               .text(fmt(row.data.stftB1), 140, doc.y + 4)
+               .text(fmt(row.data.ltftB1), 220, doc.y + 4)
+               .text(fmt(row.data.stftB2), 300, doc.y + 4)
+               .text(fmt(row.data.ltftB2), 380, doc.y + 4);
+            doc.y += 18;
+          });
+          doc.y += 10;
+        };
+
+        if (hasPreTrims) {
+          renderTrimTable(fuelTrims, 'Pre-Repair Trims (Step 2)', '#16a34a');
+        }
+        if (hasPostTrims) {
+          renderTrimTable(postRepairTrims, 'Post-Repair Trims (Step 13)', '#ea580c');
+        }
+      }
+
+      // ============ FOOTER ============
+      doc.fillColor('#666666')
+         .fontSize(8)
+         .font('Helvetica')
+         .text(
+           'Generated by DiagFlow | Never Miss A Step | ' + new Date().toLocaleString(),
+           50,
+           doc.page.height - 40,
+           { align: 'center', width: doc.page.width - 100 }
+         );
 
       doc.end();
     } catch (error) {
+      console.error('PDF generation error:', error);
       reject(error);
     }
   });
 }
 
-// API Endpoint: Submit Report
+// =============================================
+// MARKDOWN REPORT GENERATOR
+// Plain-text companion to the PDF - easy to paste into a work order system,
+// text message, or note, and diffable/searchable in a way a PDF isn't.
+// =============================================
+function generateMarkdownReport(reportData) {
+  const v = reportData.vehicleInfo || {};
+  const steps = reportData.steps || [];
+  const partsRequest = reportData.partsRequest || [];
+  const fuelTrims = reportData.fuelTrims;
+  const postRepairTrims = reportData.postRepairTrims;
+  const lines = [];
+
+  lines.push('# DiagFlow Diagnostic Report');
+  lines.push('');
+  lines.push('**Shop:** ' + (reportData.shopName || 'N/A'));
+  lines.push('**Technician:** ' + (reportData.technicianName || 'N/A'));
+  lines.push('**Generated:** ' + new Date().toLocaleString());
+  lines.push('');
+  lines.push('## Vehicle Information');
+  lines.push('');
+  lines.push('| Field | Value |');
+  lines.push('|---|---|');
+  lines.push('| Year/Make/Model | ' + [v.year, v.make, v.model].filter(Boolean).join(' ') + ' |');
+  lines.push('| VIN | ' + (v.vin || 'N/A') + ' |');
+  lines.push('| RO Number | ' + (v.roNumber || 'N/A') + ' |');
+  lines.push('| Mileage | ' + (v.mileage || 'N/A') + ' |');
+  lines.push('');
+  lines.push('**Progress:** ' + (reportData.completedSteps || 0) + ' of ' + (reportData.totalSteps || 13) + ' steps completed');
+  lines.push('');
+  lines.push('## Diagnostic Steps');
+  lines.push('');
+  steps.forEach(step => {
+    const check = step.completed ? 'x' : ' ';
+    lines.push('- [' + check + '] **Step ' + step.id + ': ' + step.title + '**');
+    if (step.notes && step.notes.trim()) {
+      lines.push('  - Notes: ' + step.notes.trim());
+    }
+    if (step.images && step.images.length > 0) {
+      lines.push('  - Images: ' + step.images.length + ' attached (see PDF or attached image files)');
+    }
+  });
+  lines.push('');
+
+  const trimHasData = (trims) => {
+    if (!trims) return false;
+    return ['idle', 'lightThrottle', 'loaded'].some(cond => {
+      const row = trims[cond];
+      if (!row) return false;
+      return ['stftB1', 'ltftB1', 'stftB2', 'ltftB2'].some(f => row[f] !== undefined && row[f] !== null && String(row[f]).trim() !== '');
+    });
+  };
+  const fmtTrim = (v) => (v !== undefined && v !== null && String(v).trim() !== '') ? v + '%' : '-';
+  const renderTrimMd = (trims, title) => {
+    lines.push('### ' + title);
+    lines.push('');
+    lines.push('| Condition | STFT B1 | LTFT B1 | STFT B2 | LTFT B2 |');
+    lines.push('|---|---|---|---|---|');
+    [['Idle', 'idle'], ['Light Throttle', 'lightThrottle'], ['Loaded', 'loaded']].forEach(([label, key]) => {
+      const row = trims[key] || {};
+      lines.push('| ' + label + ' | ' + fmtTrim(row.stftB1) + ' | ' + fmtTrim(row.ltftB1) + ' | ' + fmtTrim(row.stftB2) + ' | ' + fmtTrim(row.ltftB2) + ' |');
+    });
+    lines.push('');
+  };
+
+  if (trimHasData(fuelTrims) || trimHasData(postRepairTrims)) {
+    lines.push('## Fuel Trim Data');
+    lines.push('');
+    if (trimHasData(fuelTrims)) renderTrimMd(fuelTrims, 'Pre-Repair Trims (Step 2)');
+    if (trimHasData(postRepairTrims)) renderTrimMd(postRepairTrims, 'Post-Repair Trims (Step 13)');
+  }
+
+  if (partsRequest.length > 0) {
+    lines.push('## Parts & Labor Request');
+    lines.push('');
+    lines.push('| Item | Type | Stock | P/N |');
+    lines.push('|---|---|---|---|');
+    partsRequest.forEach(p => {
+      const name = p.partName || p.name || 'Unnamed';
+      const type = p.laborItem ? 'Labor' : 'Part';
+      const stock = p.laborItem ? '-' : (p.inStock ? 'In Stock' : 'Order');
+      lines.push('| ' + name + ' | ' + type + ' | ' + stock + ' | ' + (p.partNumber || '-') + ' |');
+    });
+    lines.push('');
+  }
+
+  lines.push('---');
+  lines.push('*Generated by DiagFlow | Never Miss A Step*');
+
+  return lines.join('\n');
+}
+
+// =============================================
+// SUBMIT REPORT ENDPOINT (Multi-Org)
+// =============================================
 app.post('/api/submit-report', async (req, res) => {
+  console.log('=== SUBMIT REPORT STARTED ===');
   try {
-    const { email, reportData } = req.body;
+    const { reportData, recipientEmail, recipients, email, orgId } = req.body;
+    console.log('Recipients:', recipients || recipientEmail || email);
+    console.log('OrgId:', orgId);
 
-    if (!email || !reportData) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Email and report data are required' 
-      });
+    if (!resend) {
+      console.log('ERROR: Resend not configured');
+      return res.status(500).json({ success: false, error: 'Email service not configured' });
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid email format' 
-      });
+    // Get org-specific from_email if orgId provided
+    let fromEmail = DEFAULT_FROM_EMAIL;
+    if (orgId) {
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('from_email')
+        .eq('id', orgId)
+        .single();
+      
+      if (org && org.from_email) {
+        fromEmail = org.from_email;
+      }
     }
 
-    // Generate PDF
-    console.log('Generating PDF report...');
+    console.log('Generating PDF...');
     const pdfBuffer = await generatePDFReport(reportData);
-    console.log('PDF generated successfully');
+    console.log('PDF generated, size:', pdfBuffer.length);
+    
+    const v = reportData.vehicleInfo || {};
+    const baseFilename = 'DiagFlow_Report_' + (v.year || 'Vehicle') + '_' + (v.make || '') + '_' + (v.model || '') + '_' + Date.now();
+    const filename = baseFilename + '.pdf';
 
-    // Prepare email
-    const vehicle = reportData.vehicleInfo;
-    const mailOptions = {
-      from: process.env.EMAIL_USER || 'your-email@gmail.com',
-      to: email,
-      subject: `DiagFlow Report - ${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #0066ff;">DiagFlow Diagnostic Report</h2>
-          <p>A diagnostic report has been generated for:</p>
-          <ul>
-            <li><strong>Vehicle:</strong> ${vehicle.year} ${vehicle.make} ${vehicle.model}</li>
-            ${vehicle.vin ? `<li><strong>VIN:</strong> ${vehicle.vin}</li>` : ''}
-            ${vehicle.roNumber ? `<li><strong>RO Number:</strong> ${vehicle.roNumber}</li>` : ''}
-            <li><strong>Progress:</strong> ${reportData.completedSteps} of ${reportData.totalSteps} steps completed</li>
-            <li><strong>Generated:</strong> ${new Date(reportData.generatedDate).toLocaleString()}</li>
-          </ul>
-          <p>Please see the attached PDF for complete diagnostic details.</p>
-          <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-          <p style="color: #666; font-size: 12px;">
-            Generated by DiagFlow - Professional Diagnostic Workflow System<br>
-            <em>Never Miss A Step</em>
-          </p>
-        </div>
-      `,
-      attachments: [{
-        filename: `DiagFlow_Report_${vehicle.year}_${vehicle.make}_${vehicle.model}_${Date.now()}.pdf`,
-        content: pdfBuffer,
-        contentType: 'application/pdf'
-      }]
-    };
+    // Generate the Markdown companion report (plain-text, easy to paste into a work order
+    // system or search later - complements the PDF rather than replacing it)
+    const markdownContent = generateMarkdownReport(reportData);
+    const mdFilename = baseFilename + '.md';
 
-    // Send email
-    console.log(`Sending email to: ${email}`);
-    await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully');
+    // Attach full-resolution images as individual files so the SA (or shop system) can save
+    // them directly to whatever folder/network share they use, rather than only the
+    // PDF-embedded versions. Capped so a job with many photos doesn't blow past email size
+    // limits - the PDF appendix always has everything regardless of this cap.
+    const MAX_IMAGE_ATTACH_BYTES = 15 * 1024 * 1024; // ~15MB budget for raw image attachments
+    const imageAttachments = [];
+    let imageAttachBytes = 0;
+    let imagesSkipped = 0;
+    (reportData.steps || []).forEach(step => {
+      (step.images || []).forEach((img, idx) => {
+        const imgData = typeof img === 'string' ? img : (img.url || img.data);
+        if (!imgData || !imgData.startsWith('data:image')) return;
+        const match = imgData.match(/^data:image\/(\w+);base64,(.+)$/);
+        if (!match) return;
+        const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
+        const base64Data = match[2];
+        const sizeBytes = Math.ceil(base64Data.length * 0.75);
+        if (imageAttachBytes + sizeBytes > MAX_IMAGE_ATTACH_BYTES) {
+          imagesSkipped++;
+          return;
+        }
+        imageAttachBytes += sizeBytes;
+        imageAttachments.push({
+          filename: 'Step' + step.id + '_' + step.title.replace(/[^a-z0-9]+/gi, '_').substring(0, 30) + '_' + (idx + 1) + '.' + ext,
+          content: base64Data
+        });
+      });
+    });
+    console.log('Image attachments:', imageAttachments.length, 'skipped:', imagesSkipped, 'bytes:', imageAttachBytes);
 
+    // Support multiple input formats
+    let emailList = [];
+    
+    if (Array.isArray(recipients) && recipients.length > 0) {
+      emailList = recipients.map(e => e.trim()).filter(e => e);
+    } else if (recipientEmail) {
+      emailList = recipientEmail.split(',').map(e => e.trim()).filter(e => e);
+    } else if (email) {
+      emailList = email.split(',').map(e => e.trim()).filter(e => e);
+    }
+
+    if (emailList.length === 0) {
+      return res.status(400).json({ success: false, error: 'No recipient email provided' });
+    }
+
+    console.log('Sending email to:', emailList);
+    console.log('From:', fromEmail);
+
+    // Build parts HTML
+    let partsHtml = '';
+    if (reportData.partsRequest && reportData.partsRequest.length > 0) {
+      partsHtml = '<div style="margin-top: 20px; padding: 15px; background: #f0fff4; border-radius: 8px; border: 1px solid #86efac;">' +
+        '<h3 style="margin: 0 0 10px 0; color: #166534;">Parts & Labor Request</h3>' +
+        '<table style="width: 100%; border-collapse: collapse; font-size: 12px;">' +
+        '<tr style="background: #dcfce7;">' +
+        '<th style="padding: 8px; text-align: left; border-bottom: 2px solid #86efac;">Part/Labor</th>' +
+        '<th style="padding: 8px; text-align: center; border-bottom: 2px solid #86efac;">Type</th>' +
+        '<th style="padding: 8px; text-align: center; border-bottom: 2px solid #86efac;">Stock</th>' +
+        '</tr>' +
+        reportData.partsRequest.map(function(part) {
+          var partName = part.partName || part.name || 'Unnamed Part';
+          var partNumber = part.partNumber ? '<br><span style="color: #666; font-size: 11px;">P/N: ' + part.partNumber + '</span>' : '';
+          var typeText = part.laborItem ? 'Labor' : 'Part';
+          var typeColor = part.laborItem ? '#3b82f6' : '#666';
+          var stockText = part.laborItem ? '-' : (part.inStock ? 'In Stock' : 'Order');
+          var stockColor = part.laborItem ? '#999' : (part.inStock ? '#22c55e' : '#ef4444');
+          
+          return '<tr>' +
+            '<td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>' + partName + '</strong>' + partNumber + '</td>' +
+            '<td style="padding: 8px; text-align: center; border-bottom: 1px solid #e5e7eb;"><span style="color: ' + typeColor + '; font-weight: bold;">' + typeText + '</span></td>' +
+            '<td style="padding: 8px; text-align: center; border-bottom: 1px solid #e5e7eb;"><span style="color: ' + stockColor + '; font-weight: bold;">' + stockText + '</span></td>' +
+            '</tr>';
+        }).join('') +
+        '</table>' +
+        '<p style="margin: 10px 0 0 0; font-size: 12px; color: #166534;">' +
+        '<strong>Summary:</strong> ' + 
+        reportData.partsRequest.filter(function(p) { return !p.laborItem; }).length + ' parts (' +
+        reportData.partsRequest.filter(function(p) { return !p.laborItem && p.inStock; }).length + ' in stock, ' +
+        reportData.partsRequest.filter(function(p) { return !p.laborItem && !p.inStock; }).length + ' to order) | ' +
+        reportData.partsRequest.filter(function(p) { return p.laborItem; }).length + ' labor items' +
+        '</p></div>';
+    }
+
+    const emailHtml = '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">' +
+      '<div style="background: linear-gradient(135deg, #0066ff, #0052cc); padding: 20px; text-align: center;">' +
+      '<h1 style="color: white; margin: 0;">DiagFlow Report</h1>' +
+      '<p style="color: #99ccff; margin: 5px 0 0 0;">Professional Diagnostic Workflow</p>' +
+      '</div>' +
+      '<div style="padding: 20px; background: #f5f5f5;">' +
+      '<h2 style="color: #333; margin-top: 0;">Vehicle Information</h2>' +
+      '<table style="width: 100%; background: white; border-radius: 8px; overflow: hidden;">' +
+      '<tr><td style="padding: 10px; font-weight: bold; background: #f0f0f0;">Year/Make/Model</td>' +
+      '<td style="padding: 10px;">' + (v.year || '') + ' ' + (v.make || '') + ' ' + (v.model || '') + '</td></tr>' +
+      '<tr><td style="padding: 10px; font-weight: bold; background: #f0f0f0;">VIN</td>' +
+      '<td style="padding: 10px;">' + (v.vin || 'N/A') + '</td></tr>' +
+      '<tr><td style="padding: 10px; font-weight: bold; background: #f0f0f0;">RO Number</td>' +
+      '<td style="padding: 10px;">' + (v.roNumber || 'N/A') + '</td></tr>' +
+      '<tr><td style="padding: 10px; font-weight: bold; background: #f0f0f0;">Mileage</td>' +
+      '<td style="padding: 10px;">' + (v.mileage || 'N/A') + '</td></tr>' +
+      '</table>' +
+      '<div style="margin-top: 20px; padding: 15px; background: white; border-radius: 8px;">' +
+      '<h3 style="margin: 0 0 10px 0; color: #0066ff;">Progress</h3>' +
+      '<p style="margin: 0; font-size: 18px;"><strong>' + (reportData.completedSteps || 0) + '</strong> of <strong>' + (reportData.totalSteps || 13) + '</strong> steps completed</p>' +
+      '</div>' +
+      partsHtml +
+      '<p style="margin-top: 20px; color: #666;">Please find the complete diagnostic report attached as a PDF' +
+      (imageAttachments.length > 0 ? ', along with ' + imageAttachments.length + ' full-resolution image' + (imageAttachments.length === 1 ? '' : 's') + ' for closer review or filing' : '') +
+      '. A plain-text (.md) copy of the report is also attached for easy pasting into other systems.' +
+      (imagesSkipped > 0 ? '<br><em>Note: ' + imagesSkipped + ' additional image(s) were left off this email to keep it a reasonable size, but are still included in full inside the PDF.</em>' : '') +
+      '</p>' +
+      '</div>' +
+      '<div style="background: #333; padding: 15px; text-align: center;">' +
+      '<p style="color: #999; margin: 0; font-size: 12px;">Generated by DiagFlow | Never Miss A Step</p>' +
+      '</div></div>';
+
+    const result = await resend.emails.send({
+      from: fromEmail,
+      to: emailList,
+      subject: 'DiagFlow Report: ' + (v.year || '') + ' ' + (v.make || '') + ' ' + (v.model || '') + ' - RO# ' + (v.roNumber || 'N/A'),
+      html: emailHtml,
+      attachments: [
+        {
+          filename: filename,
+          content: pdfBuffer.toString('base64')
+        },
+        {
+          filename: mdFilename,
+          content: Buffer.from(markdownContent, 'utf-8').toString('base64')
+        },
+        ...imageAttachments
+      ]
+    });
+
+    console.log('Email sent successfully:', result);
+    res.json({ success: true, messageId: result.id });
+
+  } catch (error) {
+    console.error('Submit report error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// =============================================
+// AI DIAGNOSTIC ANALYSIS ENDPOINT
+// =============================================
+app.post('/api/ai-analysis', async (req, res) => {
+  try {
+    if (!anthropic) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'AI service not configured. Please add ANTHROPIC_API_KEY to environment variables.' 
+      });
+    }
+
+    const { reportData } = req.body;
+    const v = reportData.vehicleInfo || {};
+    const steps = reportData.steps || [];
+    const partsRequest = reportData.partsRequest || [];
+    
+    const completedSteps = steps.filter(s => s.completed);
+    const stepsWithNotes = steps.filter(s => s.notes && s.notes.trim());
+    const stepsWithImages = steps.filter(s => s.images && s.images.length > 0);
+    
+    const diagnosticSummary = stepsWithNotes.map(s => 
+      'Step ' + s.id + ' (' + s.title + '): ' + s.notes
+    ).join('\n\n');
+
+    const partsListText = partsRequest.length > 0 
+      ? partsRequest.map(p => '- ' + (p.partName || p.name) + (p.partNumber ? ' (P/N: ' + p.partNumber + ')' : '') + (p.inStock ? ' [In Stock]' : ' [Needs Order]')).join('\n')
+      : 'No parts requested yet.';
+
+    const systemPrompt = 'You are an expert ASE Master Certified automotive diagnostic technician with 45+ years of experience. You specialize in systematic diagnosis using the "Never Miss A Step" 15-step methodology.\n\nYour role is to analyze diagnostic findings from other technicians and provide:\n1. Confirmation or questions about the diagnosis path\n2. Potential root causes they may have missed\n3. Common failures for this specific vehicle/symptom\n4. Recommended next steps or additional tests\n5. Any safety concerns or critical issues\n\nBe direct and technical - you are talking to fellow technicians. Use proper terminology. Reference TSBs or common issues when relevant. If the notes are sparse, ask clarifying questions about what tests were performed.\n\nFormat your response clearly with sections. Be helpful but also challenge assumptions if the diagnostic path seems incomplete.';
+
+    const userMessage = 'Please analyze this diagnostic case:\n\n**VEHICLE INFORMATION:**\n- Year/Make/Model: ' + (v.year || 'Unknown') + ' ' + (v.make || 'Unknown') + ' ' + (v.model || 'Unknown') + '\n- VIN: ' + (v.vin || 'Not provided') + '\n- Mileage: ' + (v.mileage || 'Not recorded') + '\n- RO#: ' + (v.roNumber || 'N/A') + '\n\n**DIAGNOSTIC PROGRESS:**\n- Steps Completed: ' + completedSteps.length + ' of ' + steps.length + '\n- Steps with Documentation: ' + stepsWithNotes.length + '\n- Steps with Photos: ' + stepsWithImages.length + '\n\n**TECHNICIAN FINDINGS:**\n' + (diagnosticSummary || 'No notes recorded in diagnostic steps.') + '\n\n**PARTS IDENTIFIED:**\n' + partsListText + '\n\n---\n\nBased on this information, please provide your analysis. If the documentation is sparse, ask what specific tests or observations the tech has made. If there is enough info, provide your diagnostic insights and recommendations.';
+
+    console.log('AI Analysis requested for:', v.year + ' ' + v.make + ' ' + v.model);
+
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      messages: [
+        { role: 'user', content: userMessage }
+      ],
+      system: systemPrompt
+    });
+
+    const analysisText = message.content[0].text;
+    
+    console.log('AI Analysis completed successfully');
+    
     res.json({ 
       success: true, 
-      message: `Report successfully sent to ${email}` 
+      analysis: analysisText,
+      usage: {
+        inputTokens: message.usage.input_tokens,
+        outputTokens: message.usage.output_tokens
+      }
     });
 
   } catch (error) {
-    console.error('Error submitting report:', error);
+    console.error('AI Analysis error:', error);
     res.status(500).json({ 
       success: false, 
-      error: 'Failed to generate or send report',
-      details: error.message 
+      error: error.message || 'AI analysis failed. Please try again.' 
     });
   }
 });
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'DiagFlow API is running' });
+// Support Request Endpoint
+app.post('/api/support-request', async (req, res) => {
+  try {
+    const { reportData, message, techEmail } = req.body;
+
+    if (!resend) {
+      return res.status(500).json({ success: false, error: 'Email service not configured' });
+    }
+
+    const v = reportData.vehicleInfo || {};
+    
+    const result = await resend.emails.send({
+      from: DEFAULT_FROM_EMAIL,
+      to: [SUPPORT_EMAIL],
+      replyTo: techEmail,
+      subject: 'DiagFlow Help Request: ' + (v.year || '') + ' ' + (v.make || '') + ' ' + (v.model || ''),
+      html: '<h2>Help Request</h2><p><strong>From:</strong> ' + techEmail + '</p><p><strong>Vehicle:</strong> ' + (v.year || '') + ' ' + (v.make || '') + ' ' + (v.model || '') + '</p><p><strong>Message:</strong></p><p>' + message + '</p>'
+    });
+
+    console.log('Support request sent:', result);
+    res.json({ success: true, messageId: result.id });
+
+  } catch (error) {
+    console.error('Support request error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
-// Serve frontend
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    version: VERSION, 
+    auth: 'enabled',
+    multiOrg: 'enabled',
+    ai: anthropic ? 'configured' : 'not configured',
+    email: resend ? 'configured' : 'not configured',
+    supabase: 'connected'
+  });
+});
+
+// Serve frontend (catch-all - must be last)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server
 app.listen(PORT, () => {
-  console.log(`✅ DiagFlow Server Running on Port ${PORT}`);
-  console.log(`🌐 API Base URL: http://localhost:${PORT}`);
-  console.log(`📧 Email configured: ${process.env.EMAIL_USER ? 'Yes' : 'No (using placeholder)'}`);
+  console.log('');
+  console.log('==============================================');
+  console.log('  DiagFlow ' + VERSION + ' Server');
+  console.log('  Multi-Organization Support Enabled');
+  console.log('==============================================');
+  console.log('  Port:', PORT);
+  console.log('  Auth: Multi-Org (Supabase)');
+  console.log('  AI:', anthropic ? 'Configured (Claude)' : 'Not configured');
+  console.log('  Email:', process.env.RESEND_API_KEY ? 'Configured' : 'Not configured');
+  console.log('  Supabase: Connected');
+  console.log('  Default From:', DEFAULT_FROM_EMAIL);
+  console.log('  Support:', SUPPORT_EMAIL);
+  console.log('  Tasks: /tasks (no auth)');
+  console.log('==============================================');
+  console.log('');
 });
