@@ -638,6 +638,8 @@ function generatePDFReport(reportData) {
           }
 
           const partName = part.partName || part.name || 'Unnamed Part';
+          const quantity = part.quantity || 1;
+          const displayName = quantity + ' x ' + partName;
           const partNumber = part.partNumber || '';
           const isLabor = part.laborItem;
           const inStock = part.inStock;
@@ -653,7 +655,7 @@ function generatePDFReport(reportData) {
           doc.fillColor('#111827')
              .fontSize(10)
              .font('Helvetica-Bold')
-             .text(partName, 58, rowY + 6, { width: 250 });
+             .text(displayName, 58, rowY + 6, { width: 250 });
           
           if (partNumber) {
             doc.fillColor('#6b7280')
@@ -899,7 +901,7 @@ function generateMarkdownReport(reportData) {
       const name = p.partName || p.name || 'Unnamed';
       const type = p.laborItem ? 'Labor' : 'Part';
       const stock = p.laborItem ? '-' : (p.inStock ? 'In Stock' : 'Order');
-      lines.push('| ' + name + ' | ' + type + ' | ' + stock + ' | ' + (p.partNumber || '-') + ' |');
+      lines.push('| ' + (p.quantity || 1) + ' x ' + name + ' | ' + type + ' | ' + stock + ' | ' + (p.partNumber || '-') + ' |');
     });
     lines.push('');
   }
@@ -1013,6 +1015,7 @@ app.post('/api/submit-report', async (req, res) => {
         '</tr>' +
         reportData.partsRequest.map(function(part) {
           var partName = part.partName || part.name || 'Unnamed Part';
+          var displayName = (part.quantity || 1) + ' x ' + partName;
           var partNumber = part.partNumber ? '<br><span style="color: #666; font-size: 11px;">P/N: ' + part.partNumber + '</span>' : '';
           var typeText = part.laborItem ? 'Labor' : 'Part';
           var typeColor = part.laborItem ? '#3b82f6' : '#666';
@@ -1020,7 +1023,7 @@ app.post('/api/submit-report', async (req, res) => {
           var stockColor = part.laborItem ? '#999' : (part.inStock ? '#22c55e' : '#ef4444');
           
           return '<tr>' +
-            '<td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>' + partName + '</strong>' + partNumber + '</td>' +
+            '<td style="padding: 8px; border-bottom: 1px solid #e5e7eb;"><strong>' + displayName + '</strong>' + partNumber + '</td>' +
             '<td style="padding: 8px; text-align: center; border-bottom: 1px solid #e5e7eb;"><span style="color: ' + typeColor + '; font-weight: bold;">' + typeText + '</span></td>' +
             '<td style="padding: 8px; text-align: center; border-bottom: 1px solid #e5e7eb;"><span style="color: ' + stockColor + '; font-weight: bold;">' + stockText + '</span></td>' +
             '</tr>';
