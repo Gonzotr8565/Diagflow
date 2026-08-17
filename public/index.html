@@ -93,7 +93,11 @@ const LoginScreen = ({ onLogin }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+  'Content-Type': 'application/json',
+  'Authorization':
+    `Bearer ${localStorage.getItem('diagflow_token')}`
+},
         body: JSON.stringify({ password })
       });
 
@@ -623,7 +627,15 @@ const DiagnosticApp = () => {
 
         // Also try to load from Supabase and merge
         try {
-          const response = await fetch(`${API_BASE_URL}/api/reports/archived/list?orgId=${organization.id}`);
+          const response = await fetch(
+  `${API_BASE_URL}/api/reports/archived/list`,
+  {
+    headers: {
+      'Authorization':
+        `Bearer ${localStorage.getItem('diagflow_token')}`
+    }
+  }
+);
           const data = await response.json();
           if (data.success && data.reports && data.reports.length > 0) {
             // Transform Supabase format to frontend format
@@ -747,7 +759,11 @@ const DiagnosticApp = () => {
       if (organization?.id) {
         fetch(`${API_BASE_URL}/api/reports/save`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+  'Content-Type': 'application/json',
+  'Authorization':
+    `Bearer ${localStorage.getItem('diagflow_token')}`
+},
           body: JSON.stringify({
             reportData: {
               id: activeReportId,
@@ -1595,9 +1611,11 @@ const DiagnosticApp = () => {
       const response = await fetch(`${API_BASE_URL}/api/support-request`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  'Authorization':
+    `Bearer ${localStorage.getItem('diagflow_token')}`
+},
         body: JSON.stringify(supportData)
       });
 

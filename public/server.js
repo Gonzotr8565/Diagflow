@@ -59,7 +59,36 @@ function verifyToken(token) {
     return null;
   }
 }
+function requireOrganizationAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
 
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required'
+    });
+  }
+
+  const token = authHeader.substring(7);
+  const payload = verifyToken(token);
+
+  if (!payload) {
+    return res.status(401).json({
+      success: false,
+      error: 'Invalid or expired authentication'
+    });
+  }
+
+  if (!payload.orgId) {
+    return res.status(403).json({
+      success: false,
+      error: 'Organization access required'
+    });
+  }
+
+  req.auth = payload;
+  next();
+}
 // =============================================
 // AUTH ENDPOINTS (Multi-Org)
 // =============================================
@@ -152,12 +181,21 @@ app.get('/api/auth/verify', (req, res) => {
 // =============================================
 // ORGANIZATION ENDPOINTS
 // =============================================
-app.get('/api/organization/:id', async (req, res) => {
+app.get(
+  '/api/organization/:id',
+  requireOrganizationAuth,
+  async (req, res) => {
   try {
+        if (req.params.id !== req.auth.orgId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Organization access denied'
+      });
+    }
     const { data: org, error } = await supabase
       .from('organizations')
       .select('id, name, slug, from_email, advisor_emails, settings')
-      .eq('id', req.params.id)
+      .eq('id', req.auth.orgId)
       .single();
     
     if (error || !org) {
@@ -184,12 +222,16 @@ app.get('/api/organization/:id', async (req, res) => {
 // =============================================
 // REPORTS ENDPOINTS (Org-Scoped)
 // =============================================
-app.post('/api/reports/save', async (req, res) => {
+app.post(
+  '/api/reports/save',
+  requireOrganizationAuth,
+  async (req, res) => {
   try {
-    const { reportData, orgId } = req.body;
+  const { reportData } = req.body;
+const orgId = req.auth.orgId;
     
     const record = {
-      org_id: orgId || null,
+      org_id: orgId,
       shop_name: reportData.shopName,
       technician_name: reportData.technicianName,
       vehicle_year: reportData.vehicleInfo?.year,
@@ -213,9 +255,9 @@ app.post('/api/reports/save', async (req, res) => {
         .from('reports')
         .update(record)
         .eq('id', reportData.id)
+        .eq('org_id', orgId)
         .select()
         .single();
-      
       if (error) throw error;
       result = data;
     } else {
@@ -238,7 +280,10 @@ app.post('/api/reports/save', async (req, res) => {
   }
 });
 
-app.get('/api/reports/active', async (req, res) => {
+app.get(
+  '/api/reports/active',
+  requireOrganizationAuth,
+  async (req, res) => {
   try {
     const orgId = req.query.orgId;
     
@@ -246,13 +291,11 @@ app.get('/api/reports/active', async (req, res) => {
       .from('reports')
       .select('*')
       .eq('status', 'active')
+      .eq('org_id', orgId)
       .order('updated_at', { ascending: false })
       .limit(1);
     
-    if (orgId) {
-      query = query.eq('org_id', orgId);
-    }
-    
+
     const { data, error } = await query.single();
     
     if (error && error.code !== 'PGRST116') throw error;
@@ -264,20 +307,21 @@ app.get('/api/reports/active', async (req, res) => {
   }
 });
 
-app.get('/api/reports/archived/list', async (req, res) => {
+app.get(
+  '/api/reports/archived/list',
+  requireOrganizationAuth,
+  async (req, res) => {
   try {
-    const orgId = req.query.orgId;
+    const orgId = req.auth.orgId;
     
     let query = supabase
       .from('reports')
       .select('*')
       .eq('status', 'archived')
+      .eq('org_id', orgId)
       .order('updated_at', { ascending: false });
     
     // Filter by org if provided
-    if (orgId) {
-      query = query.eq('org_id', orgId);
-    }
     
     const { data, error } = await query;
     
@@ -290,12 +334,16 @@ app.get('/api/reports/archived/list', async (req, res) => {
   }
 });
 
-app.post('/api/reports/:id/archive', async (req, res) => {
+app.post(
+  '/api/reports/:id/archive',
+  requireOrganizationAuth,
+  async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('reports')
       .update({ status: 'archived', updated_at: new Date().toISOString() })
       .eq('id', req.params.id)
+      .eq('org_id', req.auth.orgId)
       .select()
       .single();
     
@@ -308,12 +356,16 @@ app.post('/api/reports/:id/archive', async (req, res) => {
   }
 });
 
-app.post('/api/reports/:id/restore', async (req, res) => {
+app.post(
+  '/api/reports/:id/restore',
+  requireOrganizationAuth,
+  async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('reports')
       .update({ status: 'active', updated_at: new Date().toISOString() })
       .eq('id', req.params.id)
+      .eq('org_id', req.auth.orgId)
       .select()
       .single();
     
@@ -326,13 +378,16 @@ app.post('/api/reports/:id/restore', async (req, res) => {
   }
 });
 
-app.delete('/api/reports/:id', async (req, res) => {
+app.delete(
+  '/api/reports/:id',
+  requireOrganizationAuth,
+  async (req, res) => {
   try {
-    const { error } = await supabase
+      const { error } = await supabase
       .from('reports')
       .delete()
-      .eq('id', req.params.id);
-    
+      .eq('id', req.params.id)
+      .eq('org_id', req.auth.orgId);
     if (error) throw error;
     
     res.json({ success: true });
@@ -965,10 +1020,20 @@ function generateMarkdownReport(reportData) {
 // =============================================
 // SUBMIT REPORT ENDPOINT (Multi-Org)
 // =============================================
-app.post('/api/submit-report', async (req, res) => {
+app.post(
+  '/api/submit-report',
+  requireOrganizationAuth,
+  async (req, res) => {
   console.log('=== SUBMIT REPORT STARTED ===');
   try {
-    const { reportData, recipientEmail, recipients, email, orgId } = req.body;
+    const {
+  reportData,
+  recipientEmail,
+  recipients,
+  email
+} = req.body;
+
+const orgId = req.auth.orgId;
     console.log('Recipients:', recipients || recipientEmail || email);
     console.log('OrgId:', orgId);
 
@@ -1150,7 +1215,10 @@ app.post('/api/submit-report', async (req, res) => {
 // =============================================
 // AI DIAGNOSTIC ANALYSIS ENDPOINT
 // =============================================
-app.post('/api/ai-analysis', async (req, res) => {
+app.post(
+  '/api/ai-analysis',
+  requireOrganizationAuth,
+  async (req, res) => {
   try {
     if (!anthropic) {
       return res.status(500).json({ 
@@ -1214,7 +1282,10 @@ app.post('/api/ai-analysis', async (req, res) => {
 });
 
 // Support Request Endpoint
-app.post('/api/support-request', async (req, res) => {
+app.post(
+  '/api/support-request',
+  requireOrganizationAuth,
+  async (req, res) => {
   try {
     const { reportData, message, techEmail } = req.body;
 
