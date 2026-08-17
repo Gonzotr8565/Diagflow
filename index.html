@@ -1748,10 +1748,12 @@ if (report.postRepairTrims) {
 
       const response = await fetch(`${API_BASE_URL}/api/submit-report`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
+      headers: {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+  'Authorization':
+    `Bearer ${localStorage.getItem('diagflow_token')}`
+},
         body: JSON.stringify({
           recipients: uniqueRecipients,
           reportData: reportData,
