@@ -229,7 +229,12 @@ app.post(
   try {
   const { reportData } = req.body;
 const orgId = req.auth.orgId;
-    
+    const persistedStepNotes = {
+  ...(reportData.stepNotes || {}),
+  __diagflowFuelTrims: reportData.fuelTrims || null,
+  __diagflowPostRepairTrims:
+    reportData.postRepairTrims || null
+};
     const record = {
       org_id: orgId,
       shop_name: reportData.shopName,
@@ -241,7 +246,7 @@ const orgId = req.auth.orgId;
       ro_number: reportData.vehicleInfo?.roNumber,
       mileage: reportData.vehicleInfo?.mileage,
       completed_steps: reportData.completedSteps || [],
-      step_notes: reportData.stepNotes || {},
+      step_notes: persistedStepNotes,
       step_images: reportData.stepImages || {},
       parts_request: reportData.partsRequest || [],
       status: reportData.status || 'active',
@@ -285,7 +290,7 @@ app.get(
   requireOrganizationAuth,
   async (req, res) => {
   try {
-    const orgId = req.query.orgId;
+    const orgId = req.auth.orgId;
     
     let query = supabase
       .from('reports')

@@ -655,6 +655,10 @@ const DiagnosticApp = () => {
               completedSteps: r.completed_steps?.length || 0,
               completedStepIds: r.completed_steps || [],
               stepNotes: r.step_notes || {},
+              fuelTrims:
+              r.step_notes?.__diagflowFuelTrims || null,
+              postRepairTrims:
+              r.step_notes?.__diagflowPostRepairTrims || null,
               partsRequest: r.parts_request || [],
               fromSupabase: true
             }));
@@ -696,7 +700,11 @@ const DiagnosticApp = () => {
   // On login, if there's an in-progress job saved and nothing is currently loaded, resume it automatically
   const [hasCheckedForActiveJob, setHasCheckedForActiveJob] = useState(false);
   useEffect(() => {
-    if (!isAuthenticated || hasCheckedForActiveJob) return;
+    if (
+  !isAuthenticated ||
+  !organization?.id ||
+  hasCheckedForActiveJob
+) return;
     setHasCheckedForActiveJob(true);
 
     try {
@@ -724,7 +732,11 @@ const DiagnosticApp = () => {
     } catch (e) {
       console.log('Error restoring in-progress job:', e);
     }
-  }, [isAuthenticated, hasCheckedForActiveJob]);
+  }, [
+  isAuthenticated,
+  organization?.id,
+  hasCheckedForActiveJob
+]);
 
   // Continuously auto-save the in-progress job (debounced) so nothing is lost if the browser
   // closes, crashes, or the tech walks away before archiving/submitting.
@@ -773,10 +785,11 @@ const DiagnosticApp = () => {
               completedSteps: [...completedSteps],
               stepNotes,
               stepImages,
-              partsRequest,
-              status: 'active'
+             partsRequest,
+             fuelTrims,
+             postRepairTrims,
+             status: 'active'
             },
-            orgId: organization.id
           })
           })
             .then(response => response.json())
@@ -1327,7 +1340,6 @@ const DiagnosticApp = () => {
       postRepairTrims: {...postRepairTrims}, // Post-repair fuel trim data (Step 13)
       partsRequest: [...partsRequest],
       stepNotes: {...stepNotes},
-      orgId: organization?.id || null
     };
 
     // Save to org-specific localStorage key
@@ -1344,21 +1356,26 @@ const DiagnosticApp = () => {
       try {
         await fetch(`${API_BASE_URL}/api/reports/save`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            reportData: {
-              id: null,
-              shopName,
-              technicianName,
-              vehicleInfo,
-              completedSteps: [...completedSteps],
-              stepNotes,
-              stepImages,
-              partsRequest,
-              status: 'archived'
-            },
-            orgId: organization.id
-          })
+ headers: {
+  'Content-Type': 'application/json',
+  'Authorization':
+    `Bearer ${localStorage.getItem('diagflow_token')}`
+},
+body: JSON.stringify({
+  reportData: {
+    id: null,
+    shopName,
+    technicianName,
+    vehicleInfo,
+    completedSteps: [...completedSteps],
+    stepNotes,
+    stepImages,
+    partsRequest,
+    fuelTrims,
+    postRepairTrims,
+    status: 'archived'
+  }
+})
         });
         console.log('Report archived to Supabase');
       } catch (err) {
@@ -1393,7 +1410,30 @@ const DiagnosticApp = () => {
         loaded: { stftB1: '', ltftB1: '', stftB2: '', ltftB2: '' }
       });
     }
-
+if (report.postRepairTrims) {
+  setPostRepairTrims(report.postRepairTrims);
+} else {
+  setPostRepairTrims({
+    idle: {
+      stftB1: '',
+      ltftB1: '',
+      stftB2: '',
+      ltftB2: ''
+    },
+    lightThrottle: {
+      stftB1: '',
+      ltftB1: '',
+      stftB2: '',
+      ltftB2: ''
+    },
+    loaded: {
+      stftB1: '',
+      ltftB1: '',
+      stftB2: '',
+      ltftB2: ''
+    }
+  });
+}
     // Restore images if available
     if (report.steps) {
       const restoredImages = {};
