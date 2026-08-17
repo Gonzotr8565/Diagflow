@@ -743,56 +743,106 @@ function generatePDFReport(reportData) {
         doc.y += 20;
 
         // Helper function to render a trim table
-        const renderTrimTable = (trims, title, color) => {
+               const renderTrimTable = (trims, title, color) => {
+          const columns = [
+            { label: 'Condition', x: 55, width: 80 },
+            { label: 'STFT B1', x: 140, width: 70 },
+            { label: 'LTFT B1', x: 220, width: 70 },
+            { label: 'STFT B2', x: 300, width: 70 },
+            { label: 'LTFT B2', x: 380, width: 70 }
+          ];
+
+          const writeCell = (value, column, y, align = 'left') => {
+            doc.text(
+              String(value),
+              column.x,
+              y,
+              {
+                width: column.width,
+                align,
+                lineBreak: false
+              }
+            );
+          };
+
+          const titleY = doc.y;
+
           doc.fillColor(color)
              .fontSize(11)
              .font('Helvetica-Bold')
-             .text(title, 50, doc.y);
-          doc.y += 15;
+             .text(title, 50, titleY, {
+               width: pageWidth,
+               lineBreak: false
+             });
 
-          // Table header
-          const colW = 80;
+          const headerY = titleY + 25;
+
           doc.fillColor('#f3f4f6')
-             .rect(50, doc.y, pageWidth, 20)
+             .rect(50, headerY, pageWidth, 20)
              .fill();
-          
+
           doc.fillColor('#374151')
              .fontSize(9)
-             .font('Helvetica-Bold')
-             .text('Condition', 55, doc.y + 5)
-             .text('STFT B1', 140, doc.y + 5)
-             .text('LTFT B1', 220, doc.y + 5)
-             .text('STFT B2', 300, doc.y + 5)
-             .text('LTFT B2', 380, doc.y + 5);
-          doc.y += 22;
+             .font('Helvetica-Bold');
 
-          // Rows
+          columns.forEach((column, index) => {
+            writeCell(
+              column.label,
+              column,
+              headerY + 5,
+              index === 0 ? 'left' : 'center'
+            );
+          });
+
           const rows = [
             { label: 'Idle', data: trims.idle || {} },
-            { label: 'Light Throttle', data: trims.lightThrottle || {} },
+            {
+              label: 'Light Throttle',
+              data: trims.lightThrottle || {}
+            },
             { label: 'Loaded', data: trims.loaded || {} }
           ];
 
-          rows.forEach((row, idx) => {
-            if (idx % 2 === 0) {
+          const fmt = (value) =>
+            value !== undefined &&
+            value !== null &&
+            String(value).trim() !== ''
+              ? `${value}%`
+              : '-';
+
+          rows.forEach((row, index) => {
+            const rowY = headerY + 22 + (index * 18);
+
+            if (index % 2 === 0) {
               doc.fillColor('#f9fafb')
-                 .rect(50, doc.y, pageWidth, 18)
+                 .rect(50, rowY, pageWidth, 18)
                  .fill();
             }
-            const fmt = (v) => (v !== undefined && v !== null && String(v).trim() !== '') ? v + '%' : '-';
+
             doc.fillColor('#333333')
                .fontSize(9)
-               .font('Helvetica')
-               .text(row.label, 55, doc.y + 4)
-               .text(fmt(row.data.stftB1), 140, doc.y + 4)
-               .text(fmt(row.data.ltftB1), 220, doc.y + 4)
-               .text(fmt(row.data.stftB2), 300, doc.y + 4)
-               .text(fmt(row.data.ltftB2), 380, doc.y + 4);
-            doc.y += 18;
-          });
-          doc.y += 10;
-        };
+               .font('Helvetica');
 
+            const values = [
+              row.label,
+              fmt(row.data.stftB1),
+              fmt(row.data.ltftB1),
+              fmt(row.data.stftB2),
+              fmt(row.data.ltftB2)
+            ];
+
+            values.forEach((value, columnIndex) => {
+              writeCell(
+                value,
+                columns[columnIndex],
+                rowY + 4,
+                columnIndex === 0 ? 'left' : 'center'
+              );
+            });
+          });
+
+          doc.y = headerY + 86;
+        };
         if (hasPreTrims) {
           renderTrimTable(fuelTrims, 'Pre-Repair Trims (Step 2)', '#16a34a');
         }
