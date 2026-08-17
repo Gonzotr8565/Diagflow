@@ -21,8 +21,38 @@ app.use(express.static('public'));
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://qafmmnwjgzlssogsipua.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhZm1tbndqZ3psc3NvZ3NpcHVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MTA0MDgsImV4cCI6MjA4MzI4NjQwOH0.67M7Ea2lDXK4bYRsPuZ0fagb4RtHAn5A2cAyBWV8TcQ';
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-console.log('Supabase connected');
+const SUPABASE_SERVER_KEY =
+  process.env.SUPABASE_SECRET_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  SUPABASE_ANON_KEY;
+
+if (
+  process.env.NODE_ENV === 'production' &&
+  SUPABASE_SERVER_KEY === SUPABASE_ANON_KEY
+) {
+  throw new Error(
+    'A Supabase server secret is required in production.'
+  );
+}
+
+const supabase = createClient(
+  SUPABASE_URL,
+  SUPABASE_SERVER_KEY,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
+  }
+);
+
+console.log(
+  `Supabase connected with ${
+    SUPABASE_SERVER_KEY === SUPABASE_ANON_KEY
+      ? 'local anon fallback'
+      : 'server secret'
+  }`
+);
 
 // =============================================
 // AUTH CONFIGURATION
