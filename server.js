@@ -9,7 +9,7 @@ const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const VERSION = 'V49 Pro';
+const VERSION = 'V50 Pro';
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));

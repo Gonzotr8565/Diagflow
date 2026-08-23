@@ -18,7 +18,7 @@
     <link rel="icon" type="image/svg+xml" href="/icons/diagflow-icon.svg">
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
 
-    <title>DiagFlow V49 - Professional Diagnostic Workflow</title>
+    <title>DiagFlow V50 - Professional Diagnostic Workflow</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -170,7 +170,7 @@ const LoginScreen = ({ onLogin }) => {
         </form>
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          Version 49 Pro • Multi-Shop
+          Version 50 Pro • Multi-Shop
         </p>
       </div>
     </div>
@@ -506,7 +506,7 @@ const HowToUsePage = () => {
 
       {/* Footer */}
       <div className="text-center text-gray-500 text-sm py-4">
-        <p>DiagFlow V49 Pro • {organization?.name || 'DiagFlow Beta'} • "Never Miss A Step"</p>
+        <p>DiagFlow V50 Pro • {organization?.name || 'DiagFlow Beta'} • "Never Miss A Step"</p>
       </div>
     </div>
   );
@@ -521,7 +521,7 @@ const DiagnosticApp = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [completedSteps, setCompletedSteps] = useState([]);
 
-  // Organization state (V49 Multi-Org)
+  // Organization state (V50 Multi-Org)
   const [organization, setOrganization] = useState(() => {
     const saved = localStorage.getItem('diagflow_org');
     return saved ? JSON.parse(saved) : null;
@@ -3979,7 +3979,7 @@ Review your documented findings against the known common issues for this vehicle
 
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h3 className="text-lg font-bold mb-2">About DiagFlow</h3>
-              <p className="text-sm text-gray-600 mb-2">Version 49 Pro - Email Routing Edition</p>
+              <p className="text-sm text-gray-600 mb-2">Version 50 Pro - Email Routing Edition</p>
               <p className="text-xs text-gray-500">
                 13-Step systematic diagnostic methodology designed by Master Technicians
               </p>
@@ -4057,7 +4057,7 @@ Review your documented findings against the known common issues for this vehicle
 
 
         ReactDOM.render(<DiagnosticApp />, document.getElementById('root'));
-        console.log("✅ DiagFlow V49 Pro Loaded!");
+        console.log("✅ DiagFlow V50 Pro Loaded!");
     </script>
 </body>
 </html>
