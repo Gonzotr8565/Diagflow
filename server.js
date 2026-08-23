@@ -1378,7 +1378,7 @@ app.post(
     console.log('AI Analysis requested for:', v.year + ' ' + v.make + ' ' + v.model);
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
       max_tokens: 2000,
       messages: [
         { role: 'user', content: userMessage }
