@@ -1791,7 +1791,7 @@ if (report.postRepairTrims) {
         body: JSON.stringify({
           reportData: {
             vehicleInfo,
-            steps: diagnosticSteps.map(step => ({
+            steps: diagnosticSteps.filter(step => step.id <= 10).map(step => ({
               id: step.id,
               title: step.title,
               completed: completedSteps.includes(step.id),
