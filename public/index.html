@@ -1761,51 +1761,23 @@ if (report.postRepairTrims) {
         })
       });
 
-      if (!response.ok) {
-        // Endpoint doesn't exist yet - show friendly message
-        console.log('Report data prepared:', reportData);
-        alert(`Report generated successfully!\n\nSending to:\n${uniqueRecipients.join('\n')}\n\nNote: Backend PDF/email endpoint needs to be configured.\n\nReport data is ready and logged to console.`);
-        setIsSubmitting(false);
-        setShowSubmitModal(false);
-        setSubmitEmail('');
-        setAdditionalEmails('');
-        return;
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success || !result.messageId) {
+        throw new Error(result.error || `Report submission failed (HTTP ${response.status})`);
       }
 
-      const result = await response.json();
+      alert(`Report sent to:\n${uniqueRecipients.join('\n')}\n\nThe job remains open for Step 13.\n\nMessage ID: ${result.messageId}`);
 
-      // Auto-archive the report after successful submission
-      await archiveCurrentJob();
-
-      // Show success message with archive confirmation
-      const shouldStartNew = confirm(`✅ Report successfully sent to:\n${uniqueRecipients.join('\n')}\n\n📦 Job archived automatically!\n\nWould you like to start a new job?`);
-
-      setIsSubmitting(false);
       setShowSubmitModal(false);
       setSubmitEmail('');
       setAdditionalEmails('');
-
-      // If user wants to start new job, reset everything
-      if (shouldStartNew) {
-        resetJob();
-      }
 
     } catch (error) {
-      console.log('Report data prepared:', await generatePDFReport());
-
-      // Still archive on error (report was generated successfully)
-      await archiveCurrentJob();
-
-      const shouldStartNew = confirm(`Report generated and archived!\n\nTo: ${uniqueRecipients.join(', ')}\n\nNote: Backend configuration needed for email delivery.\nReport data logged to console.\n\nWould you like to start a new job?`);
-
+      console.error('Report submission failed:', error);
+      alert(`Report was not sent.\n\n${error.message}\n\nThe job remains open; no data was archived or cleared.`);
+    } finally {
       setIsSubmitting(false);
-      setShowSubmitModal(false);
-      setSubmitEmail('');
-      setAdditionalEmails('');
-
-      if (shouldStartNew) {
-        resetJob();
-      }
     }
   };
 

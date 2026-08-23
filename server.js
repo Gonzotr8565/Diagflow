@@ -1104,35 +1104,22 @@ const orgId = req.auth.orgId;
     const markdownContent = generateMarkdownReport(reportData);
     const mdFilename = baseFilename + '.md';
 
-    // Attach full-resolution images as individual files so the SA (or shop system) can save
-    // them directly to whatever folder/network share they use, rather than only the
-    // PDF-embedded versions. Capped so a job with many photos doesn't blow past email size
-    // limits - the PDF appendix always has everything regardless of this cap.
-    const MAX_IMAGE_ATTACH_BYTES = 15 * 1024 * 1024; // ~15MB budget for raw image attachments
-    const imageAttachments = [];
-    let imageAttachBytes = 0;
-    let imagesSkipped = 0;
-    (reportData.steps || []).forEach(step => {
-      (step.images || []).forEach((img, idx) => {
-        const imgData = typeof img === 'string' ? img : (img.url || img.data);
-        if (!imgData || !imgData.startsWith('data:image')) return;
-        const match = imgData.match(/^data:image\/(\w+);base64,(.+)$/);
-        if (!match) return;
-        const ext = match[1] === 'jpeg' ? 'jpg' : match[1];
-        const base64Data = match[2];
-        const sizeBytes = Math.ceil(base64Data.length * 0.75);
-        if (imageAttachBytes + sizeBytes > MAX_IMAGE_ATTACH_BYTES) {
-          imagesSkipped++;
-          return;
-        }
-        imageAttachBytes += sizeBytes;
-        imageAttachments.push({
-          filename: 'Step' + step.id + '_' + step.title.replace(/[^a-z0-9]+/gi, '_').substring(0, 30) + '_' + (idx + 1) + '.' + ext,
-          content: base64Data
-        });
+    // Images are already included in the PDF. Attaching the originals again can push the
+    // Base64-encoded email over Resend's 40 MB limit.
+    const pdfBase64 = pdfBuffer.toString('base64');
+    const markdownBase64 = Buffer.from(markdownContent, 'utf-8').toString('base64');
+    const encodedAttachmentBytes = Buffer.byteLength(pdfBase64) + Buffer.byteLength(markdownBase64);
+    const MAX_SAFE_ATTACHMENT_BYTES = 38 * 1024 * 1024;
+
+    if (encodedAttachmentBytes > MAX_SAFE_ATTACHMENT_BYTES) {
+      console.error('Email attachment budget exceeded:', encodedAttachmentBytes);
+      return res.status(413).json({
+        success: false,
+        error: 'Report PDF is too large to email safely. Reduce image sizes or use secure file links.'
       });
-    });
-    console.log('Image attachments:', imageAttachments.length, 'skipped:', imagesSkipped, 'bytes:', imageAttachBytes);
+    }
+
+    console.log('Encoded email attachments:', encodedAttachmentBytes, 'bytes');
 
     // Support multiple input formats
     let emailList = [];
@@ -1210,10 +1197,7 @@ const orgId = req.auth.orgId;
       '<p style="margin: 0; font-size: 18px;"><strong>' + (reportData.completedSteps || 0) + '</strong> of <strong>' + (reportData.totalSteps || 13) + '</strong> steps completed</p>' +
       '</div>' +
       partsHtml +
-      '<p style="margin-top: 20px; color: #666;">Please find the complete diagnostic report attached as a PDF' +
-      (imageAttachments.length > 0 ? ', along with ' + imageAttachments.length + ' full-resolution image' + (imageAttachments.length === 1 ? '' : 's') + ' for closer review or filing' : '') +
-      '. A plain-text (.md) copy of the report is also attached for easy pasting into other systems.' +
-      (imagesSkipped > 0 ? '<br><em>Note: ' + imagesSkipped + ' additional image(s) were left off this email to keep it a reasonable size, but are still included in full inside the PDF.</em>' : '') +
+      '<p style="margin-top: 20px; color: #666;">Please find the complete diagnostic report attached as a PDF. Diagnostic images are included inside the PDF. A plain-text (.md) copy of the report is also attached for easy pasting into other systems.' +
       '</p>' +
       '</div>' +
       '<div style="background: #333; padding: 15px; text-align: center;">' +
@@ -1228,18 +1212,36 @@ const orgId = req.auth.orgId;
       attachments: [
         {
           filename: filename,
-          content: pdfBuffer.toString('base64')
+          content: pdfBase64
         },
         {
           filename: mdFilename,
-          content: Buffer.from(markdownContent, 'utf-8').toString('base64')
-        },
-        ...imageAttachments
+          content: markdownBase64
+        }
       ]
     });
 
-    console.log('Email sent successfully:', result);
-    res.json({ success: true, messageId: result.id });
+    if (result && result.error) {
+      const statusCode = Number(result.error.statusCode);
+      const responseStatus = statusCode >= 400 && statusCode <= 599 ? statusCode : 502;
+      console.error('Resend rejected email:', result.error);
+      return res.status(responseStatus).json({
+        success: false,
+        error: result.error.message || 'Email provider rejected the report.'
+      });
+    }
+
+    const messageId = result && result.data ? result.data.id : result && result.id;
+    if (!messageId) {
+      console.error('Resend returned no message ID:', result);
+      return res.status(502).json({
+        success: false,
+        error: 'Email provider did not confirm delivery acceptance.'
+      });
+    }
+
+    console.log('Email accepted by Resend:', messageId);
+    res.json({ success: true, messageId });
 
   } catch (error) {
     console.error('Submit report error:', error);
