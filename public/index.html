@@ -218,10 +218,10 @@ const HowToUsePage = () => {
     { step: 1, title: 'Pre-Scan Documentation', desc: 'Document ALL DTCs before work begins' },
     { step: 2, title: 'Test Drive & Data Capture', desc: 'Duplicate concern and record data' },
     { step: 3, title: 'Baseline Health & Inspection', desc: 'Check fluid levels, visual inspection, and digital inspection' },
-    { step: 4, title: 'Electrical System Evaluation', desc: 'Test battery state of health and stable voltage' },
+    { step: 4, title: 'Electrical System Evaluation (As Applicable)', desc: 'Assess electrical health to the level required; document N/A with rationale when a full test is unnecessary' },
     { step: 5, title: 'TSB & Known Issues Research', desc: 'Search manufacturer TSBs and NHTSA database' },
     { step: 6, title: 'Wiring Diagrams & System Operation', desc: 'Study system operation and identify components' },
-    { step: 7, title: 'Stable Voltage Setup', desc: 'Use battery maintainer during diagnostics' },
+    { step: 7, title: 'Stable Voltage Setup (As Applicable)', desc: 'Required for long KOEO work, OE queries, programming, flashing, and updates; otherwise document N/A with rationale' },
     { step: 8, title: 'Test Plan Development', desc: 'Write down test plan before testing' },
     { step: 9, title: 'Data Recording & Scope Work', desc: 'Capture waveforms and save scope data' },
     { step: 10, title: 'Delta Analysis & Data Mapping', desc: 'Compare readings to baseline values' },
@@ -1113,9 +1113,9 @@ const DiagnosticApp = () => {
     },
     {
       id: 4,
-      title: "Electrical System Evaluation",
+      title: "Electrical System Evaluation (As Applicable)",
       category: "Pre-Diagnostic",
-      bestPractice: "CRITICAL: Test battery STATE OF HEALTH and capacity, not just voltage. Check alternator output and ripple. Verify stable voltage before any diagnostic work - low voltage causes false DTCs and intermittent issues. Load test battery if over 2 years old."
+      bestPractice: "Match the electrical evaluation to the vehicle, concern, evidence, and planned work. A full battery and charging-system test is not required in every case. At minimum, decide whether system voltage can affect the diagnosis and document the basis. If battery condition, DTCs, symptoms, cranking behavior, or measured voltage make it relevant, test state of health/capacity and charging performance as needed. If deeper testing is not applicable, record N/A with a brief reason."
     },
     {
       id: 5,
@@ -1131,9 +1131,9 @@ const DiagnosticApp = () => {
     },
     {
       id: 7,
-      title: "Stable Voltage Setup",
+      title: "Stable Voltage Setup (As Applicable)",
       category: "Research",
-      bestPractice: "Use a battery maintainer or power supply during extended diagnostics. Unstable voltage during testing gives false results and can set DTCs. Many techs skip this and waste hours chasing ghosts. Maintain 12.6V minimum during all testing."
+      bestPractice: "Use an appropriate battery maintainer or programming power supply for extended key-on diagnostics, OE queries, module programming, flashing, coding, and software updates. Follow OE voltage and power-supply requirements for programming. A maintainer may not be necessary for short tests with adequate battery condition; when not needed, record N/A with a brief reason."
     },
     {
       id: 8,
