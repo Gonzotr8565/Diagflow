@@ -1773,8 +1773,46 @@ if (report.postRepairTrims) {
   // Help is available immediately once a vehicle job is open
   const canGetHelp = hasVehicleInfo;
 
-  // Check if all steps complete for AI Analysis
-  const canGetAI = completedSteps.length === 11;
+  // AI becomes a diagnostic checkpoint once Step 10 contains evidence.
+  const step10HasData = Boolean(String(stepNotes[10] || '').trim()) ||
+    (stepImages[10] || []).length > 0;
+  const canGetAI = hasVehicleInfo && step10HasData;
+
+  const requestAIAnalysis = async () => {
+    setIsAiLoading(true);
+    setAiAnalysis('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/ai-analysis`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('diagflow_token')}`
+        },
+        body: JSON.stringify({
+          reportData: {
+            vehicleInfo,
+            steps: diagnosticSteps.map(step => ({
+              id: step.id,
+              title: step.title,
+              completed: completedSteps.includes(step.id),
+              notes: stepNotes[step.id] || '',
+              imageCount: (stepImages[step.id] || []).length
+            })),
+            partsRequest
+          }
+        })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success || !data.analysis) {
+        throw new Error(data.error || `AI analysis failed (HTTP ${response.status})`);
+      }
+      setAiAnalysis(data.analysis);
+    } catch (error) {
+      setAiAnalysis(`AI analysis was not completed.\n\n${error.message}`);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   const saveStepNote = (stepId, note) => {
     setStepNotes(prev => ({ ...prev, [stepId]: note }));
@@ -2124,7 +2162,7 @@ if (report.postRepairTrims) {
               </button>
             )}
 
-            {/* AI Analysis - requires all 13 steps */}
+            {/* AI Analysis - available after Step 10 contains evidence */}
             {hasVehicleInfo && canGetAI && (
               <button
                 onClick={() => setShowAIModal(true)}
@@ -2706,7 +2744,7 @@ if (report.postRepairTrims) {
                 <div className="text-purple-800">
                   🚗 {vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}<br/>
                   📋 RO# {vehicleInfo.roNumber} • VIN: {vehicleInfo.vin || 'N/A'}<br/>
-                  ✅ All 13 diagnostic steps completed
+                  ✅ Step 10 documented • {new Set(completedSteps).size} of 13 steps completed
                 </div>
               </div>
 
@@ -2728,53 +2766,17 @@ if (report.postRepairTrims) {
                   <Sparkles className="w-16 h-16 mx-auto mb-4 text-purple-300" />
                   <h3 className="font-semibold text-gray-800 mb-2">Ready for AI Analysis</h3>
                   <p className="text-gray-600 text-sm mb-4">
-                    Our AI will analyze your complete diagnostic workflow and provide insights on:
+                    Claude will review the evidence through Step 10 before the technician proceeds:
                   </p>
                   <ul className="text-left text-sm text-gray-600 max-w-sm mx-auto space-y-1">
                     <li>• Potential root causes based on your findings</li>
                     <li>• Suggested next steps or additional tests</li>
                     <li>• Common issues for this vehicle</li>
-                    <li>• Confidence level in diagnosis</li>
+                    <li>• Missing details or clarity needed before Step 11</li>
                   </ul>
 
                   <button
-                    onClick={() => {
-                      setIsAiLoading(true);
-                      // Simulate AI analysis (replace with real API call later)
-                      setTimeout(() => {
-                        const notes = Object.entries(stepNotes).map(([id, note]) => `Step ${id}: ${note}`).join('\n');
-                        setAiAnalysis(`🔍 AI DIAGNOSTIC ANALYSIS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📋 VEHICLE: ${vehicleInfo.year} ${vehicleInfo.make} ${vehicleInfo.model}
-📊 MILEAGE: ${vehicleInfo.mileage || 'Not recorded'}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🧪 FINDINGS FROM YOUR DIAGNOSTIC:
-
-${notes || 'No notes recorded in diagnostic steps.'}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-💡 AI INSIGHTS:
-
-Based on your completed diagnostic workflow, here are the key observations:
-
-1. All 13 steps were completed systematically
-2. Documentation quality: ${Object.keys(stepNotes).length} steps have notes
-3. Photo documentation: ${Object.values(stepImages).filter(arr => arr.length > 0).length} steps have photos
-
-🎯 RECOMMENDATION:
-Review your documented findings against the known common issues for this vehicle. Your systematic approach following the "Never Miss A Step" methodology provides a solid foundation for accurate diagnosis.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-⚠️ NOTE: This is a preview of AI analysis. Full AI integration with Claude API coming soon for deeper diagnostic insights.
-`);
-                        setIsAiLoading(false);
-                      }, 2000);
-                    }}
+                    onClick={requestAIAnalysis}
                     className="mt-6 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 flex items-center gap-2 mx-auto"
                   >
                     <Sparkles className="w-5 h-5" />
