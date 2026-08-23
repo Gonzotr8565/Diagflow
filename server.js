@@ -369,7 +369,7 @@ const orgId = req.auth.orgId;
         .update(record)
         .eq('id', reportData.id)
         .eq('org_id', orgId)
-        .select()
+        .select('id, vehicle_year, vehicle_make, vehicle_model, vehicle_vin, ro_number, completed_steps, updated_at')
         .single();
       if (error) throw error;
       result = data;
@@ -379,14 +379,18 @@ const orgId = req.auth.orgId;
       const { data, error } = await supabase
         .from('reports')
         .insert(record)
-        .select()
+        .select('id, vehicle_year, vehicle_make, vehicle_model, vehicle_vin, ro_number, completed_steps, updated_at')
         .single();
       
       if (error) throw error;
       result = data;
     }
     
-    res.json({ success: true, report: result });
+    res.json({
+      success: true,
+      report: result,
+      summary: { imageCount: countImages(reportData.stepImages) }
+    });
   } catch (error) {
     console.error('Save report error:', error);
     res.status(500).json({ success: false, error: error.message });
