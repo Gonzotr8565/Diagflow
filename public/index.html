@@ -1814,6 +1814,54 @@ if (report.postRepairTrims) {
     }
   };
 
+  const buildAIReviewDocument = () => {
+    const vehicle = `${vehicleInfo.year || ''} ${vehicleInfo.make || ''} ${vehicleInfo.model || ''}`.trim();
+    return `# DiagFlow AI Checkpoint Review\n\n` +
+      `Vehicle: ${vehicle || 'Not specified'}\n` +
+      `RO: ${vehicleInfo.roNumber || 'Not specified'}\n` +
+      `VIN: ${vehicleInfo.vin || 'Not specified'}\n` +
+      `Generated: ${new Date().toLocaleString()}\n\n${aiAnalysis}`;
+  };
+
+  const saveAIAnalysisToJob = () => {
+    if (!aiAnalysis) return;
+    const review = buildAIReviewDocument();
+    setStepNotes(prev => {
+      const existing = String(prev[11] || '').trim();
+      if (existing.includes(aiAnalysis)) return prev;
+      return { ...prev, 11: existing ? `${existing}\n\n---\n\n${review}` : review };
+    });
+    alert('AI review saved to Step 11. Account sync will run automatically.');
+  };
+
+  const downloadAIAnalysis = () => {
+    if (!aiAnalysis) return;
+    const safeRo = String(vehicleInfo.roNumber || 'report').replace(/[^a-z0-9_-]+/gi, '-');
+    const blob = new Blob([buildAIReviewDocument()], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `DiagFlow-AI-Review-${safeRo}.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const printAIAnalysis = () => {
+    if (!aiAnalysis) return;
+    const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+    if (!printWindow) {
+      alert('Allow pop-ups for DiagFlow, then try Print again.');
+      return;
+    }
+    printWindow.document.write('<!doctype html><html><head><title>DiagFlow AI Review</title><style>body{font-family:Arial,sans-serif;max-width:850px;margin:32px auto;padding:0 20px;color:#111}pre{white-space:pre-wrap;word-wrap:break-word;font:14px/1.5 Arial,sans-serif}@media print{body{margin:0;max-width:none}}</style></head><body><pre id="review"></pre></body></html>');
+    printWindow.document.getElementById('review').textContent = buildAIReviewDocument();
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
   const saveStepNote = (stepId, note) => {
     setStepNotes(prev => ({ ...prev, [stepId]: note }));
   };
@@ -2759,6 +2807,26 @@ if (report.postRepairTrims) {
                 <div className="prose max-w-none">
                   <div className="bg-white border rounded-lg p-4 whitespace-pre-wrap text-sm">
                     {aiAnalysis}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
+                    <button
+                      onClick={saveAIAnalysisToJob}
+                      className="bg-purple-600 text-white py-2 px-3 rounded-lg font-semibold hover:bg-purple-700"
+                    >
+                      Save to Job
+                    </button>
+                    <button
+                      onClick={downloadAIAnalysis}
+                      className="border border-purple-300 text-purple-700 py-2 px-3 rounded-lg font-semibold hover:bg-purple-50"
+                    >
+                      Download .md
+                    </button>
+                    <button
+                      onClick={printAIAnalysis}
+                      className="border border-gray-300 text-gray-700 py-2 px-3 rounded-lg font-semibold hover:bg-gray-50"
+                    >
+                      Print
+                    </button>
                   </div>
                 </div>
               ) : (
