@@ -290,17 +290,23 @@ const orgId = req.auth.orgId;
       countImages(data.step_images || data.stepImages) +
       (Array.isArray(data.parts_request || data.partsRequest) ? (data.parts_request || data.partsRequest).length : 0);
 
+    let existing = null;
     if (reportData.id) {
-      const { data: existing, error: existingError } = await supabase
+      const { data: existingReport, error: existingError } = await supabase
         .from('reports')
-        .select('vehicle_year, vehicle_make, vehicle_model, vehicle_vin, ro_number, completed_steps, step_notes, step_images, parts_request')
+        .select('org_id, vehicle_year, vehicle_make, vehicle_model, vehicle_vin, ro_number, completed_steps, step_notes, step_images, parts_request')
         .eq('id', reportData.id)
-        .eq('org_id', orgId)
-        .single();
+        .maybeSingle();
 
       if (existingError) throw existingError;
+      existing = existingReport;
 
-      const existingIdentity = [
+      if (existing && existing.org_id !== orgId) {
+        return res.status(403).json({ success: false, error: 'This report belongs to another organization.' });
+      }
+
+      if (existing) {
+        const existingIdentity = [
         existing.vehicle_year,
         existing.vehicle_make,
         existing.vehicle_model,
@@ -312,20 +318,21 @@ const orgId = req.auth.orgId;
         value && value !== normalizedIncomingIdentity[index]
       );
 
-      if (identityChanged) {
+        if (identityChanged) {
         return res.status(409).json({
           success: false,
           error: 'Save blocked because this report ID belongs to a different vehicle or repair order.'
         });
       }
 
-      const existingScore = documentationScore(existing);
-      const incomingScore = documentationScore(reportData);
-      if (existingScore >= 8 && incomingScore <= 4) {
+        const existingScore = documentationScore(existing);
+        const incomingScore = documentationScore(reportData);
+        if (existingScore >= 8 && incomingScore <= 4) {
         return res.status(409).json({
           success: false,
           error: 'Save blocked because a nearly blank job would replace a documented active report.'
         });
+        }
       }
     }
 
@@ -345,16 +352,17 @@ const orgId = req.auth.orgId;
       vehicle_vin: reportData.vehicleInfo?.vin,
       ro_number: reportData.vehicleInfo?.roNumber,
       mileage: reportData.vehicleInfo?.mileage,
-      completed_steps: reportData.completedSteps || [],
+      completed_steps: [...new Set(reportData.completedSteps || [])],
       step_notes: persistedStepNotes,
       step_images: reportData.stepImages || {},
       parts_request: reportData.partsRequest || [],
       status: reportData.status || 'active',
       updated_at: new Date().toISOString()
     };
+    if (reportData.id) record.id = reportData.id;
     
     let result;
-    if (reportData.id) {
+    if (reportData.id && existing) {
       // Update existing
       const { data, error } = await supabase
         .from('reports')

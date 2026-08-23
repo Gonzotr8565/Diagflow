@@ -652,9 +652,10 @@ const DiagnosticApp = () => {
               },
               shopName: r.shop_name,
               technicianName: r.technician_name,
-              completedSteps: r.completed_steps?.length || 0,
-              completedStepIds: r.completed_steps || [],
+              completedSteps: new Set(r.completed_steps || []).size,
+              completedStepIds: [...new Set(r.completed_steps || [])],
               stepNotes: r.step_notes || {},
+              stepImages: r.step_images || {},
               fuelTrims:
               r.step_notes?.__diagflowFuelTrims || null,
               postRepairTrims:
@@ -684,6 +685,11 @@ const DiagnosticApp = () => {
         }
       }
 
+      // Normalize legacy entries that may contain the same completed step more than once.
+      loadedReports = loadedReports.map(report => {
+        const completedStepIds = [...new Set(report.completedStepIds || [])];
+        return { ...report, completedStepIds, completedSteps: completedStepIds.length };
+      });
       setArchivedReports(loadedReports);
       console.log('Total archived reports loaded:', loadedReports.length);
     };
@@ -731,7 +737,7 @@ const DiagnosticApp = () => {
         roNumber: report.ro_number || '',
         mileage: report.mileage || ''
       },
-      completedStepIds: Array.isArray(report.completed_steps) ? report.completed_steps : [],
+      completedStepIds: Array.isArray(report.completed_steps) ? [...new Set(report.completed_steps)] : [],
       stepNotes: persistedNotes,
       stepImages: report.step_images || {},
       partsRequest: Array.isArray(report.parts_request) ? report.parts_request : [],
@@ -744,7 +750,7 @@ const DiagnosticApp = () => {
   const restoreActiveJob = job => {
     setVehicleInfo(job.vehicleInfo);
     setHasVehicleInfo(true);
-    setCompletedSteps(job.completedStepIds || []);
+    setCompletedSteps([...new Set(job.completedStepIds || [])]);
     setStepNotes(job.stepNotes || {});
     setStepImages(job.stepImages || {});
     setPartsRequest(job.partsRequest || []);
@@ -833,8 +839,12 @@ const DiagnosticApp = () => {
     if (!hasVehicleInfo || !hasCheckedForActiveJob) return;
     setSaveStatus('Saving...');
     const timer = setTimeout(() => {
+      // Give a new job one stable ID before its first request. Every later save
+      // updates that same row, even if the technician completes a step quickly.
+      const reportId = activeReportId || crypto.randomUUID();
+      if (!activeReportId) setActiveReportId(reportId);
       const activeJob = {
-        reportId: activeReportId,
+        reportId,
         savedAt: new Date().toISOString(),
         vehicleInfo,
         completedStepIds: [...completedSteps],
@@ -867,7 +877,7 @@ const DiagnosticApp = () => {
 },
           body: JSON.stringify({
             reportData: {
-              id: activeReportId,
+              id: reportId,
               shopName,
               technicianName,
               vehicleInfo,
@@ -1394,7 +1404,7 @@ const DiagnosticApp = () => {
     }
   ];
 
-  const resetJob = (skipConfirm = false) => {
+  const resetJob = async (skipConfirm = false) => {
     if (!hasVehicleInfo) {
       // No vehicle info yet, just go to vehicle-info view
       setCurrentView('vehicle-info');
@@ -1406,7 +1416,22 @@ const DiagnosticApp = () => {
     if (!skipConfirm && hasData) {
       const action = window.confirm('Archive this job before starting new? Click OK to archive, Cancel to discard.');
       if (action) {
-        archiveCurrentJob();
+        const archived = await archiveCurrentJob();
+        if (!archived) return false;
+      } else if (activeReportId && organization?.id) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/reports/${activeReportId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('diagflow_token')}` }
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || !data.success) {
+            throw new Error(data.error || `Discard failed (HTTP ${response.status})`);
+          }
+        } catch (err) {
+          alert(`Job was not discarded. It remains open.\n\n${err.message}`);
+          return false;
+        }
       }
     }
 
@@ -1438,8 +1463,8 @@ const DiagnosticApp = () => {
       vehicleInfo,
       shopName: organization?.name || shopName,
       technicianName,
-      completedSteps: completedSteps.length,
-      completedStepIds: [...completedSteps],
+      completedSteps: new Set(completedSteps).size,
+      completedStepIds: [...new Set(completedSteps)],
       totalSteps: diagnosticSteps.length,
       steps: diagnosticSteps.map(step => ({
         id: step.id,
@@ -1456,60 +1481,95 @@ const DiagnosticApp = () => {
     };
 
     // Save to org-specific localStorage key
-    const newArchive = [report, ...archivedReports].slice(0, 50);
-    setArchivedReports(newArchive);
-    const archiveKey = organization?.id ? `diagflow_archive_${organization.id}` : 'diagflow_archive';
-    localStorage.setItem(archiveKey, JSON.stringify(newArchive));
-
-    // Job is now safely archived, so the in-progress auto-save is no longer needed
-    clearActiveJobSave();
-
-    // Also save to Supabase if we have an org
+    // Archive the existing cloud row. Do not insert a second copy of the job.
     if (organization?.id) {
       try {
-        await fetch(`${API_BASE_URL}/api/reports/save`, {
-          method: 'POST',
- headers: {
-  'Content-Type': 'application/json',
-  'Authorization':
-    `Bearer ${localStorage.getItem('diagflow_token')}`
-},
-body: JSON.stringify({
-  reportData: {
-    id: null,
-    shopName,
-    technicianName,
-    vehicleInfo,
-    completedSteps: [...completedSteps],
-    stepNotes,
-    stepImages,
-    partsRequest,
-    fuelTrims,
-    postRepairTrims,
-    status: 'archived'
-  }
-})
-        });
+        const reportId = activeReportId || crypto.randomUUID();
+        const response = activeReportId
+          ? await fetch(`${API_BASE_URL}/api/reports/${activeReportId}/archive`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('diagflow_token')}` }
+            })
+          : await fetch(`${API_BASE_URL}/api/reports/save`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('diagflow_token')}`
+              },
+              body: JSON.stringify({
+                reportData: {
+                  id: reportId,
+                  shopName,
+                  technicianName,
+                  vehicleInfo,
+                  completedSteps: [...new Set(completedSteps)],
+                  stepNotes,
+                  stepImages,
+                  partsRequest,
+                  fuelTrims,
+                  postRepairTrims,
+                  status: 'archived'
+                }
+              })
+            });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success || !data.report?.id) {
+          throw new Error(data.error || `Archive failed (HTTP ${response.status})`);
+        }
+        report.id = data.report.id;
+        report.date = data.report.updated_at || report.date;
+        const withoutSameJob = archivedReports.filter(existing => existing.id !== report.id);
+        const newArchive = [report, ...withoutSameJob].slice(0, 50);
+        setArchivedReports(newArchive);
+        const archiveKey = organization?.id ? `diagflow_archive_${organization.id}` : 'diagflow_archive';
+        localStorage.setItem(archiveKey, JSON.stringify(newArchive));
+        clearActiveJobSave();
         console.log('Report archived to Supabase');
       } catch (err) {
         console.log('Supabase archive failed:', err);
+        alert(`Job was not archived. It remains open.\n\n${err.message}`);
+        return false;
       }
+    } else {
+      const newArchive = [report, ...archivedReports.filter(existing => existing.id !== report.id)].slice(0, 50);
+      setArchivedReports(newArchive);
+      localStorage.setItem('diagflow_archive', JSON.stringify(newArchive));
+      clearActiveJobSave();
     }
 
-    return report;
+    return true;
   };
 
   // Restore archived report to active job
-  const restoreArchivedReport = (report) => {
+  const restoreArchivedReport = async (report) => {
     if (hasVehicleInfo) {
       const confirm = window.confirm('This will replace your current job. Continue?');
       if (!confirm) return;
     }
 
+    if (organization?.id && typeof report.id === 'string') {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/reports/${report.id}/restore`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('diagflow_token')}` }
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || `Restore failed (HTTP ${response.status})`);
+        }
+        setActiveReportId(report.id);
+      } catch (err) {
+        alert(`Job was not restored.\n\n${err.message}`);
+        return;
+      }
+    } else {
+      setActiveReportId(null);
+    }
+
     // Restore all data
     setVehicleInfo(report.vehicleInfo || { year: '', make: '', model: '', vin: '', roNumber: '', mileage: '' });
     setHasVehicleInfo(true);
-    setCompletedSteps(report.completedStepIds || []);
+    setCompletedSteps([...new Set(report.completedStepIds || [])]);
     setStepNotes(report.stepNotes || {});
     setPartsRequest(report.partsRequest || []);
 
@@ -1548,7 +1608,9 @@ if (report.postRepairTrims) {
   });
 }
     // Restore images if available
-    if (report.steps) {
+    if (report.stepImages) {
+      setStepImages(report.stepImages);
+    } else if (report.steps) {
       const restoredImages = {};
       report.steps.forEach(step => {
         if (step.images && step.images.length > 0) {
@@ -1556,6 +1618,8 @@ if (report.postRepairTrims) {
         }
       });
       setStepImages(restoredImages);
+    } else {
+      setStepImages({});
     }
 
     setSelectedStep(null);
@@ -3409,7 +3473,7 @@ Review your documented findings against the known common issues for this vehicle
             <div className="pb-4">
               <button
                 onClick={() => {
-                  setCompletedSteps(prev => [...prev, selectedStep.id]);
+                  setCompletedSteps(prev => prev.includes(selectedStep.id) ? prev : [...prev, selectedStep.id]);
                   setTimeout(() => {
                     setSelectedStep(null);
                     setCurrentView('workflow');
