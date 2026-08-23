@@ -1020,6 +1020,18 @@ const DiagnosticApp = () => {
             // Load saved org or use verify response
             if (savedOrg) {
               setOrganization(JSON.parse(savedOrg));
+            } else if (data.orgId) {
+              // A valid token can outlive browser organization storage after a
+              // deployment or storage cleanup. Rebuild the minimum shop profile
+              // so cloud Archive and active-job recovery still run.
+              const recoveredOrg = {
+                id: data.orgId,
+                name: data.orgName || 'DiagFlow Shop',
+                advisorEmails: [],
+                settings: {}
+              };
+              setOrganization(recoveredOrg);
+              localStorage.setItem('diagflow_org', JSON.stringify(recoveredOrg));
             }
           } else {
             localStorage.removeItem('diagflow_token');
