@@ -406,7 +406,7 @@ app.get(
     
     let query = supabase
       .from('reports')
-      .select('*')
+      .select('id, created_at, updated_at, status, shop_name, technician_name, vehicle_year, vehicle_make, vehicle_model, vehicle_vin, ro_number, mileage, completed_steps, step_notes, parts_request')
       .eq('status', 'active')
       .eq('org_id', orgId)
       .order('updated_at', { ascending: false })

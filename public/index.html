@@ -565,6 +565,7 @@ const DiagnosticApp = () => {
   const activeReportIdRef = useRef(null);
   const cloudSaveInFlightRef = useRef(false);
   const pendingCloudSaveRef = useRef(null);
+  const isClosingJobRef = useRef(false);
   const [saveStatus, setSaveStatus] = useState('Not saved yet');
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -692,6 +693,18 @@ const DiagnosticApp = () => {
       loadedReports = loadedReports.map(report => {
         const completedStepIds = [...new Set(report.completedStepIds || [])];
         return { ...report, completedStepIds, completedSteps: completedStepIds.length };
+      });
+      const seenJobs = new Set();
+      loadedReports = loadedReports.filter(report => {
+        const vehicle = report.vehicleInfo || {};
+        const ro = String(vehicle.roNumber || '').trim().toLowerCase();
+        const vin = String(vehicle.vin || '').trim().toLowerCase();
+        const vehicleName = [vehicle.year, vehicle.make, vehicle.model]
+          .map(value => String(value || '').trim().toLowerCase()).join('|');
+        const identity = ro || vin ? `${ro}|${vin}|${vehicleName}` : `id:${report.id}`;
+        if (seenJobs.has(identity)) return false;
+        seenJobs.add(identity);
+        return true;
       });
       setArchivedReports(loadedReports);
       console.log('Total archived reports loaded:', loadedReports.length);
@@ -906,8 +919,18 @@ const DiagnosticApp = () => {
     cloudSaveInFlightRef.current = false;
   };
 
+  const waitForCloudSaveIdle = async (timeoutMs = 120000) => {
+    const startedAt = Date.now();
+    while (cloudSaveInFlightRef.current || pendingCloudSaveRef.current) {
+      if (Date.now() - startedAt > timeoutMs) {
+        throw new Error('Timed out waiting for the current account save to finish.');
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  };
+
   useEffect(() => {
-    if (!hasVehicleInfo || !hasCheckedForActiveJob) return;
+    if (!hasVehicleInfo || !hasCheckedForActiveJob || isClosingJobRef.current) return;
     setSaveStatus('Saving...');
     const timer = setTimeout(() => {
       // Give a new job one stable ID before its first request. Every later save
@@ -1443,6 +1466,8 @@ const DiagnosticApp = () => {
         if (!archived) return false;
       } else if (activeReportId && organization?.id) {
         try {
+          isClosingJobRef.current = true;
+          await waitForCloudSaveIdle();
           const response = await fetch(`${API_BASE_URL}/api/reports/${activeReportId}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('diagflow_token')}` }
@@ -1452,6 +1477,7 @@ const DiagnosticApp = () => {
             throw new Error(data.error || `Discard failed (HTTP ${response.status})`);
           }
         } catch (err) {
+          isClosingJobRef.current = false;
           alert(`Job was not discarded. It remains open.\n\n${err.message}`);
           return false;
         }
@@ -1474,12 +1500,14 @@ const DiagnosticApp = () => {
     setSelectedStep(null);
     setSelectedScopeWorkflow(null);
     setCurrentView('vehicle-info');
+    isClosingJobRef.current = false;
 
     return true;
   };
 
   // Archive current job (saves to localStorage and Supabase if org)
   const archiveCurrentJob = async () => {
+    isClosingJobRef.current = true;
     const report = {
       id: Date.now(),
       date: new Date().toISOString(),
@@ -1507,6 +1535,7 @@ const DiagnosticApp = () => {
     // Archive the existing cloud row. Do not insert a second copy of the job.
     if (organization?.id) {
       try {
+        await waitForCloudSaveIdle();
         const reportId = activeReportId || crypto.randomUUID();
         const response = activeReportId
           ? await fetch(`${API_BASE_URL}/api/reports/${activeReportId}/archive`, {
@@ -1549,6 +1578,7 @@ const DiagnosticApp = () => {
         clearActiveJobSave();
         console.log('Report archived to Supabase');
       } catch (err) {
+        isClosingJobRef.current = false;
         console.log('Supabase archive failed:', err);
         alert(`Job was not archived. It remains open.\n\n${err.message}`);
         return false;
@@ -1580,6 +1610,18 @@ const DiagnosticApp = () => {
         if (!response.ok || !data.success) {
           throw new Error(data.error || `Restore failed (HTTP ${response.status})`);
         }
+        const cloudJob = normalizeCloudJob(data.report);
+        report = {
+          ...report,
+          vehicleInfo: cloudJob.vehicleInfo,
+          completedStepIds: cloudJob.completedStepIds,
+          completedSteps: cloudJob.completedStepIds.length,
+          stepNotes: cloudJob.stepNotes,
+          stepImages: cloudJob.stepImages,
+          partsRequest: cloudJob.partsRequest,
+          fuelTrims: cloudJob.fuelTrims,
+          postRepairTrims: cloudJob.postRepairTrims
+        };
         setActiveReportId(report.id);
         activeReportIdRef.current = report.id;
       } catch (err) {
