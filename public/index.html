@@ -697,7 +697,64 @@ const DiagnosticApp = () => {
   // Key is org-specific so different shops don't clobber each other on shared devices
   const getActiveJobKey = () => organization?.id ? `diagflow_active_job_${organization.id}` : 'diagflow_active_job';
 
-  // On login, if there's an in-progress job saved and nothing is currently loaded, resume it automatically
+  const hasJobIdentity = job => {
+    const vehicle = job?.vehicleInfo || {};
+    return [vehicle.year, vehicle.make, vehicle.model, vehicle.vin, vehicle.roNumber]
+      .some(value => String(value || '').trim());
+  };
+
+  const countJobImages = images => Object.values(images || {})
+    .reduce((total, group) => total + (Array.isArray(group) ? group.length : 0), 0);
+
+  const describeJob = job => {
+    const vehicle = job.vehicleInfo || {};
+    const vehicleName = [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ') || 'Vehicle';
+    return `${vehicleName} • RO# ${vehicle.roNumber || 'N/A'}`;
+  };
+
+  const normalizeCloudJob = report => {
+    if (!report) return null;
+    const persistedNotes = { ...(report.step_notes || {}) };
+    const fuelTrimsFromCloud = persistedNotes.__diagflowFuelTrims || null;
+    const postRepairTrimsFromCloud = persistedNotes.__diagflowPostRepairTrims || null;
+    delete persistedNotes.__diagflowFuelTrims;
+    delete persistedNotes.__diagflowPostRepairTrims;
+
+    return {
+      reportId: report.id,
+      savedAt: report.updated_at || report.created_at || new Date(0).toISOString(),
+      vehicleInfo: {
+        year: report.vehicle_year || '',
+        make: report.vehicle_make || '',
+        model: report.vehicle_model || '',
+        vin: report.vehicle_vin || '',
+        roNumber: report.ro_number || '',
+        mileage: report.mileage || ''
+      },
+      completedStepIds: Array.isArray(report.completed_steps) ? report.completed_steps : [],
+      stepNotes: persistedNotes,
+      stepImages: report.step_images || {},
+      partsRequest: Array.isArray(report.parts_request) ? report.parts_request : [],
+      fuelTrims: fuelTrimsFromCloud,
+      postRepairTrims: postRepairTrimsFromCloud,
+      source: 'account'
+    };
+  };
+
+  const restoreActiveJob = job => {
+    setVehicleInfo(job.vehicleInfo);
+    setHasVehicleInfo(true);
+    setCompletedSteps(job.completedStepIds || []);
+    setStepNotes(job.stepNotes || {});
+    setStepImages(job.stepImages || {});
+    setPartsRequest(job.partsRequest || []);
+    if (job.fuelTrims) setFuelTrims(job.fuelTrims);
+    if (job.postRepairTrims) setPostRepairTrims(job.postRepairTrims);
+    setActiveReportId(job.reportId || null);
+    setCurrentView('home');
+  };
+
+  // On login, restore the newest valid in-progress job from local storage or the account.
   const [hasCheckedForActiveJob, setHasCheckedForActiveJob] = useState(false);
   useEffect(() => {
     if (
@@ -705,33 +762,65 @@ const DiagnosticApp = () => {
   !organization?.id ||
   hasCheckedForActiveJob
 ) return;
-    setHasCheckedForActiveJob(true);
+    const loadActiveJob = async () => {
+      let localJob = null;
+      let cloudJob = null;
 
-    try {
-      const saved = localStorage.getItem(getActiveJobKey());
-      if (saved) {
-        const job = JSON.parse(saved);
-        if (job && job.vehicleInfo && (job.vehicleInfo.year || job.vehicleInfo.make || job.vehicleInfo.model || job.vehicleInfo.roNumber)) {
-          setVehicleInfo(job.vehicleInfo);
-          setHasVehicleInfo(true);
-          setCompletedSteps(job.completedStepIds || []);
-          setStepNotes(job.stepNotes || {});
-          setStepImages(job.stepImages || {});
-          setPartsRequest(job.partsRequest || []);
-          if (job.fuelTrims) setFuelTrims(job.fuelTrims);
-          if (job.postRepairTrims) setPostRepairTrims(job.postRepairTrims);
-          if (job.reportId) setActiveReportId(job.reportId);
-          setSaveStatus(
-            `Saved locally ${new Date(job.savedAt).toLocaleTimeString()}`
-          );
-
-          setCurrentView('home');
-          console.log('Resumed in-progress job from auto-save:', job.vehicleInfo);
+      try {
+        const saved = localStorage.getItem(getActiveJobKey());
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (hasJobIdentity(parsed)) localJob = { ...parsed, source: 'local' };
         }
+      } catch (error) {
+        console.log('Error reading local active job:', error);
       }
-    } catch (e) {
-      console.log('Error restoring in-progress job:', e);
-    }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/reports/active`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('diagflow_token')}`
+          }
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Account recovery request failed');
+        }
+        cloudJob = normalizeCloudJob(data.report);
+        if (!hasJobIdentity(cloudJob)) cloudJob = null;
+      } catch (error) {
+        console.log('Account active-job recovery failed:', error);
+      }
+
+      const localTime = localJob ? Date.parse(localJob.savedAt || 0) : 0;
+      const cloudTime = cloudJob ? Date.parse(cloudJob.savedAt || 0) : 0;
+      const job = cloudTime > localTime ? cloudJob : (localJob || cloudJob);
+
+      if (job) {
+        restoreActiveJob(job);
+        const savedTime = new Date(job.savedAt).toLocaleTimeString();
+        setSaveStatus(
+          job.source === 'account'
+            ? `Restored from account: ${describeJob(job)} • ${savedTime}`
+            : `Restored locally: ${describeJob(job)} • ${savedTime}`
+        );
+
+        if (job.source === 'account') {
+          try {
+            localStorage.setItem(getActiveJobKey(), JSON.stringify(job));
+          } catch (error) {
+            console.log('Account job restored; local cache is full:', error);
+          }
+        }
+        console.log(`Resumed in-progress job from ${job.source}:`, job.vehicleInfo);
+      } else {
+        setSaveStatus('No active job found');
+      }
+
+      setHasCheckedForActiveJob(true);
+    };
+
+    loadActiveJob();
   }, [
   isAuthenticated,
   organization?.id,
@@ -792,25 +881,49 @@ const DiagnosticApp = () => {
             },
           })
           })
-            .then(response => response.json())
+          .then(async response => {
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.success) {
+              throw new Error(data.error || `Account save failed (HTTP ${response.status})`);
+            }
+            return data;
+          })
           .then(data => {
-            if (!data.success || !data.report?.id) {
-              throw new Error(data.error || 'Account save failed');
+            if (!data.report?.id) {
+              throw new Error('Account save returned no report ID');
+            }
+
+            const savedVehicle = {
+              year: data.report.vehicle_year || '',
+              make: data.report.vehicle_make || '',
+              model: data.report.vehicle_model || '',
+              vin: data.report.vehicle_vin || '',
+              roNumber: data.report.ro_number || ''
+            };
+            const identityMatches = ['year', 'make', 'model', 'vin', 'roNumber']
+              .every(field => String(savedVehicle[field] || '').trim() === String(vehicleInfo[field] || '').trim());
+            const completedMatches = Array.isArray(data.report.completed_steps) &&
+              data.report.completed_steps.length === completedSteps.length;
+            const imagesMatch = countJobImages(data.report.step_images) === countJobImages(stepImages);
+
+            if (!identityMatches || !completedMatches || !imagesMatch) {
+              throw new Error('Account save verification did not match the current job');
             }
 
             setActiveReportId(data.report.id);
             const syncedJob = {
               ...activeJob,
               reportId: data.report.id,
-              savedAt: new Date().toISOString()
+              savedAt: data.report.updated_at || new Date().toISOString()
             };
-            localStorage.setItem(
-              getActiveJobKey(),
-              JSON.stringify(syncedJob)
-            );
-            setSaveStatus(
-              `Saved to account ${new Date(syncedJob.savedAt).toLocaleTimeString()}`
-            );
+            let localCacheSaved = true;
+            try {
+              localStorage.setItem(getActiveJobKey(), JSON.stringify(syncedJob));
+            } catch (error) {
+              localCacheSaved = false;
+              console.log('Account save verified; local cache is full:', error);
+            }
+            setSaveStatus(`${localCacheSaved ? 'Saved to account' : 'Saved to account; local cache full'}: ${describeJob(syncedJob)} • ${new Date(syncedJob.savedAt).toLocaleTimeString()}`);
           })
           .catch(err => {
             console.log('Background Supabase auto-save failed:', err);

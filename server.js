@@ -259,6 +259,76 @@ app.post(
   try {
   const { reportData } = req.body;
 const orgId = req.auth.orgId;
+    if (!reportData || !reportData.vehicleInfo) {
+      return res.status(400).json({ success: false, error: 'Vehicle information is required.' });
+    }
+
+    const incomingVehicle = reportData.vehicleInfo;
+    const incomingIdentity = [
+      incomingVehicle.year,
+      incomingVehicle.make,
+      incomingVehicle.model,
+      incomingVehicle.vin,
+      incomingVehicle.roNumber
+    ].map(value => String(value || '').trim());
+
+    if (!incomingIdentity.some(Boolean)) {
+      return res.status(400).json({
+        success: false,
+        error: 'A blank job cannot be saved to the account.'
+      });
+    }
+
+    const countNotes = notes => Object.entries(notes || {})
+      .filter(([key, value]) => !key.startsWith('__diagflow') && String(value || '').trim())
+      .length;
+    const countImages = images => Object.values(images || {})
+      .reduce((total, group) => total + (Array.isArray(group) ? group.length : 0), 0);
+    const documentationScore = data =>
+      (Array.isArray(data.completed_steps || data.completedSteps) ? (data.completed_steps || data.completedSteps).length : 0) +
+      countNotes(data.step_notes || data.stepNotes) +
+      countImages(data.step_images || data.stepImages) +
+      (Array.isArray(data.parts_request || data.partsRequest) ? (data.parts_request || data.partsRequest).length : 0);
+
+    if (reportData.id) {
+      const { data: existing, error: existingError } = await supabase
+        .from('reports')
+        .select('vehicle_year, vehicle_make, vehicle_model, vehicle_vin, ro_number, completed_steps, step_notes, step_images, parts_request')
+        .eq('id', reportData.id)
+        .eq('org_id', orgId)
+        .single();
+
+      if (existingError) throw existingError;
+
+      const existingIdentity = [
+        existing.vehicle_year,
+        existing.vehicle_make,
+        existing.vehicle_model,
+        existing.vehicle_vin,
+        existing.ro_number
+      ].map(value => String(value || '').trim().toLowerCase());
+      const normalizedIncomingIdentity = incomingIdentity.map(value => value.toLowerCase());
+      const identityChanged = existingIdentity.some((value, index) =>
+        value && value !== normalizedIncomingIdentity[index]
+      );
+
+      if (identityChanged) {
+        return res.status(409).json({
+          success: false,
+          error: 'Save blocked because this report ID belongs to a different vehicle or repair order.'
+        });
+      }
+
+      const existingScore = documentationScore(existing);
+      const incomingScore = documentationScore(reportData);
+      if (existingScore >= 8 && incomingScore <= 4) {
+        return res.status(409).json({
+          success: false,
+          error: 'Save blocked because a nearly blank job would replace a documented active report.'
+        });
+      }
+    }
+
     const persistedStepNotes = {
   ...(reportData.stepNotes || {}),
   __diagflowFuelTrims: reportData.fuelTrims || null,
