@@ -564,6 +564,7 @@ const DiagnosticApp = () => {
   const [archivedReports, setArchivedReports] = useState([]);
   const [activeReportId, setActiveReportId] = useState(null);
   const activeReportIdRef = useRef(null);
+  const activeOrganizationIdRef = useRef(organization?.id || null);
   const cloudSaveInFlightRef = useRef(false);
   const pendingCloudSaveRef = useRef(null);
   const isClosingJobRef = useRef(false);
@@ -589,6 +590,10 @@ const DiagnosticApp = () => {
   const [shopName, setShopName] = useState('');
   const [technicianName, setTechnicianName] = useState('');
 
+  useEffect(() => {
+    activeOrganizationIdRef.current = organization?.id || null;
+  }, [organization?.id]);
+
   // Load settings from localStorage on mount
   useEffect(() => {
     const savedShopName = localStorage.getItem('diagflow_shopName');
@@ -609,15 +614,6 @@ const DiagnosticApp = () => {
 
       if (organization?.id) {
         const localArchiveKey = `diagflow_archive_${organization.id}`;
-
-        // MIGRATION: Check if old generic key has data but org-specific doesn't
-        const oldArchive = localStorage.getItem('diagflow_archive');
-        const orgArchive = localStorage.getItem(localArchiveKey);
-        if (oldArchive && !orgArchive) {
-          // Migrate old archive to org-specific key
-          localStorage.setItem(localArchiveKey, oldArchive);
-          console.log('Migrated archive from generic key to org-specific key');
-        }
 
         // Load from org-specific localStorage
         const savedLocalArchive = localStorage.getItem(localArchiveKey);
@@ -642,7 +638,7 @@ const DiagnosticApp = () => {
   }
 );
           const data = await response.json();
-          if (data.success && data.reports && data.reports.length > 0) {
+          if (data.success && Array.isArray(data.reports)) {
             // Transform Supabase format to frontend format
             const supabaseReports = data.reports.map(r => ({
               id: r.id,
@@ -669,11 +665,10 @@ const DiagnosticApp = () => {
               fromSupabase: true
             }));
 
-            // Merge: Supabase reports first, then local reports not in Supabase
-            const supabaseIds = new Set(supabaseReports.map(r => r.id));
-            const uniqueLocalReports = loadedReports.filter(r => !supabaseIds.has(r.id));
-            loadedReports = [...supabaseReports, ...uniqueLocalReports];
-            console.log('Merged with', supabaseReports.length, 'Supabase reports');
+            // For an authenticated shop, the organization-scoped account archive is
+            // authoritative. Never merge generic or another shop's browser records.
+            loadedReports = supabaseReports;
+            console.log('Loaded', supabaseReports.length, 'account archive reports');
           }
         } catch (err) {
           console.log('Supabase archive load failed (using localStorage only):', err);
@@ -786,6 +781,7 @@ const DiagnosticApp = () => {
   !organization?.id ||
   hasCheckedForActiveJob
 ) return;
+    const requestedOrgId = organization.id;
     const loadActiveJob = async () => {
       let localJob = null;
       let cloudJob = null;
@@ -819,6 +815,10 @@ const DiagnosticApp = () => {
       const localTime = localJob ? Date.parse(localJob.savedAt || 0) : 0;
       const cloudTime = cloudJob ? Date.parse(cloudJob.savedAt || 0) : 0;
       const job = cloudTime > localTime ? cloudJob : (localJob || cloudJob);
+
+      // A login can change while cloud recovery is still in flight. Never apply a
+      // response obtained for a different shop to the current screen.
+      if (activeOrganizationIdRef.current !== requestedOrgId) return;
 
       if (job) {
         restoreActiveJob(job);
@@ -1052,30 +1052,41 @@ const DiagnosticApp = () => {
     localStorage.removeItem('diagflow_org');
     setIsAuthenticated(false);
     setOrganization(null);
+    setHasCheckedForActiveJob(false);
   };
 
   // Handle login with organization data
   const handleLogin = (token, org) => {
     setIsAuthenticated(true);
     if (org) {
+      activeOrganizationIdRef.current = org.id || null;
       setOrganization(org);
-      // Auto-populate shop name from org
-      if (org.name && !shopProfile.shopName) {
-        const updatedProfile = { ...shopProfile, shopName: org.name };
-        setShopProfile(updatedProfile);
-        localStorage.setItem('diagflow_shop_profile', JSON.stringify(updatedProfile));
-        setShopName(org.name);
-      }
-      // Auto-populate default recipients from org
-      if (org.advisorEmails && org.advisorEmails.length > 0) {
-        const updatedProfile = {
-          ...shopProfile,
-          shopName: org.name || shopProfile.shopName,
-          defaultRecipients: org.advisorEmails
-        };
-        setShopProfile(updatedProfile);
-        localStorage.setItem('diagflow_shop_profile', JSON.stringify(updatedProfile));
-      }
+      setHasCheckedForActiveJob(false);
+      // Explicit login starts from this organization's account state. The cloud
+      // recovery below will restore only this shop's current job.
+      setVehicleInfo({ year: '', make: '', model: '', vin: '', roNumber: '', mileage: '' });
+      setHasVehicleInfo(false);
+      setCompletedSteps([]);
+      setStepNotes({});
+      setStepImages({});
+      setPartsRequest([]);
+      setActiveReportId(null);
+      activeReportIdRef.current = null;
+      pendingCloudSaveRef.current = null;
+      setArchivedReports([]);
+      setCurrentView('vehicle-info');
+
+      const orgRecipients = Array.isArray(org.advisorEmails) ? org.advisorEmails : [];
+      const updatedProfile = {
+        ...shopProfile,
+        shopName: org.name || '',
+        defaultRecipients: orgRecipients
+      };
+      setShopProfile(updatedProfile);
+      localStorage.setItem(`diagflow_shop_profile_${org.id}`, JSON.stringify(updatedProfile));
+      setShopName(org.name || '');
+      setAdvisorEmail(orgRecipients[0] || '');
+      setSubmitEmail(orgRecipients[0] || '');
     }
   };
 
