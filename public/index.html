@@ -536,6 +536,7 @@ const DiagnosticApp = () => {
     mileage: ''
   });
   const [hasVehicleInfo, setHasVehicleInfo] = useState(false);
+  const [vehicleInfoEditBaseline, setVehicleInfoEditBaseline] = useState(null);
   const [stepNotes, setStepNotes] = useState({});
   const [stepImages, setStepImages] = useState({});
   const [partsRequest, setPartsRequest] = useState([]);
@@ -930,7 +931,7 @@ const DiagnosticApp = () => {
   };
 
   useEffect(() => {
-    if (!hasVehicleInfo || !hasCheckedForActiveJob || isClosingJobRef.current) return;
+    if (!hasVehicleInfo || !hasCheckedForActiveJob || isClosingJobRef.current || vehicleInfoEditBaseline) return;
     setSaveStatus('Saving...');
     const timer = setTimeout(() => {
       // Give a new job one stable ID before its first request. Every later save
@@ -987,7 +988,7 @@ const DiagnosticApp = () => {
     }, 800); // debounce so rapid typing doesn't spam saves
 
           return () => clearTimeout(timer);
-  }, [hasVehicleInfo, hasCheckedForActiveJob, vehicleInfo, completedSteps, stepNotes, stepImages, partsRequest, fuelTrims, postRepairTrims, organization, activeReportId]);
+  }, [hasVehicleInfo, hasCheckedForActiveJob, vehicleInfo, completedSteps, stepNotes, stepImages, partsRequest, fuelTrims, postRepairTrims, organization, activeReportId, vehicleInfoEditBaseline]);
 
   // Clear the in-progress auto-save once a job is archived, submitted, or discarded
   const clearActiveJobSave = () => {
@@ -1864,6 +1865,58 @@ if (report.postRepairTrims) {
 
   const saveStepNote = (stepId, note) => {
     setStepNotes(prev => ({ ...prev, [stepId]: note }));
+  };
+
+  const openVehicleInfoEditor = () => {
+    setVehicleInfoEditBaseline({ ...vehicleInfo });
+    setCurrentView('vehicle-info');
+  };
+
+  const cancelVehicleInfoEditor = () => {
+    if (vehicleInfoEditBaseline) setVehicleInfo(vehicleInfoEditBaseline);
+    setVehicleInfoEditBaseline(null);
+    setCurrentView('home');
+  };
+
+  const saveVehicleInformation = async () => {
+    const existingReportId = activeReportIdRef.current || activeReportId;
+    if (vehicleInfoEditBaseline && existingReportId) {
+      const identityFields = ['year', 'make', 'model', 'vin', 'roNumber'];
+      const identityChanged = identityFields.some(field =>
+        String(vehicleInfo[field] || '').trim() !== String(vehicleInfoEditBaseline[field] || '').trim()
+      );
+      if (identityChanged && !window.confirm('Year, make, model, VIN, or RO changed. Confirm this correction belongs to the current job.')) {
+        return;
+      }
+
+      try {
+        setSaveStatus('Saving vehicle details...');
+        const response = await fetch(`${API_BASE_URL}/api/reports/${existingReportId}/vehicle-info`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('diagflow_token')}`
+          },
+          body: JSON.stringify({ vehicleInfo })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || `Vehicle update failed (HTTP ${response.status})`);
+        }
+        setVehicleInfoEditBaseline(null);
+        setHasVehicleInfo(true);
+        setCurrentView('home');
+        setSaveStatus(`Vehicle details saved to account • ${new Date().toLocaleTimeString()}`);
+      } catch (error) {
+        setSaveStatus('Vehicle details save failed');
+        alert(error.message);
+      }
+      return;
+    }
+
+    setVehicleInfoEditBaseline(null);
+    setHasVehicleInfo(true);
+    setCurrentView('home');
   };
 
   // Update fuel trim values
@@ -2983,7 +3036,11 @@ if (report.postRepairTrims) {
           <div className="space-y-4">
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-xl font-bold mb-4">Vehicle & Job Information</h2>
-              <p className="text-sm text-gray-600 mb-4">Enter vehicle details to begin. All fields optional.</p>
+              <p className="text-sm text-gray-600 mb-4">
+                {vehicleInfoEditBaseline
+                  ? 'Update the current job. Changing VIN, RO, year, make, or model requires confirmation.'
+                  : 'Enter vehicle details to begin. All fields optional.'}
+              </p>
 
               <div className="space-y-4">
                 <div>
@@ -3065,12 +3122,22 @@ if (report.postRepairTrims) {
                 </div>
               </div>
 
-              <button
-                onClick={() => { setHasVehicleInfo(true); setCurrentView('home'); }}
-                className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700"
-              >
-                Start Diagnostic Workflow
-              </button>
+              <div className="flex gap-3 mt-6">
+                {vehicleInfoEditBaseline && (
+                  <button
+                    onClick={cancelVehicleInfoEditor}
+                    className="flex-1 border border-gray-300 py-3 rounded-lg font-semibold hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                )}
+                <button
+                  onClick={saveVehicleInformation}
+                  className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700"
+                >
+                  {vehicleInfoEditBaseline ? 'Save Vehicle Details' : 'Start Diagnostic Workflow'}
+                </button>
+              </div>
             </div>
           </div>
         ) : selectedStep && currentView === 'workflow' ? (
@@ -3732,7 +3799,14 @@ if (report.postRepairTrims) {
                     {vehicleInfo.roNumber && <div>RO#: {vehicleInfo.roNumber}</div>}
                     <div>{vehicleInfo.year} {vehicleInfo.make} {vehicleInfo.model}</div>
                     {vehicleInfo.vin && <div className="font-mono text-xs">{vehicleInfo.vin}</div>}
+                    {vehicleInfo.mileage && <div>Mileage: {vehicleInfo.mileage}</div>}
                   </div>
+                  <button
+                    onClick={openVehicleInfoEditor}
+                    className="mt-4 bg-white/15 hover:bg-white/25 border border-white/30 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+                  >
+                    Edit Vehicle Details
+                  </button>
                 </div>
               )}
             </div>

@@ -424,6 +424,43 @@ app.get(
   }
 });
 
+app.patch(
+  '/api/reports/:id/vehicle-info',
+  requireOrganizationAuth,
+  async (req, res) => {
+  try {
+    const vehicleInfo = req.body?.vehicleInfo || {};
+    const clean = value => String(value ?? '').trim();
+    const record = {
+      vehicle_year: clean(vehicleInfo.year),
+      vehicle_make: clean(vehicleInfo.make),
+      vehicle_model: clean(vehicleInfo.model),
+      vehicle_vin: clean(vehicleInfo.vin).toUpperCase(),
+      ro_number: clean(vehicleInfo.roNumber),
+      mileage: clean(vehicleInfo.mileage),
+      updated_at: new Date().toISOString()
+    };
+
+    if (record.vehicle_vin && record.vehicle_vin.length !== 17) {
+      return res.status(400).json({ success: false, error: 'VIN must be 17 characters or blank.' });
+    }
+
+    const { data, error } = await supabase
+      .from('reports')
+      .update(record)
+      .eq('id', req.params.id)
+      .eq('org_id', req.auth.orgId)
+      .select('id, vehicle_year, vehicle_make, vehicle_model, vehicle_vin, ro_number, mileage, updated_at')
+      .single();
+    if (error) throw error;
+
+    res.json({ success: true, report: data });
+  } catch (error) {
+    console.error('Update vehicle info error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.get(
   '/api/reports/archived/list',
   requireOrganizationAuth,
