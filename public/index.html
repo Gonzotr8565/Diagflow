@@ -871,6 +871,37 @@ const DiagnosticApp = () => {
           body: JSON.stringify({ reportData: queuedSave.reportData })
         });
         const data = await response.json().catch(() => ({}));
+        const isCrossOrganizationId = response.status === 403 &&
+          /belongs to another organization/i.test(String(data.error || ''));
+        if (isCrossOrganizationId && !queuedSave.adoptionAttempted) {
+          // Ask once per queued save. Declining must not create a prompt loop.
+          queuedSave.adoptionAttempted = true;
+          const adoptJob = window.confirm(
+            `This job is linked to another shop account.\n\nCopy the current job into ${organization?.name || 'this shop'} with a new account ID?`
+          );
+          if (adoptJob) {
+            const adoptedReportId = crypto.randomUUID();
+            const adoptedSave = {
+              ...queuedSave,
+              attempt: 0,
+              adoptionAttempted: true,
+              activeJob: {
+                ...queuedSave.activeJob,
+                reportId: adoptedReportId,
+                orgId: organization?.id || null
+              },
+              reportData: {
+                ...queuedSave.reportData,
+                id: adoptedReportId
+              }
+            };
+            activeReportIdRef.current = adoptedReportId;
+            setActiveReportId(adoptedReportId);
+            pendingCloudSaveRef.current = adoptedSave;
+            setSaveStatus(`Copying job into ${organization?.name || 'this shop'}...`);
+            continue;
+          }
+        }
         if (!response.ok || !data.success) {
           throw new Error(data.error || `Account save failed (HTTP ${response.status})`);
         }
@@ -1560,9 +1591,12 @@ const DiagnosticApp = () => {
     if (organization?.id) {
       try {
         await waitForCloudSaveIdle();
-        const reportId = activeReportId || crypto.randomUUID();
-        const response = activeReportId
-          ? await fetch(`${API_BASE_URL}/api/reports/${activeReportId}/archive`, {
+        // A controlled ownership recovery can replace the ID while this archive
+        // action is waiting for the save queue. Read the ref after the wait.
+        const currentCloudReportId = activeReportIdRef.current || activeReportId;
+        const reportId = currentCloudReportId || crypto.randomUUID();
+        const response = currentCloudReportId
+          ? await fetch(`${API_BASE_URL}/api/reports/${currentCloudReportId}/archive`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${localStorage.getItem('diagflow_token')}` }
             })
