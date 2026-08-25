@@ -406,7 +406,10 @@ app.get(
     
     let query = supabase
       .from('reports')
-      .select('id, created_at, updated_at, status, shop_name, technician_name, vehicle_year, vehicle_make, vehicle_model, vehicle_vin, ro_number, mileage, completed_steps, step_notes, parts_request')
+      // Active-job recovery must return the same technician-authored content that
+      // save accepts. Omitting step_images here restores an empty image map, and
+      // the next auto-save can overwrite the persisted images.
+      .select('id, created_at, updated_at, status, shop_name, technician_name, vehicle_year, vehicle_make, vehicle_model, vehicle_vin, ro_number, mileage, completed_steps, step_notes, step_images, parts_request')
       .eq('status', 'active')
       .eq('org_id', orgId)
       .order('updated_at', { ascending: false })
