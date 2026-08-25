@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "test:image-persistence": "node scripts/test-image-persistence.js",
-    "test:job-ownership-recovery": "node scripts/test-job-ownership-recovery.js"
+    "test:job-ownership-recovery": "node scripts/test-job-ownership-recovery.js",
+    "test:archive-quota": "node scripts/test-archive-quota.js"
   },
   "keywords": [
     "automotive",

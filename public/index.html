@@ -724,6 +724,16 @@ const DiagnosticApp = () => {
   const countJobImages = images => Object.values(images || {})
     .reduce((total, group) => total + (Array.isArray(group) ? group.length : 0), 0);
 
+  // Supabase is authoritative for authenticated archives. Keep only lightweight
+  // browser metadata so base64 image payloads cannot exhaust localStorage.
+  const prepareArchiveForLocalCache = reports => (reports || []).map(report => ({
+    ...report,
+    stepImages: {},
+    steps: Array.isArray(report.steps)
+      ? report.steps.map(step => ({ ...step, images: [] }))
+      : report.steps
+  }));
+
   const describeJob = job => {
     const vehicle = job.vehicleInfo || {};
     const vehicleName = [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ') || 'Vehicle';
@@ -1632,7 +1642,16 @@ const DiagnosticApp = () => {
         const newArchive = [report, ...withoutSameJob].slice(0, 50);
         setArchivedReports(newArchive);
         const archiveKey = organization?.id ? `diagflow_archive_${organization.id}` : 'diagflow_archive';
-        localStorage.setItem(archiveKey, JSON.stringify(newArchive));
+        try {
+          localStorage.setItem(
+            archiveKey,
+            JSON.stringify(prepareArchiveForLocalCache(newArchive))
+          );
+        } catch (cacheError) {
+          // The cloud archive already succeeded. A full browser cache must never
+          // turn that success into a failed archive or leave the job open.
+          console.log('Cloud archive saved; local archive cache unavailable:', cacheError);
+        }
         clearActiveJobSave();
         console.log('Report archived to Supabase');
       } catch (err) {
