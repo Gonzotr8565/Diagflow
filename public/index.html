@@ -570,6 +570,7 @@ const DiagnosticApp = () => {
   const isClosingJobRef = useRef(false);
   const [saveStatus, setSaveStatus] = useState('Not saved yet');
   const [aiAnalysis, setAiAnalysis] = useState('');
+  const [aiAnalysisSourceSignature, setAiAnalysisSourceSignature] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [submitEmail, setSubmitEmail] = useState('');
   const [additionalEmails, setAdditionalEmails] = useState('');
@@ -1842,10 +1843,38 @@ if (report.postRepairTrims) {
   const step10HasData = Boolean(String(stepNotes[10] || '').trim()) ||
     (stepImages[10] || []).length > 0;
   const canGetAI = hasVehicleInfo && step10HasData;
+  const hasSavedAIReview = String(stepNotes[11] || '').includes('# DiagFlow AI Checkpoint Review');
+
+  const buildAIReviewSourceSignature = () => {
+    const source = JSON.stringify({
+      vehicleInfo,
+      steps: diagnosticSteps.filter(step => step.id <= 10).map(step => ({
+        id: step.id,
+        completed: completedSteps.includes(step.id),
+        notes: stepNotes[step.id] || '',
+        images: (stepImages[step.id] || []).map(image => ({
+          id: image.id || '',
+          name: image.name || '',
+          description: image.description || '',
+          type: image.type || '',
+          url: image.url || ''
+        }))
+      })),
+      partsRequest
+    });
+    let hash = 2166136261;
+    for (let index = 0; index < source.length; index += 1) {
+      hash ^= source.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return `v1-${(hash >>> 0).toString(16).padStart(8, '0')}`;
+  };
 
   const requestAIAnalysis = async () => {
+    const requestedSourceSignature = buildAIReviewSourceSignature();
     setIsAiLoading(true);
     setAiAnalysis('');
+    setAiAnalysisSourceSignature('');
     try {
       const response = await fetch(`${API_BASE_URL}/api/ai-analysis`, {
         method: 'POST',
@@ -1872,6 +1901,7 @@ if (report.postRepairTrims) {
         throw new Error(data.error || `AI analysis failed (HTTP ${response.status})`);
       }
       setAiAnalysis(data.analysis);
+      setAiAnalysisSourceSignature(requestedSourceSignature);
     } catch (error) {
       setAiAnalysis(`AI analysis was not completed.\n\n${error.message}`);
     } finally {
@@ -1889,14 +1919,38 @@ if (report.postRepairTrims) {
   };
 
   const saveAIAnalysisToJob = () => {
-    if (!aiAnalysis) return;
+    if (!aiAnalysis || !aiAnalysisSourceSignature) return;
     const review = buildAIReviewDocument();
+    const reviewStart = '--- AI REPORT — managed by DiagFlow ---';
+    const reviewEnd = '--- END AI REPORT ---';
+    if (stepNotes.__diagflowAIReviewSourceSignature === aiAnalysisSourceSignature) {
+      alert('A saved AI report already exists for this Step 1-10 content. It was not overwritten.');
+      return;
+    }
     setStepNotes(prev => {
       const existing = String(prev[11] || '').trim();
-      if (existing.includes(aiAnalysis)) return prev;
-      return { ...prev, 11: existing ? `${existing}\n\n---\n\n${review}` : review };
+      const managedReview = `${reviewStart}\n${review}\n${reviewEnd}`;
+      let technicianText = existing;
+      const managedStartIndex = existing.indexOf(reviewStart);
+      const managedEndIndex = existing.indexOf(reviewEnd);
+      if (managedStartIndex >= 0 && managedEndIndex >= managedStartIndex) {
+        technicianText = `${existing.slice(0, managedStartIndex)}${existing.slice(managedEndIndex + reviewEnd.length)}`.trim();
+      } else {
+        // Convert reviews saved before managed markers were introduced. Any text
+        // before the first AI heading remains technician-authored Step 11 text.
+        const legacyReviewIndex = existing.indexOf('# DiagFlow AI Checkpoint Review');
+        if (legacyReviewIndex >= 0) {
+          technicianText = existing.slice(0, legacyReviewIndex).replace(/\s*---\s*$/, '').trim();
+        }
+      }
+
+      return {
+        ...prev,
+        11: technicianText ? `${technicianText}\n\n${managedReview}` : managedReview,
+        __diagflowAIReviewSourceSignature: aiAnalysisSourceSignature
+      };
     });
-    alert('AI review saved to Step 11. Account sync will run automatically.');
+    alert('Step 1-10 evidence changed. The previous AI report was replaced in Step 11. Account sync will run automatically.');
   };
 
   const downloadAIAnalysis = () => {
@@ -2953,6 +3007,11 @@ if (report.postRepairTrims) {
                   <p className="text-gray-600 text-sm mb-4">
                     Claude will review the evidence through Step 10 before the technician proceeds:
                   </p>
+                  {hasSavedAIReview && (
+                    <div className="max-w-md mx-auto mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-left text-sm text-blue-900">
+                      A saved AI report already exists in Step 11. Generate again after updating Step 1-10 evidence; Save will replace only the prior AI report and will preserve technician-written Step 11 notes.
+                    </div>
+                  )}
                   <ul className="text-left text-sm text-gray-600 max-w-sm mx-auto space-y-1">
                     <li>• Potential root causes based on your findings</li>
                     <li>• Suggested next steps or additional tests</li>
