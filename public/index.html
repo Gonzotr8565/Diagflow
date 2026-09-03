@@ -1134,6 +1134,18 @@ const DiagnosticApp = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedImage, setExpandedImage] = useState(null);
+
+  useEffect(() => {
+    if (!expandedImage) return;
+
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setExpandedImage(null);
+    };
+
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [expandedImage]);
+
   const [supportForm, setSupportForm] = useState({
     year: '',
     make: '',
@@ -2664,24 +2676,28 @@ if (report.postRepairTrims) {
 
       {/* Image Expand Modal */}
       {expandedImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4" onClick={() => setExpandedImage(null)}>
-          <div className="max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-white rounded-lg overflow-hidden">
-              <div className="p-4 bg-gray-100 border-b flex items-center justify-between">
-                <h3 className="font-bold text-lg">{expandedImage.title}</h3>
-                <button onClick={() => setExpandedImage(null)} className="text-gray-600 hover:text-gray-900">
-                  ✕
-                </button>
-              </div>
-              <img
-                src={expandedImage.image}
-                alt={expandedImage.title}
-                className="w-full h-auto"
-              />
-              <div className="p-4 bg-gray-50">
-                <p className="text-sm text-gray-700">{expandedImage.description}</p>
-              </div>
-            </div>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-90 z-50 overflow-auto p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={expandedImage.title || expandedImage.name || 'Expanded evidence image'}
+          onClick={() => setExpandedImage(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setExpandedImage(null)}
+            className="fixed top-4 right-4 z-10 w-11 h-11 rounded-full bg-black bg-opacity-70 text-white text-2xl leading-none hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-white"
+            aria-label="Close expanded image"
+          >
+            ✕
+          </button>
+          <div className="min-h-full flex items-center justify-center">
+            <img
+              src={expandedImage.url || expandedImage.image}
+              alt={expandedImage.name || expandedImage.title || 'Evidence image'}
+              className="block max-w-full h-auto object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
         </div>
       )}
@@ -3662,11 +3678,18 @@ if (report.postRepairTrims) {
                   {stepImages[selectedStep.id].map(image => (
                     <div key={image.id} className="border rounded-lg p-3 bg-gray-50">
                       <div className="flex gap-3">
-                        <img
-                          src={image.url}
-                          alt={image.name}
-                          className="w-24 h-24 object-cover rounded"
-                        />
+                        <button
+                          type="button"
+                          onClick={() => setExpandedImage(image)}
+                          className="flex-none rounded cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          aria-label={`Open ${image.name || 'evidence image'} in a larger view`}
+                        >
+                          <img
+                            src={image.url}
+                            alt={image.name || 'Evidence image'}
+                            className="w-24 h-24 object-cover rounded"
+                          />
+                        </button>
                         <div className="flex-1 space-y-2">
                           <div className="flex gap-2">
                             <button
@@ -3891,12 +3914,18 @@ if (report.postRepairTrims) {
                         {step.samples.map((sample, idx) => (
                           <div key={idx} className="bg-white rounded-lg p-3 border shadow-sm">
                             <div className="flex gap-3">
-                              <img
-                                src={sample.image}
-                                alt={sample.title}
-                                className="w-24 h-24 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+                              <button
+                                type="button"
                                 onClick={() => setExpandedImage(sample)}
-                              />
+                                className="flex-none rounded cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                aria-label={`Open ${sample.title} in a larger view`}
+                              >
+                                <img
+                                  src={sample.image}
+                                  alt={sample.title}
+                                  className="w-24 h-24 object-cover rounded"
+                                />
+                              </button>
                               <div className="flex-1">
                                 <h5 className="font-semibold text-sm mb-1 text-gray-900">{sample.title}</h5>
                                 <p className="text-xs text-gray-600">{sample.description}</p>
