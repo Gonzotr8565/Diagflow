@@ -512,6 +512,10 @@ const HowToUsePage = () => {
   );
 };
 
+const isEvidenceImage = image =>
+  !String(image?.name || '').toLowerCase().endsWith('.pdf') &&
+  !String(image?.url || '').startsWith('data:application/pdf');
+
 const DiagnosticApp = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -1134,6 +1138,7 @@ const DiagnosticApp = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedImage, setExpandedImage] = useState(null);
+  const [showImageGallery, setShowImageGallery] = useState(false);
 
   useEffect(() => {
     if (!expandedImage) return;
@@ -1145,6 +1150,17 @@ const DiagnosticApp = () => {
     document.addEventListener('keydown', closeOnEscape);
     return () => document.removeEventListener('keydown', closeOnEscape);
   }, [expandedImage]);
+
+  useEffect(() => {
+    if (!showImageGallery || expandedImage) return;
+
+    const closeGalleryOnEscape = (event) => {
+      if (event.key === 'Escape') setShowImageGallery(false);
+    };
+
+    document.addEventListener('keydown', closeGalleryOnEscape);
+    return () => document.removeEventListener('keydown', closeGalleryOnEscape);
+  }, [showImageGallery, expandedImage]);
 
   const [supportForm, setSupportForm] = useState({
     year: '',
@@ -2674,6 +2690,89 @@ if (report.postRepairTrims) {
         </div>
       )}
 
+      {/* Current Job Image Gallery */}
+      {showImageGallery && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-70 z-50 overflow-auto p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Current job images"
+          onClick={() => setShowImageGallery(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-5xl min-h-full mx-auto overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 z-10 bg-white border-b p-4 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold">Current Job Images</h2>
+                <p className="text-sm text-gray-600">Tap an image to view it full size</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowImageGallery(false)}
+                className="flex-none w-11 h-11 rounded-full text-gray-600 text-2xl leading-none hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                aria-label="Close current job images"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4 space-y-6">
+              {diagnosticSteps.map(step => {
+                const images = (stepImages[step.id] || []).filter(isEvidenceImage);
+
+                if (images.length === 0) return null;
+
+                return (
+                  <section key={step.id} aria-labelledby={`gallery-step-${step.id}`}>
+                    <h3 id={`gallery-step-${step.id}`} className="font-semibold mb-3">
+                      Step {step.id}: {step.title}
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {images.map(image => (
+                        <button
+                          key={image.id}
+                          type="button"
+                          onClick={() => setExpandedImage(image)}
+                          className="text-left rounded-lg border bg-gray-50 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          aria-label={`Open ${image.name || 'evidence image'} in a larger view`}
+                        >
+                          <img
+                            src={image.url}
+                            alt={image.name || 'Evidence image'}
+                            className="w-full aspect-square object-cover"
+                          />
+                          {(image.description || image.name) && (
+                            <div className="p-2 text-xs text-gray-700 truncate">
+                              {image.description || image.name}
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
+
+              {!Object.values(stepImages).some(images =>
+                (images || []).some(isEvidenceImage)
+              ) && (
+                <p className="py-12 text-center text-gray-500">No images have been added to this job.</p>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowImageGallery(false)}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                Return to Job
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Image Expand Modal */}
       {expandedImage && (
         <div
@@ -3972,12 +4071,20 @@ if (report.postRepairTrims) {
                 <div className="text-2xl font-bold text-green-600">{Object.keys(stepNotes).length}</div>
                 <div className="text-xs text-gray-600">Notes Taken</div>
               </div>
-              <div className="bg-white p-4 rounded-lg shadow-md text-center">
+              <button
+                type="button"
+                onClick={() => setShowImageGallery(true)}
+                className="bg-white p-4 rounded-lg shadow-md text-center cursor-pointer hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                aria-label="View all current job images"
+              >
                 <div className="text-2xl font-bold text-orange-600">
-                  {Object.values(stepImages).reduce((sum, imgs) => sum + imgs.length, 0)}
+                  {Object.values(stepImages).reduce(
+                    (sum, images) => sum + (images || []).filter(isEvidenceImage).length,
+                    0
+                  )}
                 </div>
-                <div className="text-xs text-gray-600">Photos Added</div>
-              </div>
+                <div className="text-xs text-gray-600">View Images</div>
+              </button>
               <div className="bg-white p-4 rounded-lg shadow-md text-center">
                 <div className="text-2xl font-bold text-purple-600">{Math.round((completedSteps.length / 13) * 100)}%</div>
                 <div className="text-xs text-gray-600">Progress</div>
